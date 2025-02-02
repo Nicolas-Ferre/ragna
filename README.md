@@ -1,8 +1,8 @@
 # Ragna
 
-[![License](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](https://github.com/Nicolas-Ferre/shad#license)
-[![CI](https://github.com/Nicolas-Ferre/shad/actions/workflows/ci.yml/badge.svg)](https://github.com/Nicolas-Ferre/shad/actions/workflows/ci.yml)
-[![Coverage with grcov](https://img.shields.io/codecov/c/gh/Nicolas-Ferre/shad)](https://app.codecov.io/gh/Nicolas-Ferre/shad)
+[![License](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](https://github.com/Nicolas-Ferre/ragna#license)
+[![CI](https://github.com/Nicolas-Ferre/ragna/actions/workflows/ci.yml/badge.svg)](https://github.com/Nicolas-Ferre/ragna/actions/workflows/ci.yml)
+[![Coverage with grcov](https://img.shields.io/codecov/c/gh/Nicolas-Ferre/ragna)](https://app.codecov.io/gh/Nicolas-Ferre/ragna)
 
 Ragna is a library for easily creating GPU-native applications, where most of the logic is run
 directly on GPU side.

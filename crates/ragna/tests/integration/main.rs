@@ -1,8 +1,7 @@
 #![allow(missing_docs)]
 
-use ragna::dummy;
+pub mod assignment;
+pub mod no_glob;
+pub mod read;
 
-#[test]
-pub fn dummy_test() {
-    assert_eq!(dummy(), 0);
-}
+// TODO: test case where constant value is modified (should have compile error)
