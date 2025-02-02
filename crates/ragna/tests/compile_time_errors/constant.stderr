@@ -1,0 +1,8 @@
+error[E0599]: no method named `assign` found for struct `Gpu<i32, Const>` in the current scope
+ --> tests/compile_time_errors/constant.rs:8:14
+  |
+8 |     CONSTANT.assign(ctx, Gpu::constant(20));
+  |              ^^^^^^ method not found in `Gpu<i32, Const>`
+  |
+  = note: the method was found for
+          - `Gpu<T, Mut>`

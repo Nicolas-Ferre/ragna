@@ -20,5 +20,8 @@ fxhash.workspace = true
 itertools.workspace = true
 wgpu.workspace = true
 
+[dev-dependencies]
+trybuild.workspace = true
+
 [lints]
 workspace = true
