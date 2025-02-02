@@ -16,16 +16,17 @@ mod gpu {
     const CONSTANT: Gpu<i32, Const> = Gpu::constant(30);
 
     pub(super) const FROM_VAR: Gpu<i32, Mut> =
-        Gpu::glob("", "FROM_VAR", |ctx| Gpu::constant(0).extract(ctx));
+        Gpu::glob("", 0, |ctx| Gpu::constant(0).extract(ctx));
     pub(super) const FROM_MODIFIED_VAR: Gpu<i32, Mut> =
-        Gpu::glob("", "FROM_MODIFIED_VAR", |ctx| Gpu::constant(0).extract(ctx));
+        Gpu::glob("", 1, |ctx| Gpu::constant(0).extract(ctx));
     pub(super) const FROM_CONSTANT: Gpu<i32, Mut> =
-        Gpu::glob("", "FROM_CONSTANT", |ctx| Gpu::constant(0).extract(ctx));
+        Gpu::glob("", 2, |ctx| Gpu::constant(0).extract(ctx));
     pub(super) const FROM_GLOB: Gpu<i32, Mut> =
-        Gpu::glob("", "FROM_GLOB", |ctx| Gpu::constant(0).extract(ctx));
+        Gpu::glob("", 3, |ctx| Gpu::constant(0).extract(ctx));
 
     #[allow(const_item_mutation)]
     fn run(ctx: &mut GpuContext) {
+        const LOCAL_GLOB: Gpu<i32, Mut> = Gpu::glob("", 4, |ctx| Gpu::constant(0).extract(ctx));
         let var = Gpu::var(ctx, Gpu::constant(10));
         FROM_VAR.assign(ctx, var);
         let mut modified_var = Gpu::var(ctx, Gpu::constant(10));
@@ -33,6 +34,7 @@ mod gpu {
         FROM_MODIFIED_VAR.assign(ctx, modified_var);
         FROM_CONSTANT.assign(ctx, CONSTANT);
         FROM_GLOB.assign(ctx, FROM_CONSTANT);
+        LOCAL_GLOB.assign(ctx, Gpu::constant(40));
     }
 
     pub(super) fn register(app: App) -> App {

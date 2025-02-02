@@ -1,10 +1,12 @@
-use crate::no_glob::gpu::{register, GLOB};
+use crate::multiple_runs::gpu::{register, GLOB};
 use ragna::App;
 
 #[test]
-pub fn run_app_without_glob() {
+pub fn run_app_multiple_times() {
     let app = App::default().with_module(register).run(1);
-    assert_eq!(app.read(GLOB), None);
+    assert_eq!(app.read(GLOB), Some(10));
+    let app = App::default().with_module(register).run(2);
+    assert_eq!(app.read(GLOB), Some(10));
 }
 
 mod gpu {
@@ -14,7 +16,7 @@ mod gpu {
 
     #[allow(const_item_mutation)]
     fn run(ctx: &mut GpuContext) {
-        Gpu::var(ctx, Gpu::constant(0));
+        GLOB.assign(ctx, Gpu::constant(10));
     }
 
     pub(super) fn register(app: App) -> App {

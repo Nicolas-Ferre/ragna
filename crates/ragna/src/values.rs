@@ -45,14 +45,14 @@ where
 {
     /// Creates a global variable stored in a GPU buffer.
     pub const fn glob(
-        namespace: &'static str,
-        name: &'static str,
+        module: &'static str,
+        id: u64,
         default_value: fn(&mut GpuContext) -> Self,
     ) -> Self {
         Self {
             value: TypedGpuValue::Glob(TypedGpuGlob {
-                namespace,
-                name,
+                module,
+                id,
                 default_value,
             }),
             phantom: PhantomData,
@@ -125,8 +125,8 @@ where
                 type_id: TypeId::of::<T>(),
             }),
             TypedGpuValue::Glob(glob) => Self::Glob(GpuGlob {
-                namespace: glob.namespace,
-                name: glob.name,
+                module: glob.module,
+                id: glob.id,
                 type_id: TypeId::of::<T>(),
                 default_value: Box::new(move |ctx: &mut GpuContext| {
                     (glob.default_value)(ctx).value.into()
@@ -150,7 +150,7 @@ struct TypedGpuGlob<T, K>
 where
     T: GpuType,
 {
-    namespace: &'static str,
-    name: &'static str,
+    module: &'static str,
+    id: u64,
     default_value: fn(&mut GpuContext) -> Gpu<T, K>,
 }

@@ -43,8 +43,8 @@ where
 
 #[derive_where(Debug)]
 pub(crate) struct GpuGlob {
-    pub(crate) namespace: &'static str,
-    pub(crate) name: &'static str,
+    pub(crate) module: &'static str,
+    pub(crate) id: u64,
     pub(crate) type_id: TypeId,
     #[derive_where(skip)]
     pub(crate) default_value: Box<dyn DefaultGlobValueFn>,
@@ -52,7 +52,7 @@ pub(crate) struct GpuGlob {
 
 impl PartialEq for GpuGlob {
     fn eq(&self, other: &Self) -> bool {
-        self.namespace == other.namespace && self.name == other.name
+        self.module == other.module && self.id == other.id
     }
 }
 
@@ -60,16 +60,16 @@ impl Eq for GpuGlob {}
 
 impl Hash for GpuGlob {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.namespace.hash(state);
-        self.name.hash(state);
+        self.module.hash(state);
+        self.id.hash(state);
     }
 }
 
 impl Clone for GpuGlob {
     fn clone(&self) -> Self {
         Self {
-            namespace: self.namespace,
-            name: self.name,
+            module: self.module,
+            id: self.id,
             type_id: self.type_id,
             default_value: dyn_clone::clone_box(&*self.default_value),
         }

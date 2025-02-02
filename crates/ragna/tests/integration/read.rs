@@ -22,8 +22,7 @@ pub fn read_glob() {
 mod gpu {
     use ragna::{App, Gpu, GpuContext, Mut};
 
-    pub(super) const GLOB: Gpu<i32, Mut> =
-        Gpu::glob("", "GLOB", |ctx| Gpu::constant(0).extract(ctx));
+    pub(super) const GLOB: Gpu<i32, Mut> = Gpu::glob("", 0, |ctx| Gpu::constant(0).extract(ctx));
 
     #[allow(const_item_mutation)]
     fn run(ctx: &mut GpuContext) {
