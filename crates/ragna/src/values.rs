@@ -43,6 +43,7 @@ impl<T> Gpu<T, Mut>
 where
     T: GpuType,
 {
+    // coverage: off (const fn)
     /// Creates a global variable stored in a GPU buffer.
     pub const fn glob(
         module: &'static str,
@@ -58,6 +59,7 @@ where
             phantom: PhantomData,
         }
     }
+    // coverage: on
 
     /// Creates a local variable.
     pub fn var(ctx: &mut GpuContext, value: Gpu<T, impl Any>) -> Self {
