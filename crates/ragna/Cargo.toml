@@ -1,0 +1,24 @@
+[package]
+name = "ragna"
+description = "Library for easily creating GPU-native applications"
+readme = "../../README.md"
+keywords = ["gpu", "rendering", "compute", "shader"]
+categories = ["game-development", "graphics", "rendering", "concurrency"]
+exclude = [".github", "README.md"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+derive-where.workspace = true
+dyn-clone.workspace = true
+futures.workspace = true
+fxhash.workspace = true
+itertools.workspace = true
+wgpu.workspace = true
+
+[lints]
+workspace = true
