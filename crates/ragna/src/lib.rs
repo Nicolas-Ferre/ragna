@@ -9,3 +9,6 @@ mod wgsl;
 
 pub use app::*;
 pub use values::*;
+
+/// Transforms a Rust module to a GPU module.
+pub use ragna_derive::gpu;

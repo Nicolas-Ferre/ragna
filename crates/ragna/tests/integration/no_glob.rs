@@ -7,17 +7,12 @@ pub fn run_app_without_glob() {
     assert_eq!(app.read(GLOB), None);
 }
 
+#[ragna::gpu]
 mod gpu {
-    use ragna::{App, Gpu, GpuContext, Mut};
+    pub(crate) static GLOB: i32 = 0;
 
-    pub(super) const GLOB: Gpu<i32, Mut> = Gpu::glob("", 0, |ctx| Gpu::constant(0).extract(ctx));
-
-    #[allow(const_item_mutation)]
-    fn run(ctx: &mut GpuContext) {
-        Gpu::var(ctx, Gpu::constant(0));
-    }
-
-    pub(super) fn register(app: App) -> App {
-        app.with_compute(run)
+    #[compute]
+    fn run() {
+        let _var = 0;
     }
 }

@@ -77,7 +77,7 @@ fn value_code(ctx: &GpuContext, value: &GpuValue) -> String {
 }
 
 fn glob_name(glob: &GpuGlob) -> String {
-    format!("glob_{}_{}", glob.module, glob.id)
+    format!("glob_{}_{}", glob.module.replace("::", "__"), glob.id)
 }
 
 fn type_name(types: &FxHashMap<TypeId, GpuTypeDetails>, type_id: TypeId) -> &str {

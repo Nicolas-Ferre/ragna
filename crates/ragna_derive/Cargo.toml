@@ -1,6 +1,6 @@
 [package]
-name = "ragna"
-description = "Library for easily creating GPU-native applications"
+name = "ragna_derive"
+description = "Ragna proc macros"
 readme = "../../README.md"
 keywords = ["gpu", "rendering", "compute", "shader"]
 categories = ["game-development", "graphics", "rendering", "concurrency"]
@@ -12,17 +12,13 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
-[dependencies]
-derive-where.workspace = true
-dyn-clone.workspace = true
-futures.workspace = true
-fxhash.workspace = true
-itertools.workspace = true
-wgpu.workspace = true
-ragna_derive.workspace = true
+[lib]
+proc-macro = true
 
-[dev-dependencies]
-trybuild.workspace = true
+[dependencies]
+proc-macro2.workspace = true
+quote.workspace = true
+syn.workspace = true
 
 [lints]
 workspace = true

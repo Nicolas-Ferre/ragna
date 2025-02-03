@@ -1,10 +1,10 @@
 use crate::operations::{AssignVarOperation, GpuGlob, GpuValue, Operation};
 use crate::runner::Runner;
 use crate::types::{GpuType, GpuTypeDetails};
-use crate::{wgsl, Gpu};
+use crate::{wgsl, Gpu, Mut};
 use fxhash::FxHashMap;
 use itertools::Itertools;
-use std::any::{Any, TypeId};
+use std::any::TypeId;
 use std::mem;
 
 /// The entrypoint of a Ragna application.
@@ -57,7 +57,7 @@ impl App {
     /// Reads a value stored on GPU side.
     ///
     /// If the passed value is not a global variable,
-    pub fn read<T>(&self, value: Gpu<T, impl Any>) -> Option<T>
+    pub fn read<T>(&self, value: Gpu<T, Mut>) -> Option<T>
     where
         T: GpuType,
     {
