@@ -130,11 +130,9 @@ impl Fold for GpuModule {
                         "unsupported function params",
                     ));
                 }
-                if item.sig.output != ReturnType::Default {
-                    self.errors.push(syn::Error::new(
-                        item.sig.output.span(),
-                        "unsupported function output",
-                    ));
+                if let ReturnType::Type(_, ty) = &item.sig.output {
+                    self.errors
+                        .push(syn::Error::new(ty.span(), "unsupported function output"));
                 }
                 if item.attrs.iter().any(Self::is_compute_attribute) {
                     self.compute_fns.push(item.sig.ident.clone());
