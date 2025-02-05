@@ -10,6 +10,8 @@ pub fn assign_values() {
     assert_eq!(app.read(FROM_GLOB), Some(30));
 }
 
+// TODO: add tests for static init from constant, from other glob, ...
+
 #[ragna::gpu]
 mod gpu {
     const CONSTANT: i32 = 30;

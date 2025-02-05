@@ -1,0 +1,9 @@
+[workspace]
+
+[package]
+name = "ragna_compile_test"
+edition = "2021"
+publish = false
+
+[dependencies]
+ragna = { path = "../crates/ragna" }

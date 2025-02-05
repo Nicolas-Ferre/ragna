@@ -20,9 +20,7 @@ fxhash.workspace = true
 itertools.workspace = true
 wgpu.workspace = true
 ragna_derive.workspace = true
-
-[dev-dependencies]
-trybuild.workspace = true
+log = "0.4.25"
 
 [lints]
 workspace = true

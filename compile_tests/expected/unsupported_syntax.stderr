@@ -1,41 +1,41 @@
 error: unsupported item
- --> tests/compile_time_errors/unsupported_syntax.rs:5:5
+ --> src/unsupported_syntax.rs:5:5
   |
 5 |     enum Enum {}
   |     ^^^^
 
 error: unsupported variable definition syntax
-  --> tests/compile_time_errors/unsupported_syntax.rs:10:13
+  --> src/unsupported_syntax.rs:10:13
    |
 10 |         let _ = 0;
    |             ^
 
 error: unsupported expression
-  --> tests/compile_time_errors/unsupported_syntax.rs:11:9
+  --> src/unsupported_syntax.rs:11:9
    |
 11 |         loop {}
    |         ^^^^
 
 error: unsupported function params
-  --> tests/compile_time_errors/unsupported_syntax.rs:14:19
+  --> src/unsupported_syntax.rs:14:19
    |
 14 |     fn invalid_fn(_param: i32) -> i32 {
    |                   ^^^^^^
 
 error: unsupported function output
-  --> tests/compile_time_errors/unsupported_syntax.rs:14:35
+  --> src/unsupported_syntax.rs:14:35
    |
 14 |     fn invalid_fn(_param: i32) -> i32 {
    |                                   ^^^
 
 error: unsupported expression
-  --> tests/compile_time_errors/unsupported_syntax.rs:15:9
+  --> src/unsupported_syntax.rs:15:9
    |
 15 |         unimplemented!()
    |         ^^^^^^^^^^^^^
 
 error[E0381]: used binding `var` isn't initialized
- --> tests/compile_time_errors/unsupported_syntax.rs:9:9
+ --> src/unsupported_syntax.rs:9:9
   |
 8 |         let mut var: i32;
   |             ------- binding declared here but left uninitialized

@@ -23,6 +23,8 @@ pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
                 app #(#compute_calls)*
             }
         });
+    } else {
+        unreachable!("not supported item");
     }
     let errors = fold.errors.into_iter().map(syn::Error::into_compile_error);
     quote! {
@@ -46,11 +48,10 @@ impl GpuModule {
     }
 
     fn is_compute_attribute(attr: &Attribute) -> bool {
-        if let Meta::Path(path) = &attr.meta {
-            path.segments.len() == 1 && path.segments[0].ident == "compute"
-        } else {
-            false
-        }
+        let path = attr.meta.path();
+        matches!(attr.meta, Meta::Path(_))
+            && path.segments.len() == 1
+            && path.segments[0].ident == "compute"
     }
 }
 
