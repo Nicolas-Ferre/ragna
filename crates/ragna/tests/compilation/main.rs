@@ -1,4 +1,4 @@
-#![allow(missing_docs, clippy::unwrap_used, clippy::print_stdout)]
+#![allow(missing_docs, clippy::unwrap_used)]
 
 use itertools::Itertools;
 use std::fs;
@@ -12,9 +12,8 @@ pub fn run_compile_tests() {
         .arg("--manifest-path=../../compile_tests/Cargo.toml")
         .output()
         .unwrap();
-    let stderr = String::from_utf8(output.stderr).unwrap();
-    println!("{}", stderr);
-    let grouped_errors = stderr
+    let grouped_errors = String::from_utf8(output.stderr)
+        .unwrap()
         .lines()
         .skip_while(|line| !line.contains("Checking ragna_compile_tests "))
         .skip(1)
@@ -54,6 +53,9 @@ pub fn run_compile_tests() {
 
 fn error_path(error: &str) -> String {
     let name_prefix = "--> src/";
+    println!("---> {}", error);
+    println!("===> {}", name_prefix);
+    println!("===> {:?}", error.find(name_prefix));
     let name_start_pos = error.find(name_prefix).unwrap() + name_prefix.len();
     let name_end_pos = error[name_start_pos..].find(".rs").unwrap() + name_start_pos;
     format!(
