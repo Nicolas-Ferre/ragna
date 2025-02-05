@@ -15,14 +15,7 @@ pub fn run_compile_tests() {
         .output()
         .unwrap();
     let stderr = String::from_utf8(output.stderr).unwrap();
-    println!(
-        "{}",
-        stderr
-            .lines()
-            .skip_while(|line| !line.contains("ragna_compile_tests"))
-            .skip(1)
-            .join("\n")
-    );
+
     let grouped_errors = stderr
         .lines()
         .skip_while(|line| !line.contains("ragna_compile_tests"))
@@ -36,6 +29,7 @@ pub fn run_compile_tests() {
         .enumerate()
         .map(|(index, error)| format!("{}{}", if index == 0 { "" } else { "error" }, error))
         .into_group_map_by(|error| error_path(error));
+    println!("{:?}", &grouped_errors);
     let mut is_new = false;
     for (path, errors) in grouped_errors {
         let errors = errors.join("\n").replace(
