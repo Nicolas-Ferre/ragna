@@ -12,7 +12,7 @@ pub fn run_compile_tests() {
         .arg("--manifest-path=../../compile_tests/Cargo.toml")
         .output()
         .unwrap();
-    let stderr = String::from_utf8(output.stderr).unwrap();
+    let stderr = String::from_utf8(strip_ansi_escapes::strip(output.stderr)).unwrap();
     println!("{}", stderr);
     let grouped_errors = stderr
         .lines()
