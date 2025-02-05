@@ -12,15 +12,15 @@ pub fn run_compile_tests() {
         .arg("--manifest-path=../../compile_tests/Cargo.toml")
         .output()
         .unwrap();
-    let stderr = String::from_utf8(strip_ansi_escapes::strip(output.stderr)).unwrap();
+    let stderr = String::from_utf8(output.stderr).unwrap();
     println!("{}", stderr);
     let grouped_errors = stderr
         .lines()
-        .skip_while(|line| !line.contains("Checking ragna_compile_tests "))
+        .skip_while(|line| !line.contains("ragna_compile_tests"))
         .skip(1)
         .take_while(|line| {
-            !line.contains("could not compile")
-                && !line.contains("Some errors have detailed explanations")
+            !line.contains("Some errors have detailed explanations")
+                && !line.contains("could not compile")
         })
         .join("\n")
         .split("\nerror")
