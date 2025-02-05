@@ -12,6 +12,11 @@ pub fn run_compile_tests() {
         .arg("--manifest-path=../../compile_tests/Cargo.toml")
         .env_clear()
         .env("PATH", env!("PATH"))
+        .env("RUSTFLAGS", option_env!("RUSTFLAGS").unwrap_or(""))
+        .env(
+            "LLVM_PROFILE_FILE",
+            option_env!("LLVM_PROFILE_FILE").unwrap_or(""),
+        )
         .output()
         .unwrap();
     let grouped_errors = String::from_utf8(output.stderr)
