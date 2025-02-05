@@ -14,9 +14,8 @@ pub fn run_compile_tests() {
         .arg("--manifest-path=../../compile_tests/Cargo.toml")
         .output()
         .unwrap();
-    let stderr = String::from_utf8(output.stderr).unwrap();
-
-    let grouped_errors = stderr
+    let grouped_errors = String::from_utf8(output.stderr.clone())
+        .unwrap()
         .lines()
         .skip_while(|line| !line.contains("ragna_compile_tests"))
         .skip(1)
@@ -29,7 +28,23 @@ pub fn run_compile_tests() {
         .enumerate()
         .map(|(index, error)| format!("{}{}", if index == 0 { "" } else { "error" }, error))
         .into_group_map_by(|error| error_path(error));
-    println!("{:?}", &grouped_errors);
+    println!(
+        "{:?}",
+        &String::from_utf8(output.stderr)
+            .unwrap()
+            .lines()
+            .skip_while(|line| !line.contains("ragna_compile_tests"))
+            .skip(1)
+            .take_while(|line| {
+                !line.contains("Some errors have detailed explanations")
+                    && !line.contains("could not compile")
+            })
+            .join("\n")
+            .split("\nerror")
+            .enumerate()
+            .map(|(index, error)| format!("{}{}", if index == 0 { "" } else { "error" }, error))
+            .collect::<Vec<_>>()
+    );
     let mut is_new = false;
     for (path, errors) in grouped_errors {
         let errors = errors.join("\n").replace(
