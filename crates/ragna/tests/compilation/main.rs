@@ -2,6 +2,7 @@
 
 use itertools::Itertools;
 use std::fs;
+use std::path::Path;
 use std::process::Command;
 
 #[test]
@@ -16,7 +17,7 @@ pub fn run_compile_tests() {
     let grouped_errors = String::from_utf8(output.stderr)
         .unwrap()
         .lines()
-        .skip_while(|line| !line.contains("Checking ragna_compile_test "))
+        .skip_while(|line| !line.contains("Checking ragna_compile_tests "))
         .skip(1)
         .take_while(|line| {
             !line.contains("could not compile")
@@ -25,16 +26,19 @@ pub fn run_compile_tests() {
         .join("\n")
         .split("\nerror")
         .enumerate()
-        .map(|(index, error)| {
-            (
-                index,
-                format!("{}{}", if index == 0 { "" } else { "error" }, error),
-            )
-        })
-        .into_group_map_by(|(_, error)| error_path(error));
+        .map(|(index, error)| format!("{}{}", if index == 0 { "" } else { "error" }, error))
+        .into_group_map_by(|error| error_path(error));
     let mut is_new = false;
     for (path, errors) in grouped_errors {
-        let errors = errors.into_iter().map(|(_, error)| error).join("\n");
+        let errors = errors.join("\n").replace(
+            &*Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .to_string_lossy(),
+            ".",
+        );
         if fs::exists(&path).unwrap() {
             let expected = String::from_utf8(fs::read(&path).unwrap()).unwrap();
             assert_eq!(expected, errors, "invalid errors for {path}");

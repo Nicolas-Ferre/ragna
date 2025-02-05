@@ -1,7 +1,7 @@
 [workspace]
 
 [package]
-name = "ragna_compile_test"
+name = "ragna_compile_tests"
 edition = "2021"
 publish = false
 
