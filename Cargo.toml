@@ -34,7 +34,6 @@ proc-macro2 = "1.0"
 quote = "1.0"
 reqwest = "0.12"
 spin_sleep = "1.2"
-strip-ansi-escapes = "0.2"
 syn = { version = "2.0", features = ["full", "fold", "extra-traits"] }
 wasm-bindgen-futures = "0.4"
 wasm-bindgen-test = "0.3"

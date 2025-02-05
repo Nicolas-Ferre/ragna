@@ -5,6 +5,8 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
+// TODO: make it possible to run the test with RustRover (need to remove the correct env variable)
+
 #[test]
 pub fn run_compile_tests() {
     let output = Command::new("cargo")
@@ -13,7 +15,14 @@ pub fn run_compile_tests() {
         .output()
         .unwrap();
     let stderr = String::from_utf8(output.stderr).unwrap();
-    println!("{}", stderr);
+    println!(
+        "{}",
+        stderr
+            .lines()
+            .skip_while(|line| !line.contains("ragna_compile_tests"))
+            .skip(1)
+            .join("\n")
+    );
     let grouped_errors = stderr
         .lines()
         .skip_while(|line| !line.contains("ragna_compile_tests"))
