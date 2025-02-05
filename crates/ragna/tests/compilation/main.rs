@@ -16,7 +16,7 @@ pub fn run_compile_tests() {
         .unwrap();
     println!(
         "{:?}",
-        &String::from_utf8(output.stderr)
+        &String::from_utf8(output.stderr.clone())
             .unwrap()
             .lines()
             .skip_while(|line| !line.contains("ragna_compile_tests"))
@@ -31,7 +31,7 @@ pub fn run_compile_tests() {
             .map(|(index, error)| format!("{}{}", if index == 0 { "" } else { "error" }, error))
             .collect::<Vec<_>>()
     );
-    let grouped_errors = String::from_utf8(output.stderr.clone())
+    let grouped_errors = String::from_utf8(output.stderr)
         .unwrap()
         .lines()
         .skip_while(|line| !line.contains("ragna_compile_tests"))
