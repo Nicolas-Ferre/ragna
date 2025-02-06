@@ -6,12 +6,14 @@ use std::path::Path;
 use std::process::Command;
 
 // TODO: make it possible to run the test with RustRover (need to remove the correct env variable)
+// TODO: https://github.com/Nicolas-Ferre/ragna/actions/runs/13164752601/job/36742056348?pr=4
 
 #[test]
 pub fn run_compile_tests() {
     let output = Command::new("cargo")
         .arg("check")
         .arg("--manifest-path=../../compile_tests/Cargo.toml")
+        .env_remove("CARGO_TERM_COLOR")
         .output()
         .unwrap();
     println!(
