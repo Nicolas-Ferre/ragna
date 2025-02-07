@@ -1,38 +1,19 @@
 #![allow(missing_docs, clippy::unwrap_used)]
 
 use itertools::Itertools;
-use std::fs;
 use std::path::Path;
 use std::process::Command;
-
-// TODO: make it possible to run the test with RustRover (need to remove the correct env variable)
-// TODO: https://github.com/Nicolas-Ferre/ragna/actions/runs/13164752601/job/36742056348?pr=4
+use std::{env, fs};
 
 #[test]
 pub fn run_compile_tests() {
     let output = Command::new("cargo")
+        .current_dir("../../compile_tests")
         .arg("check")
-        .arg("--manifest-path=../../compile_tests/Cargo.toml")
         .env_remove("CARGO_TERM_COLOR")
+        .env_remove("RUSTC_BOOTSTRAP")
         .output()
         .unwrap();
-    println!(
-        "{:?}",
-        &String::from_utf8(output.stderr.clone())
-            .unwrap()
-            .lines()
-            .skip_while(|line| !line.contains("ragna_compile_tests"))
-            .skip(1)
-            .take_while(|line| {
-                !line.contains("Some errors have detailed explanations")
-                    && !line.contains("could not compile")
-            })
-            .join("\n")
-            .split("\nerror")
-            .enumerate()
-            .map(|(index, error)| format!("{}{}", if index == 0 { "" } else { "error" }, error))
-            .collect::<Vec<_>>()
-    );
     let grouped_errors = String::from_utf8(output.stderr)
         .unwrap()
         .lines()
