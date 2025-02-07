@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "run-wasm"]
+members = ["crates/*", "run-wasm", "compile_tests"]
 resolver = "2"
 
 [workspace.package]
@@ -30,9 +30,11 @@ log = "0.4"
 logos = "0.15"
 pico-args = "0.5"
 pretty_env_logger = "0.5"
+proc-macro2 = "1.0"
+quote = "1.0"
 reqwest = "0.12"
 spin_sleep = "1.2"
-trybuild = "1.0"
+syn = { version = "2.0", features = ["full", "fold", "extra-traits"] }
 wasm-bindgen-futures = "0.4"
 wasm-bindgen-test = "0.3"
 web-sys = { version = "0.3", features = ["Location"] }
@@ -40,6 +42,7 @@ wgpu = "24.0"
 winit = "0.30"
 
 ragna = { version = "0.1.0", path = "crates/ragna" }
+ragna_derive = { version = "0.1.0", path = "crates/ragna_derive" }
 
 [workspace.lints.rust]
 anonymous_parameters = "warn"

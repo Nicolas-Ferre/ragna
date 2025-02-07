@@ -1,0 +1,8 @@
+[package]
+name = "ragna_compile_tests"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+ragna.workspace = true

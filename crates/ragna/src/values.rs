@@ -15,12 +15,12 @@ pub struct Const;
 
 /// A GPU value.
 #[derive_where(Debug, Clone, Copy; T)]
-pub struct Gpu<T, K>
+pub struct Gpu<T, M>
 where
     T: GpuType,
 {
-    value: TypedGpuValue<T, K>,
-    phantom: PhantomData<fn(K)>,
+    value: TypedGpuValue<T, M>,
+    phantom: PhantomData<fn(M)>,
 }
 
 impl<T> Gpu<T, Const>
@@ -87,40 +87,32 @@ where
     }
 }
 
-impl<T, K> Gpu<T, K>
+impl<T, M> Gpu<T, M>
 where
     T: GpuType,
-    K: 'static,
+    M: 'static,
 {
-    /// Extract the value in a variable.
-    pub fn extract(self, ctx: &mut GpuContext) -> Gpu<T, Mut>
-    where
-        T: ToString,
-    {
-        Gpu::var(ctx, self)
-    }
-
     pub(crate) fn value(self) -> GpuValue {
         self.value.into()
     }
 }
 
 #[derive_where(Debug, Clone, Copy; T)]
-enum TypedGpuValue<T, K>
+enum TypedGpuValue<T, M>
 where
     T: GpuType,
 {
     Constant(TypedGpuConstant<T>),
-    Glob(TypedGpuGlob<T, K>),
+    Glob(TypedGpuGlob<T, M>),
     Var(GpuVar),
 }
 
-impl<T, K> From<TypedGpuValue<T, K>> for GpuValue
+impl<T, M> From<TypedGpuValue<T, M>> for GpuValue
 where
     T: GpuType,
-    K: 'static,
+    M: 'static,
 {
-    fn from(value: TypedGpuValue<T, K>) -> Self {
+    fn from(value: TypedGpuValue<T, M>) -> Self {
         match value {
             TypedGpuValue::Constant(constant) => Self::Constant(GpuConstant {
                 value: constant.value.into_wgsl(),
@@ -148,11 +140,11 @@ where
 }
 
 #[derive_where(Debug, Clone, Copy; T)]
-struct TypedGpuGlob<T, K>
+struct TypedGpuGlob<T, M>
 where
     T: GpuType,
 {
     module: &'static str,
     id: u64,
-    default_value: fn(&mut GpuContext) -> Gpu<T, K>,
+    default_value: fn(&mut GpuContext) -> Gpu<T, M>,
 }
