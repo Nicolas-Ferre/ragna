@@ -82,23 +82,6 @@ impl Fold for GpuModule {
 
     fn fold_item(&mut self, item: Item) -> Item {
         match item {
-            Item::Const(item) => {
-                let ty = item.ty;
-                Item::Const(ItemConst {
-                    attrs: item.attrs,
-                    vis: item.vis,
-                    const_token: item.const_token,
-                    ident: item.ident,
-                    generics: item.generics,
-                    colon_token: item.colon_token,
-                    ty: parse_quote_spanned! {
-                        ty.span() => ::ragna::Gpu<#ty, ::ragna::Const>
-                    },
-                    eq_token: item.eq_token,
-                    expr: Box::new(self.fold_expr(item.expr.deref().clone())),
-                    semi_token: item.semi_token,
-                })
-            }
             Item::Static(item) => {
                 let id = LitInt::new(&self.next_glob_id().to_string(), item.span());
                 let ty = item.ty;
@@ -124,44 +107,64 @@ impl Fold for GpuModule {
                     semi_token: item.semi_token,
                 })
             }
-            Item::Fn(mut item) => {
-                if !item.sig.inputs.is_empty() {
-                    self.errors.push(syn::Error::new(
-                        item.sig.inputs.span(),
-                        "unsupported function params",
-                    ));
-                }
-                if let ReturnType::Type(_, ty) = &item.sig.output {
-                    self.errors
-                        .push(syn::Error::new(ty.span(), "unsupported function output"));
-                }
-                if item.attrs.iter().any(Self::is_compute_attribute) {
-                    self.compute_fns.push(item.sig.ident.clone());
-                }
-                let span = item.span();
-                item.sig.inputs.insert(
-                    0,
-                    parse_quote_spanned! { item.sig.span() => __ctx: &mut ::ragna::GpuContext },
-                );
-                Item::Fn(ItemFn {
-                    attrs: item
-                        .attrs
-                        .into_iter()
-                        .filter(|attr| !Self::is_compute_attribute(attr))
-                        .chain(iter::once(
-                            parse_quote_spanned! { span => #[allow(const_item_mutation)] },
-                        ))
-                        .collect(),
-                    vis: item.vis,
-                    sig: item.sig,
-                    block: Box::new(self.fold_block(item.block.deref().clone())),
-                })
-            }
+            item @ (Item::Const(_) | Item::Fn(_)) => fold::fold_item(self, item),
             item => {
                 self.errors
                     .push(syn::Error::new(item.span(), "unsupported item"));
                 fold::fold_item(self, item)
             }
+        }
+    }
+
+    fn fold_item_fn(&mut self, mut item: ItemFn) -> ItemFn {
+        if !item.sig.inputs.is_empty() {
+            self.errors.push(syn::Error::new(
+                item.sig.inputs.span(),
+                "unsupported function params",
+            ));
+        }
+        if let ReturnType::Type(_, ty) = &item.sig.output {
+            self.errors
+                .push(syn::Error::new(ty.span(), "unsupported function output"));
+        }
+        if item.attrs.iter().any(Self::is_compute_attribute) {
+            self.compute_fns.push(item.sig.ident.clone());
+        }
+        let span = item.span();
+        item.sig.inputs.insert(
+            0,
+            parse_quote_spanned! { item.sig.span() => __ctx: &mut ::ragna::GpuContext },
+        );
+        ItemFn {
+            attrs: item
+                .attrs
+                .into_iter()
+                .filter(|attr| !Self::is_compute_attribute(attr))
+                .chain(iter::once(
+                    parse_quote_spanned! { span => #[allow(const_item_mutation)] },
+                ))
+                .collect(),
+            vis: item.vis,
+            sig: item.sig,
+            block: Box::new(self.fold_block(item.block.deref().clone())),
+        }
+    }
+
+    fn fold_item_const(&mut self, item: ItemConst) -> ItemConst {
+        let ty = item.ty;
+        ItemConst {
+            attrs: item.attrs,
+            vis: item.vis,
+            const_token: item.const_token,
+            ident: item.ident,
+            generics: item.generics,
+            colon_token: item.colon_token,
+            ty: parse_quote_spanned! {
+                ty.span() => ::ragna::Gpu<#ty, ::ragna::Const>
+            },
+            eq_token: item.eq_token,
+            expr: Box::new(self.fold_expr(item.expr.deref().clone())),
+            semi_token: item.semi_token,
         }
     }
 

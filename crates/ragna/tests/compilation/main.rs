@@ -62,7 +62,7 @@ fn uncomment_compile_tests() {
     let uncommented = fs::read_to_string(LIB_RS_PATH)
         .unwrap()
         .lines()
-        .map(|l| l.replacen("// ", "", 1))
+        .map(|l| l.replacen("//", "", 1))
         .join("\n");
     fs::write(LIB_RS_PATH, uncommented).unwrap();
 }
@@ -71,7 +71,7 @@ fn comment_compile_tests() {
     let uncommented = fs::read_to_string(LIB_RS_PATH)
         .unwrap()
         .lines()
-        .map(|l| format!("// {l}"))
+        .map(|l| format!("//{l}"))
         .join("\n");
     fs::write(LIB_RS_PATH, uncommented).unwrap();
 }
