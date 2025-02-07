@@ -1,6 +1,7 @@
 [package]
 name = "ragna_compile_tests"
-edition = "2021"
+edition.workspace = true
+license.workspace = true
 publish = false
 
 [dependencies]
