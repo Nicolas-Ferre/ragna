@@ -139,12 +139,6 @@ jobs:
         env:
           RUSTFLAGS: -Cinstrument-coverage -Clink-dead-code
           LLVM_PROFILE_FILE: "%m.profraw"
-      - name: Run compile tests
-        run: cargo check --manifest-path compile_tests/Cargo.toml
-        env:
-          RUSTFLAGS: -Cinstrument-coverage -Clink-dead-code
-          LLVM_PROFILE_FILE: "%m.profraw"
-        continue-on-error: true
       - name: Generate HTML coverage report
         if: ${{ env.CODECOV_UPLOAD != 'true' }}
         run: bash -x .github/workflows/scripts/generate_coverage.sh html ./coverage/

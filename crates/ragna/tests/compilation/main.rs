@@ -5,15 +5,21 @@ use std::path::Path;
 use std::process::Command;
 use std::{env, fs};
 
+const LIB_RS_PATH: &str = "../../compile_tests/src/lib.rs";
+const EXPECTED_PATH: &str = "../../compile_tests/expected";
+
 #[test]
 pub fn run_compile_tests() {
+    uncomment_compile_tests();
     let output = Command::new("cargo")
-        .current_dir("../../compile_tests")
         .arg("check")
+        .arg("--package=ragna_compile_tests")
         .env_remove("CARGO_TERM_COLOR")
         .env_remove("RUSTC_BOOTSTRAP")
         .output()
         .unwrap();
+    println!("{:?}", String::from_utf8(output.stderr.clone()));
+    comment_compile_tests();
     let grouped_errors = String::from_utf8(output.stderr)
         .unwrap()
         .lines()
@@ -53,12 +59,30 @@ pub fn run_compile_tests() {
     );
 }
 
+fn uncomment_compile_tests() {
+    let uncommented = fs::read_to_string(LIB_RS_PATH)
+        .unwrap()
+        .lines()
+        .map(|l| l.replacen("// ", "", 1))
+        .join("\n");
+    fs::write(LIB_RS_PATH, uncommented).unwrap();
+}
+
+fn comment_compile_tests() {
+    let uncommented = fs::read_to_string(LIB_RS_PATH)
+        .unwrap()
+        .lines()
+        .map(|l| format!("// {l}"))
+        .join("\n");
+    fs::write(LIB_RS_PATH, uncommented).unwrap();
+}
+
 fn error_path(error: &str) -> String {
-    let name_prefix = "--> src/";
+    let name_prefix = "--> compile_tests/src/";
     let name_start_pos = error.find(name_prefix).unwrap() + name_prefix.len();
     let name_end_pos = error[name_start_pos..].find(".rs").unwrap() + name_start_pos;
     format!(
-        "../../compile_tests/expected/{}.stderr",
+        "{EXPECTED_PATH}/{}.stderr",
         &error[name_start_pos..name_end_pos]
     )
 }

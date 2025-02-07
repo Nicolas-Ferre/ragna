@@ -1,5 +1,5 @@
 error[E0308]: mismatched types
-  --> src/constant.rs:8:9
+  --> compile_tests/src/constant.rs:8:9
    |
 8  |         CONSTANT = 20;
    |         ^^^^^^^^
