@@ -18,7 +18,6 @@ pub fn run_compile_tests() {
         .env_remove("RUSTC_BOOTSTRAP")
         .output()
         .unwrap();
-    println!("{:?}", String::from_utf8(output.stderr.clone()));
     comment_compile_tests();
     let grouped_errors = String::from_utf8(output.stderr)
         .unwrap()

@@ -1,4 +1,4 @@
-use crate::multiple_runs::gpu::{register, GLOB};
+use crate::app::multiple_runs::gpu::{register, GLOB};
 use ragna::App;
 
 #[test]
@@ -11,7 +11,7 @@ pub fn run_app_multiple_times() {
 
 #[ragna::gpu]
 mod gpu {
-    pub(super) static GLOB: i32 = 0;
+    pub(crate) static GLOB: i32 = 0;
 
     #[compute]
     fn run() {

@@ -1,4 +1,4 @@
-use crate::no_glob::gpu::{register, GLOB};
+use crate::app::empty::gpu::{register, GLOB};
 use ragna::App;
 
 #[test]
