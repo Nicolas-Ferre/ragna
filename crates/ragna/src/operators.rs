@@ -1,50 +1,41 @@
-use crate::operations::{Operation, UnaryOperatorOperation};
+use crate::operations::{Operation, UnaryOperation};
 use crate::types::GpuType;
 use crate::{Gpu, GpuContext, Mut};
 use std::any::Any;
 
+macro_rules! impl_unary {
+    ($trait_:ident, $operator:literal, $type_:ty, $out_type:ty) => {
+        impl $trait_ for $type_ {
+            type Output = $out_type;
+
+            fn apply(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self, Mut> {
+                let var = Gpu::var(value, ctx);
+                ctx.operations.push(Operation::Unary(UnaryOperation {
+                    var: var.value(),
+                    value: value.value(),
+                    operator: $operator,
+                }));
+                var
+            }
+        }
+    };
+}
+
 /// A trait implemented for types that supports `-` unary operator on GPU side.
 pub trait GpuNeg: GpuType {
-    fn neg(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self, Mut>;
+    type Output: GpuType;
+
+    fn apply(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self, Mut>;
 }
 
-impl GpuNeg for i32 {
-    fn neg(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self, Mut> {
-        let var = Gpu::var(ctx, value);
-        ctx.operations
-            .push(Operation::UnaryOperator(UnaryOperatorOperation {
-                value: var.value(),
-                operator: "-",
-            }));
-        var
-    }
-}
-
-impl GpuNeg for f32 {
-    fn neg(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self, Mut> {
-        let var = Gpu::var(ctx, value);
-        ctx.operations
-            .push(Operation::UnaryOperator(UnaryOperatorOperation {
-                value: var.value(),
-                operator: "-",
-            }));
-        var
-    }
-}
+impl_unary!(GpuNeg, "-", i32, i32);
+impl_unary!(GpuNeg, "-", f32, f32);
 
 /// A trait implemented for types that supports `!` unary operator on GPU side.
 pub trait GpuNot: GpuType {
-    fn not(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self, Mut>;
+    type Output: GpuType;
+
+    fn apply(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self, Mut>;
 }
 
-impl GpuNot for bool {
-    fn not(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self, Mut> {
-        let var = Gpu::var(ctx, value);
-        ctx.operations
-            .push(Operation::UnaryOperator(UnaryOperatorOperation {
-                value: var.value(),
-                operator: "!",
-            }));
-        var
-    }
-}
+impl_unary!(GpuNot, "!", bool, bool);

@@ -1,5 +1,5 @@
-use crate::operations::{GpuGlob, GpuValue, Operation};
-use crate::types::GpuTypeDetails;
+use crate::operations::{Glob, Operation, Value};
+use crate::types::{GpuType, GpuTypeDetails};
 use crate::GpuContext;
 use fxhash::FxHashMap;
 use itertools::Itertools;
@@ -8,7 +8,7 @@ use std::any::TypeId;
 const BUFFER_NAME: &str = "buffer";
 const BUFFER_TYPE_NAME: &str = "Buffer";
 
-pub(crate) fn header_code(globs: &[GpuGlob], types: &FxHashMap<TypeId, GpuTypeDetails>) -> String {
+pub(crate) fn header_code(globs: &[Glob], types: &FxHashMap<TypeId, GpuTypeDetails>) -> String {
     if globs.is_empty() {
         String::new()
     } else {
@@ -59,46 +59,43 @@ fn operation_code(ctx: &GpuContext, operation: &Operation, indent: usize) -> Str
                 width = indent,
             )
         }
-        Operation::UnaryOperator(op) => {
-            let value = value_code(ctx, &op.value);
-            if op.value.value_type_id() == TypeId::of::<bool>() {
-                format!(
-                    "{empty: >width$}{} = u32({}bool({}));",
-                    value,
-                    op.operator,
-                    value,
-                    empty = "",
-                    width = indent,
-                )
+        Operation::Unary(op) => {
+            let value = if op.value.value_type_id() == TypeId::of::<bool>() {
+                format!("bool({})", value_code(ctx, &op.value))
             } else {
-                format!(
-                    "{empty: >width$}{} = {}{};",
-                    value,
-                    op.operator,
-                    value,
-                    empty = "",
-                    width = indent,
-                )
-            }
+                value_code(ctx, &op.value)
+            };
+            let unary_expr = if op.var.value_type_id() == TypeId::of::<bool>() {
+                let bool_gpu_type = bool::gpu_type_details().name;
+                format!("{bool_gpu_type}({}{})", op.operator, value)
+            } else {
+                format!("{}{}", op.operator, value)
+            };
+            format!(
+                "{empty: >width$}{} = {unary_expr};",
+                value_code(ctx, &op.var),
+                empty = "",
+                width = indent,
+            )
         }
     }
 }
 
-fn value_code(ctx: &GpuContext, value: &GpuValue) -> String {
+fn value_code(ctx: &GpuContext, value: &Value) -> String {
     match value {
-        GpuValue::Constant(constant) => {
+        Value::Constant(constant) => {
             format!(
                 "{}({})",
                 type_name(&ctx.types, constant.type_id),
                 constant.value
             )
         }
-        GpuValue::Glob(glob) => format!("{}.{}", BUFFER_NAME, glob_name(glob)),
-        GpuValue::Var(var) => format!("var{}", var.id),
+        Value::Glob(glob) => format!("{}.{}", BUFFER_NAME, glob_name(glob)),
+        Value::Var(var) => format!("var{}", var.id),
     }
 }
 
-fn glob_name(glob: &GpuGlob) -> String {
+fn glob_name(glob: &Glob) -> String {
     format!("glob_{}_{}", glob.module.replace("::", "__"), glob.id)
 }
 

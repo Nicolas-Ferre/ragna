@@ -108,7 +108,7 @@ impl Fold for GpuModule {
                 let right = self.fold_expr(expr.right.deref().clone());
                 parse_quote_spanned! {
                     expr.span() =>
-                    ::ragna::Gpu::assign(&mut #left, __ctx, #right)
+                    ::ragna::Gpu::assign(&mut #left, #right, __ctx)
                 }
             }
             Expr::Unary(expr) => {
@@ -158,7 +158,7 @@ impl Fold for GpuModule {
                             expr.span() => ::ragna::Gpu::glob(
                                 module_path!(),
                                 #id,
-                                |__ctx|{ #(#statements)* ::ragna::Gpu::var(__ctx, #expr) }
+                                |__ctx|{ #(#statements)* ::ragna::Gpu::var(#expr, __ctx) }
                             )
                         }
                     },
@@ -221,10 +221,9 @@ impl Fold for GpuModule {
             self.compute_fns.push(item.sig.ident.clone());
         }
         let span = item.span();
-        item.sig.inputs.insert(
-            0,
-            parse_quote_spanned! { item.sig.span() => __ctx: &mut ::ragna::GpuContext },
-        );
+        item.sig
+            .inputs
+            .push(parse_quote_spanned! { item.sig.span() => __ctx: &mut ::ragna::GpuContext });
         ItemFn {
             attrs: item
                 .attrs
@@ -273,7 +272,7 @@ impl Fold for GpuModule {
         LocalInit {
             eq_token: init.eq_token,
             expr: parse_quote_spanned! {
-                expr.span() => ::ragna::Gpu::var(__ctx, #expr)
+                expr.span() => ::ragna::Gpu::var(#expr, __ctx)
             },
             diverge: init.diverge,
         }

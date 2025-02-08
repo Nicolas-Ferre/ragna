@@ -1,4 +1,4 @@
-use crate::operations::{AssignVarOperation, GpuGlob, GpuValue, Operation};
+use crate::operations::{AssignVarOperation, Glob, Operation, Value};
 use crate::runner::Runner;
 use crate::types::{GpuType, GpuTypeDetails};
 use crate::{wgsl, Gpu, Mut};
@@ -11,7 +11,7 @@ use std::mem;
 #[derive(Debug, Default)]
 pub struct App {
     pub(crate) contexts: Vec<GpuContext>,
-    pub(crate) globs: Vec<GpuGlob>,
+    pub(crate) globs: Vec<Glob>,
     pub(crate) types: FxHashMap<TypeId, GpuTypeDetails>,
     pub(crate) runner: Option<Runner>,
 }
@@ -77,7 +77,7 @@ impl App {
             let right_value = glob.default_value.call(&mut ctx);
             ctx.operations
                 .push(Operation::AssignVar(AssignVarOperation {
-                    left_value: GpuValue::Glob(glob.clone()),
+                    left_value: Value::Glob(glob.clone()),
                     right_value,
                 }));
         }
@@ -118,7 +118,7 @@ impl GpuContext {
         id
     }
 
-    fn globs(&self) -> impl Iterator<Item = &GpuGlob> {
+    fn globs(&self) -> impl Iterator<Item = &Glob> {
         self.operations.iter().flat_map(|op| op.glob())
     }
 
