@@ -36,7 +36,12 @@ impl GpuType for u32 {
 
 impl GpuType for f32 {
     fn into_wgsl(self) -> String {
-        ToString::to_string(&self)
+        let value = ToString::to_string(&self);
+        if value.contains('.') {
+            value
+        } else {
+            format!("{value}.")
+        }
     }
 
     fn from_bytes(bytes: &[u8]) -> Self {
