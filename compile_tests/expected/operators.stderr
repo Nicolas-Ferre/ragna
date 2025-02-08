@@ -1,3 +1,15 @@
+error: unsupported unary operator
+ --> compile_tests/src/operators.rs:9:33
+  |
+9 |     static INVALID_DEREF: u32 = *&CONSTANT;
+  |                                 ^
+
+error: unsupported expression
+ --> compile_tests/src/operators.rs:9:34
+  |
+9 |     static INVALID_DEREF: u32 = *&CONSTANT;
+  |                                  ^
+
 error[E0277]: the trait bound `u32: ragna::operators::GpuNeg` is not satisfied
    --> compile_tests/src/operators.rs:7:31
     |

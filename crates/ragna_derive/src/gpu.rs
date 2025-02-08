@@ -116,10 +116,13 @@ impl Fold for GpuModule {
                     Self::transform_literal(expr)
                 } else {
                     match &expr.op {
-                        UnOp::Deref(_) => fold::fold_expr(self, Expr::Unary(expr)),
                         UnOp::Not(_) => self.transform_unary_op(expr, "not"),
                         UnOp::Neg(_) => self.transform_unary_op(expr, "neg"),
-                        _ => unreachable!("internal error: unexpected unary operator"),
+                        UnOp::Deref(_) | _ => {
+                            self.errors
+                                .push(syn::Error::new(expr.span(), "unsupported unary operator"));
+                            fold::fold_expr_unary(self, expr).into()
+                        }
                     }
                 }
             }

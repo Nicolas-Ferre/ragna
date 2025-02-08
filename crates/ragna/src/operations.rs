@@ -14,8 +14,7 @@ pub(crate) enum GpuValue {
 impl GpuValue {
     pub(crate) fn value_type_id(&self) -> TypeId {
         match self {
-            Self::Constant(value) => value.type_id,
-            Self::Glob(value) => value.type_id,
+            Self::Constant(_) | Self::Glob(_) => unreachable!("get `TypeId` from constant/glob"),
             Self::Var(value) => value.type_id,
         }
     }
@@ -28,6 +27,7 @@ impl GpuValue {
         }
     }
 }
+
 
 #[derive(Debug)]
 pub(crate) struct GpuConstant {

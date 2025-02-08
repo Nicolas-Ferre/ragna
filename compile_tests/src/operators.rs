@@ -6,4 +6,5 @@ mod gpu {
 
     static INVALID_NEG: u32 = -CONSTANT;
     static INVALID_NOT: u32 = !CONSTANT;
+    static INVALID_DEREF: u32 = *&CONSTANT;
 }
