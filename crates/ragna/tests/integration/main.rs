@@ -3,3 +3,4 @@
 pub mod app;
 pub mod assignment;
 pub mod globs;
+pub mod types;
