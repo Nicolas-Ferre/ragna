@@ -5,7 +5,7 @@ use std::any::Any;
 pub trait GpuType: Any + Copy {
     fn gpu_type_details() -> GpuTypeDetails {
         GpuTypeDetails {
-            wgsl_name: any::type_name::<Self>(),
+            name: any::type_name::<Self>(),
         }
     }
 
@@ -58,8 +58,8 @@ impl GpuType for bool {
     }
 }
 
-/// Details about a GPU type.
+/// Details about a GPU type on WGSL side.
 #[derive(Debug, Clone)]
 pub struct GpuTypeDetails {
-    pub(crate) wgsl_name: &'static str,
+    pub(crate) name: &'static str,
 }
