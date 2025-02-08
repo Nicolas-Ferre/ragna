@@ -81,7 +81,7 @@ fn glob_name(glob: &GpuGlob) -> String {
 }
 
 fn type_name(types: &FxHashMap<TypeId, GpuTypeDetails>, type_id: TypeId) -> &str {
-    types[&type_id].name
+    types[&type_id].wgsl_name
 }
 
 fn var_name(id: u64) -> String {

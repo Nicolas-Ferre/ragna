@@ -4,11 +4,11 @@ error[E0308]: mismatched types
 8  |         CONSTANT = 20;
    |         ^^^^^^^^
    |         |
-   |         expected `&mut Gpu<i32, Mut>`, found `&mut Gpu<i32, Const>`
+   |         expected `&mut Gpu<{integer}, Mut>`, found `&mut Gpu<i32, Const>`
    |         arguments to this function are incorrect
    |
-   = note: expected mutable reference `&mut Gpu<_, Mut>`
-              found mutable reference `&mut Gpu<_, Const>`
+   = note: expected mutable reference `&mut Gpu<{integer}, Mut>`
+              found mutable reference `&mut Gpu<i32, Const>`
 note: method defined here
   --> ./crates/ragna/src/values.rs:80:12
    |
