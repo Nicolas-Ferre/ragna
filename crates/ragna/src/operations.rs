@@ -28,7 +28,6 @@ impl GpuValue {
     }
 }
 
-
 #[derive(Debug)]
 pub(crate) struct GpuConstant {
     pub(crate) value: String,
