@@ -59,6 +59,28 @@ fn operation_code(ctx: &GpuContext, operation: &Operation, indent: usize) -> Str
                 width = indent,
             )
         }
+        Operation::UnaryOperator(op) => {
+            let value = value_code(ctx, &op.value);
+            if op.value.value_type_id() == TypeId::of::<bool>() {
+                format!(
+                    "{empty: >width$}{} = u32({}bool({}));",
+                    value,
+                    op.operator,
+                    value,
+                    empty = "",
+                    width = indent,
+                )
+            } else {
+                format!(
+                    "{empty: >width$}{} = {}{};",
+                    value,
+                    op.operator,
+                    value,
+                    empty = "",
+                    width = indent,
+                )
+            }
+        }
     }
 }
 

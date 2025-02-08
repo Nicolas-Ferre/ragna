@@ -2,6 +2,7 @@
 
 mod app;
 mod operations;
+mod operators;
 mod runner;
 mod types;
 mod values;

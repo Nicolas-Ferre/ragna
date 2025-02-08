@@ -1,12 +1,14 @@
+use proc_macro2::Span;
 use proc_macro2::{Ident, TokenStream};
-use quote::{quote, quote_spanned};
-use std::iter;
+use quote::{quote, quote_spanned, ToTokens};
 use std::ops::Deref;
+use std::{iter, mem};
 use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{
-    fold, parse_quote, parse_quote_spanned, Attribute, Expr, Generics, Item, ItemConst, ItemFn,
-    ItemMod, LitInt, Local, LocalInit, Meta, Pat, PatType, ReturnType, Token,
+    fold, parse_quote, parse_quote_spanned, Attribute, Block, Expr, ExprUnary, Generics, Item,
+    ItemConst, ItemFn, ItemMod, LitInt, Local, LocalInit, Meta, Pat, PatType, ReturnType, Stmt,
+    Token, UnOp,
 };
 
 pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
@@ -35,15 +37,16 @@ pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
 
 #[derive(Default)]
 struct GpuModule {
-    next_glob_id: u64,
+    next_id: u64,
     compute_fns: Vec<Ident>,
     errors: Vec<syn::Error>,
+    extracted_statements: Vec<Stmt>,
 }
 
 impl GpuModule {
-    fn next_glob_id(&mut self) -> u64 {
-        let id = self.next_glob_id;
-        self.next_glob_id += 1;
+    fn next_id(&mut self) -> u64 {
+        let id = self.next_id;
+        self.next_id += 1;
         id
     }
 
@@ -53,22 +56,74 @@ impl GpuModule {
             && path.segments.len() == 1
             && path.segments[0].ident == "compute"
     }
+
+    fn new_var_ident(&mut self, span: Span) -> Ident {
+        Ident::new(&format!("tmp{}", self.next_id()), span)
+    }
+
+    fn transform_literal(literal: impl ToTokens) -> Expr {
+        parse_quote_spanned! {
+            literal.span() =>
+            ::ragna::Gpu::constant(#literal)
+        }
+    }
+
+    fn transform_unary_op(&mut self, expr: ExprUnary, op_name: &str) -> Expr {
+        let span = expr.span();
+        let op_ident = Ident::new(op_name, span);
+        let attrs = expr.attrs;
+        let expr = self.fold_expr(*expr.expr);
+        let var_ident = self.new_var_ident(span);
+        self.extracted_statements.push(parse_quote_spanned! {
+            span =>
+            let #var_ident = #(#attrs)* ::ragna::Gpu::#op_ident(&#expr, __ctx);
+        });
+        parse_quote_spanned! { span => #var_ident }
+    }
 }
 
 #[allow(clippy::wildcard_enum_match_arm)]
 impl Fold for GpuModule {
+    fn fold_block(&mut self, block: Block) -> Block {
+        Block {
+            brace_token: block.brace_token,
+            stmts: block
+                .stmts
+                .into_iter()
+                .flat_map(|stmt| {
+                    let stmt = self.fold_stmt(stmt);
+                    mem::take(&mut self.extracted_statements)
+                        .into_iter()
+                        .chain(iter::once(stmt))
+                })
+                .collect(),
+        }
+    }
+
     fn fold_expr(&mut self, expr: Expr) -> Expr {
         match expr {
-            Expr::Lit(expr) => parse_quote_spanned! {
-                expr.span() =>
-                ::ragna::Gpu::constant(#expr)
-            },
+            Expr::Lit(expr) => Self::transform_literal(expr),
             Expr::Assign(expr) => {
                 let left = &expr.left;
                 let right = self.fold_expr(expr.right.deref().clone());
                 parse_quote_spanned! {
                     expr.span() =>
                     ::ragna::Gpu::assign(&mut #left, __ctx, #right)
+                }
+            }
+            Expr::Unary(expr) => {
+                if matches!(*expr.expr, Expr::Lit(_)) {
+                    Self::transform_literal(expr)
+                } else {
+                    match &expr.op {
+                        UnOp::Not(_) => self.transform_unary_op(expr, "not"),
+                        UnOp::Neg(_) => self.transform_unary_op(expr, "neg"),
+                        UnOp::Deref(_) | _ => {
+                            self.errors
+                                .push(syn::Error::new(expr.span(), "unsupported unary operator"));
+                            fold::fold_expr_unary(self, expr).into()
+                        }
+                    }
                 }
             }
             expr @ Expr::Path(_) => fold::fold_expr(self, expr),
@@ -83,9 +138,8 @@ impl Fold for GpuModule {
     fn fold_item(&mut self, item: Item) -> Item {
         match item {
             Item::Static(item) => {
-                let id = LitInt::new(&self.next_glob_id().to_string(), item.span());
+                let id = LitInt::new(&self.next_id().to_string(), item.span());
                 let ty = item.ty;
-                let expr = self.fold_expr(item.expr.deref().clone());
                 Item::Const(ItemConst {
                     attrs: item.attrs,
                     vis: item.vis,
@@ -97,12 +151,16 @@ impl Fold for GpuModule {
                         ty.span() => ::ragna::Gpu<#ty, ::ragna::Mut>
                     },
                     eq_token: item.eq_token,
-                    expr: parse_quote_spanned! {
-                        expr.span() => ::ragna::Gpu::glob(
-                            module_path!(),
-                            #id,
-                            |ctx|::ragna::Gpu::var(ctx, #expr)
-                        )
+                    expr: {
+                        let expr = self.fold_expr(*item.expr);
+                        let statements = mem::take(&mut self.extracted_statements);
+                        parse_quote_spanned! {
+                            expr.span() => ::ragna::Gpu::glob(
+                                module_path!(),
+                                #id,
+                                |__ctx|{ #(#statements)* ::ragna::Gpu::var(__ctx, #expr) }
+                            )
+                        }
                     },
                     semi_token: item.semi_token,
                 })
@@ -117,19 +175,33 @@ impl Fold for GpuModule {
     }
 
     fn fold_item_const(&mut self, item: ItemConst) -> ItemConst {
-        let ty = item.ty;
         ItemConst {
-            attrs: item.attrs,
+            attrs: {
+                let span = item.span();
+                item.attrs
+                    .into_iter()
+                    .chain([parse_quote_spanned! {span => #[allow(unused_braces)]}])
+                    .collect()
+            },
             vis: item.vis,
             const_token: item.const_token,
             ident: item.ident,
             generics: item.generics,
             colon_token: item.colon_token,
-            ty: parse_quote_spanned! {
-                ty.span() => ::ragna::Gpu<#ty, ::ragna::Const>
+            ty: {
+                let ty = item.ty;
+                parse_quote_spanned! {
+                    ty.span() => ::ragna::Gpu<#ty, ::ragna::Const>
+                }
             },
             eq_token: item.eq_token,
-            expr: Box::new(self.fold_expr(item.expr.deref().clone())),
+            expr: {
+                let expr = self.fold_expr(*item.expr);
+                let statements = mem::take(&mut self.extracted_statements);
+                parse_quote_spanned! {
+                    expr.span() => { #(#statements)* #expr }
+                }
+            },
             semi_token: item.semi_token,
         }
     }
@@ -158,9 +230,9 @@ impl Fold for GpuModule {
                 .attrs
                 .into_iter()
                 .filter(|attr| !Self::is_compute_attribute(attr))
-                .chain(iter::once(
-                    parse_quote_spanned! { span => #[allow(const_item_mutation)] },
-                ))
+                .chain([
+                    parse_quote_spanned! { span => #[allow(const_item_mutation, unused_braces)] },
+                ])
                 .collect(),
             vis: item.vis,
             sig: item.sig,
