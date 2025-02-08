@@ -1,7 +1,6 @@
 use crate::GpuContext;
 use derive_where::derive_where;
 use dyn_clone::DynClone;
-use itertools::Itertools;
 use std::any::TypeId;
 use std::hash::{Hash, Hasher};
 
@@ -13,6 +12,14 @@ pub(crate) enum GpuValue {
 }
 
 impl GpuValue {
+    pub(crate) fn value_type_id(&self) -> TypeId {
+        match self {
+            Self::Constant(value) => value.type_id,
+            Self::Glob(value) => value.type_id,
+            Self::Var(value) => value.type_id,
+        }
+    }
+
     fn glob(&self) -> Option<&GpuGlob> {
         if let Self::Glob(glob) = self {
             Some(glob)
@@ -79,24 +86,29 @@ impl Clone for GpuGlob {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct GpuVar {
     pub(crate) id: u64,
+    pub(crate) type_id: TypeId,
 }
 
 #[derive(Debug)]
 pub(crate) enum Operation {
     CreateVar(CreateVarOperation),
     AssignVar(AssignVarOperation),
+    UnaryOperator(UnaryOperatorOperation),
 }
 
 impl Operation {
     pub(crate) fn glob(&self) -> Vec<&GpuGlob> {
+        self.values()
+            .into_iter()
+            .filter_map(|value| value.glob())
+            .collect()
+    }
+
+    pub(crate) fn values(&self) -> Vec<&GpuValue> {
         match self {
-            Self::CreateVar(op) => op.value.glob().into_iter().collect_vec(),
-            Self::AssignVar(op) => op
-                .left_value
-                .glob()
-                .into_iter()
-                .chain(op.right_value.glob())
-                .collect_vec(),
+            Self::CreateVar(op) => vec![&op.value],
+            Self::AssignVar(op) => vec![&op.left_value, &op.right_value],
+            Self::UnaryOperator(op) => vec![&op.value],
         }
     }
 }
@@ -111,4 +123,10 @@ pub(crate) struct CreateVarOperation {
 pub(crate) struct AssignVarOperation {
     pub(crate) left_value: GpuValue,
     pub(crate) right_value: GpuValue,
+}
+
+#[derive(Debug)]
+pub(crate) struct UnaryOperatorOperation {
+    pub(crate) value: GpuValue,
+    pub(crate) operator: &'static str,
 }

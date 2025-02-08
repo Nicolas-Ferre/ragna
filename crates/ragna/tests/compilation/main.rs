@@ -1,9 +1,8 @@
 #![allow(missing_docs, clippy::unwrap_used)]
 
 use itertools::Itertools;
-use std::path::Path;
+use std::fs;
 use std::process::Command;
-use std::{env, fs};
 
 const LIB_RS_PATH: &str = "../../compile_tests/src/lib.rs";
 const EXPECTED_PATH: &str = "../../compile_tests/expected";
@@ -19,6 +18,7 @@ pub fn run_compile_tests() {
         .output()
         .unwrap();
     comment_compile_tests();
+    let mut is_note = false;
     let grouped_errors = String::from_utf8(output.stderr)
         .unwrap()
         .lines()
@@ -28,6 +28,14 @@ pub fn run_compile_tests() {
             !line.contains("Some errors have detailed explanations")
                 && !line.contains("could not compile")
         })
+        .filter(|line| {
+            if line.starts_with("note:") {
+                is_note = true;
+            } else if line.is_empty() {
+                is_note = false;
+            }
+            !is_note
+        })
         .join("\n")
         .split("\nerror")
         .enumerate()
@@ -35,15 +43,7 @@ pub fn run_compile_tests() {
         .into_group_map_by(|error| error_path(error));
     let mut is_new = false;
     for (path, errors) in grouped_errors {
-        let errors = errors.join("\n").replace(
-            &*Path::new(env!("CARGO_MANIFEST_DIR"))
-                .parent()
-                .unwrap()
-                .parent()
-                .unwrap()
-                .to_string_lossy(),
-            ".",
-        );
+        let errors = errors.join("\n");
         if fs::exists(&path).unwrap() {
             let expected = String::from_utf8(fs::read(&path).unwrap()).unwrap();
             assert_eq!(expected, errors, "invalid errors for {path}");

@@ -1,6 +1,7 @@
 use crate::operations::{
     AssignVarOperation, CreateVarOperation, GpuConstant, GpuGlob, GpuValue, GpuVar, Operation,
 };
+use crate::operators::{GpuNeg, GpuNot};
 use crate::types::GpuType;
 use crate::GpuContext;
 use derive_where::derive_where;
@@ -71,7 +72,10 @@ where
                 value: value.value.into(),
             }));
         Self {
-            value: TypedGpuValue::Var(GpuVar { id }),
+            value: TypedGpuValue::Var(GpuVar {
+                id,
+                type_id: TypeId::of::<T>(),
+            }),
             phantom: PhantomData,
         }
     }
@@ -92,6 +96,22 @@ where
     T: GpuType,
     M: 'static,
 {
+    /// Apply `-` unary operator on the value
+    pub fn neg(&self, ctx: &mut GpuContext) -> Gpu<T, Mut>
+    where
+        T: GpuNeg,
+    {
+        T::neg(*self, ctx)
+    }
+
+    /// Apply `!` unary operator on the value
+    pub fn not(&self, ctx: &mut GpuContext) -> Gpu<T, Mut>
+    where
+        T: GpuNot,
+    {
+        T::not(*self, ctx)
+    }
+
     pub(crate) fn value(self) -> GpuValue {
         self.value.into()
     }
