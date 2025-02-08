@@ -68,15 +68,15 @@ impl GpuModule {
         }
     }
 
-    fn transform_unary_op(&mut self, expr: ExprUnary, op_name: &str) -> Expr {
+    fn transform_unary_op(&mut self, expr: ExprUnary, trait_: &str) -> Expr {
         let span = expr.span();
-        let op_ident = Ident::new(op_name, span);
+        let trait_ident = Ident::new(trait_, span);
         let attrs = expr.attrs;
         let expr = self.fold_expr(*expr.expr);
         let var_ident = self.new_var_ident(span);
         self.extracted_statements.push(parse_quote_spanned! {
             span =>
-            let #var_ident = #(#attrs)* ::ragna::Gpu::#op_ident(&#expr, __ctx);
+            let #var_ident = #(#attrs)* ::ragna::#trait_ident::apply(#expr, __ctx);
         });
         parse_quote_spanned! { span => #var_ident }
     }
@@ -116,8 +116,8 @@ impl Fold for GpuModule {
                     Self::transform_literal(expr)
                 } else {
                     match &expr.op {
-                        UnOp::Not(_) => self.transform_unary_op(expr, "not"),
-                        UnOp::Neg(_) => self.transform_unary_op(expr, "neg"),
+                        UnOp::Not(_) => self.transform_unary_op(expr, "GpuNot"),
+                        UnOp::Neg(_) => self.transform_unary_op(expr, "GpuNeg"),
                         UnOp::Deref(_) | _ => {
                             self.errors
                                 .push(syn::Error::new(expr.span(), "unsupported unary operator"));

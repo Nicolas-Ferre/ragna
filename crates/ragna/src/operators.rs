@@ -23,8 +23,10 @@ macro_rules! impl_unary {
 
 /// A trait implemented for types that supports `-` unary operator on GPU side.
 pub trait GpuNeg: GpuType {
+    /// The resulting type after applying the operator.
     type Output: GpuType;
 
+    /// Applies the operator.
     fn apply(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self, Mut>;
 }
 
@@ -33,8 +35,10 @@ impl_unary!(GpuNeg, "-", f32, f32);
 
 /// A trait implemented for types that supports `!` unary operator on GPU side.
 pub trait GpuNot: GpuType {
+    /// The resulting type after applying the operator.
     type Output: GpuType;
 
+    /// Applies the operator.
     fn apply(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self, Mut>;
 }
 

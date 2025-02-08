@@ -9,6 +9,7 @@ mod values;
 mod wgsl;
 
 pub use app::*;
+pub use operators::*;
 pub use values::*;
 
 /// Transforms a Rust module to a GPU module.
