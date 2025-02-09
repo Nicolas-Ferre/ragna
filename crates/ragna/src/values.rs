@@ -66,7 +66,7 @@ where
         ctx.register_type::<T>();
         let id = ctx.next_var_id();
         ctx.operations
-            .push(Operation::CreateVar(DeclareVarOperation {
+            .push(Operation::DeclareVar(DeclareVarOperation {
                 id,
                 type_: T::gpu_type_details(),
             }));

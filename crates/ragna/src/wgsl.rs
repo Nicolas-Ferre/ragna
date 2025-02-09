@@ -41,7 +41,7 @@ pub(crate) fn compute_shader_code(ctx: &GpuContext, globs: &[Glob]) -> String {
 
 fn operation_code(operation: &Operation, indent: usize, globs: &[Glob]) -> String {
     match operation {
-        Operation::CreateVar(op) => {
+        Operation::DeclareVar(op) => {
             format!(
                 "{empty: >width$}var {}: {};",
                 var_name(op.id),

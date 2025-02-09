@@ -92,7 +92,7 @@ pub(crate) struct Var {
 
 #[derive(Debug)]
 pub(crate) enum Operation {
-    CreateVar(DeclareVarOperation),
+    DeclareVar(DeclareVarOperation),
     AssignVar(AssignVarOperation),
     Unary(UnaryOperation),
 }
@@ -107,7 +107,7 @@ impl Operation {
 
     pub(crate) fn values(&self) -> Vec<&Value> {
         match self {
-            Self::CreateVar(_) => vec![],
+            Self::DeclareVar(_) => vec![],
             Self::AssignVar(op) => vec![&op.left_value, &op.right_value],
             Self::Unary(op) => vec![&op.value],
         }
