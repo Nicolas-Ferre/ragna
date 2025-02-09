@@ -60,3 +60,25 @@ error[E0369]: no implementation for `Gpu<u32, Const> & Gpu<u32, Const>`
    |                                      |
    |                                      Gpu<u32, Const>
    |
+
+error[E0277]: the trait bound `u32: GpuAdd<bool>` is not satisfied
+  --> compile_tests/src/operators.rs:14:31
+   |
+14 |         UNSUPPORTED_BINARY += true;
+   |         ------------------    ^^^^ the trait `GpuAdd<bool>` is not implemented for `u32`
+   |         |
+   |         required by a bound introduced by this call
+   |
+   = help: the following other types implement trait `GpuAdd<R>`:
+             `u32` implements `GpuAdd<i32>`
+             `u32` implements `GpuAdd<u32>`
+
+error[E0277]: the trait bound `u32: GpuAdd<bool>` is not satisfied
+  --> compile_tests/src/operators.rs:14:9
+   |
+14 |         UNSUPPORTED_BINARY += true;
+   |         ^^^^^^^^^^^^^^^^^^ the trait `GpuAdd<bool>` is not implemented for `u32`
+   |
+   = help: the following other types implement trait `GpuAdd<R>`:
+             `u32` implements `GpuAdd<i32>`
+             `u32` implements `GpuAdd<u32>`
