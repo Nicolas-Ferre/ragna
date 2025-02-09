@@ -4,19 +4,14 @@ use crate::{Gpu, GpuContext, Mut};
 use std::any::Any;
 
 macro_rules! unary_trait {
-    ($name:ident, $operator:literal) => {
-        #[doc = concat!("A trait implemented for types that support `", $operator, "` unary operator on GPU side.")]
+    ($name:ident) => {
+        #[doc = concat!("A trait implemented for types that support `", operator!($name), "` unary operator on GPU side.")]
         pub trait $name: GpuType {
             /// The resulting type after applying the operator.
             type Output: GpuType;
 
             /// Applies the operator.
             fn apply(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self::Output, Mut>;
-
-            /// The operator as a string.
-            fn operator() -> &'static str {
-                $operator
-            }
         }
     };
 }
@@ -31,7 +26,7 @@ macro_rules! unary_impl {
                 ctx.operations.push(Operation::Unary(UnaryOperation {
                     var: var.value(),
                     value: value.value(),
-                    operator: <Self as $trait_>::operator(),
+                    operator: operator!($trait_),
                 }));
                 var
             }
@@ -40,8 +35,8 @@ macro_rules! unary_impl {
 }
 
 macro_rules! binary_trait {
-    ($name:ident, $operator:literal) => {
-        #[doc = concat!("A trait implemented for types that support `", $operator, "` binary operator on GPU side.")]
+    ($name:ident) => {
+        #[doc = concat!("A trait implemented for types that support `", operator!($name), "` binary operator on GPU side.")]
         pub trait $name<R: GpuType>: GpuType {
             /// The resulting type after applying the operator.
             type Output: GpuType;
@@ -52,11 +47,6 @@ macro_rules! binary_trait {
                 right_value: Gpu<R, impl Any>,
                 ctx: &mut GpuContext,
             ) -> Gpu<Self::Output, Mut>;
-
-            /// The operator as a string.
-            fn operator() -> &'static str {
-                $operator
-            }
         }
     };
 }
@@ -77,7 +67,7 @@ macro_rules! binary_impl {
                     var: var.value(),
                     left_value: left_value.value(),
                     right_value: right_value.value(),
-                    operator: <Self as $trait_<$right_type>>::operator(),
+                    operator: operator!($trait_),
                 }));
                 var
             }
@@ -85,17 +75,53 @@ macro_rules! binary_impl {
     };
 }
 
-unary_trait!(GpuNeg, "-");
-unary_trait!(GpuNot, "!");
-binary_trait!(GpuAdd, "+");
-binary_trait!(GpuSub, "-");
-binary_trait!(GpuMul, "*");
-binary_trait!(GpuDiv, "/");
-binary_trait!(GpuRem, "%");
-binary_trait!(GpuEq, "==");
-binary_trait!(GpuGreaterThan, ">");
-binary_trait!(GpuAnd, "&&");
-binary_trait!(GpuOr, "||");
+macro_rules! operator {
+    (GpuNeg) => {
+        "-"
+    };
+    (GpuNot) => {
+        "!"
+    };
+    (GpuAdd) => {
+        "+"
+    };
+    (GpuSub) => {
+        "-"
+    };
+    (GpuMul) => {
+        "*"
+    };
+    (GpuDiv) => {
+        "/"
+    };
+    (GpuRem) => {
+        "%"
+    };
+    (GpuEq) => {
+        "=="
+    };
+    (GpuGreaterThan) => {
+        ">"
+    };
+    (GpuAnd) => {
+        "&&"
+    };
+    (GpuOr) => {
+        "||"
+    };
+}
+
+unary_trait!(GpuNeg);
+unary_trait!(GpuNot);
+binary_trait!(GpuAdd);
+binary_trait!(GpuSub);
+binary_trait!(GpuMul);
+binary_trait!(GpuDiv);
+binary_trait!(GpuRem);
+binary_trait!(GpuEq);
+binary_trait!(GpuGreaterThan);
+binary_trait!(GpuAnd);
+binary_trait!(GpuOr);
 
 unary_impl!(GpuNeg, i32, i32);
 unary_impl!(GpuNeg, f32, f32);
