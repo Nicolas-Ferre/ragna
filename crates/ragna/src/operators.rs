@@ -1,19 +1,37 @@
-use crate::operations::{Operation, UnaryOperation};
+use crate::operations::{BinaryOperation, Operation, UnaryOperation};
 use crate::types::GpuType;
 use crate::{Gpu, GpuContext, Mut};
 use std::any::Any;
 
-macro_rules! impl_unary {
-    ($trait_:ident, $operator:literal, $type_:ty, $out_type:ty) => {
+macro_rules! unary_trait {
+    ($name:ident, $operator:literal) => {
+        #[doc = concat!("A trait implemented for types that support `", $operator, "` unary operator on GPU side.")]
+        pub trait $name: GpuType {
+            /// The resulting type after applying the operator.
+            type Output: GpuType;
+
+            /// Applies the operator.
+            fn apply(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self::Output, Mut>;
+
+            /// The operator as a string.
+            fn operator() -> &'static str {
+                $operator
+            }
+        }
+    };
+}
+
+macro_rules! unary_impl {
+    ($trait_:ident, $type_:ty, $out_type:ty) => {
         impl $trait_ for $type_ {
             type Output = $out_type;
 
-            fn apply(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self, Mut> {
-                let var = Gpu::var(value, ctx);
+            fn apply(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self::Output, Mut> {
+                let var = Gpu::uninitialized_var(ctx);
                 ctx.operations.push(Operation::Unary(UnaryOperation {
                     var: var.value(),
                     value: value.value(),
-                    operator: $operator,
+                    operator: <Self as $trait_>::operator(),
                 }));
                 var
             }
@@ -21,25 +39,101 @@ macro_rules! impl_unary {
     };
 }
 
-/// A trait implemented for types that supports `-` unary operator on GPU side.
-pub trait GpuNeg: GpuType {
-    /// The resulting type after applying the operator.
-    type Output: GpuType;
+macro_rules! binary_trait {
+    ($name:ident, $operator:literal) => {
+        #[doc = concat!("A trait implemented for types that support `", $operator, "` binary operator on GPU side.")]
+        pub trait $name<R: GpuType>: GpuType {
+            /// The resulting type after applying the operator.
+            type Output: GpuType;
 
-    /// Applies the operator.
-    fn apply(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self, Mut>;
+            /// Applies the operator.
+            fn apply(
+                left_value: Gpu<Self, impl Any>,
+                right_value: Gpu<R, impl Any>,
+                ctx: &mut GpuContext,
+            ) -> Gpu<Self::Output, Mut>;
+
+            /// The operator as a string.
+            fn operator() -> &'static str {
+                $operator
+            }
+        }
+    };
 }
 
-impl_unary!(GpuNeg, "-", i32, i32);
-impl_unary!(GpuNeg, "-", f32, f32);
+macro_rules! binary_impl {
+    ($trait_:ident, $left_type:ty, $right_type:ty, $out_type:ty) => {
+        #[allow(clippy::use_self)]
+        impl $trait_<$right_type> for $left_type {
+            type Output = $out_type;
 
-/// A trait implemented for types that supports `!` unary operator on GPU side.
-pub trait GpuNot: GpuType {
-    /// The resulting type after applying the operator.
-    type Output: GpuType;
-
-    /// Applies the operator.
-    fn apply(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self, Mut>;
+            fn apply(
+                left_value: Gpu<Self, impl Any>,
+                right_value: Gpu<$right_type, impl Any>,
+                ctx: &mut GpuContext,
+            ) -> Gpu<Self::Output, Mut> {
+                let var = Gpu::uninitialized_var(ctx);
+                ctx.operations.push(Operation::Binary(BinaryOperation {
+                    var: var.value(),
+                    left_value: left_value.value(),
+                    right_value: right_value.value(),
+                    operator: <Self as $trait_<$right_type>>::operator(),
+                }));
+                var
+            }
+        }
+    };
 }
 
-impl_unary!(GpuNot, "!", bool, bool);
+unary_trait!(GpuNeg, "-");
+unary_trait!(GpuNot, "!");
+binary_trait!(GpuAdd, "+");
+binary_trait!(GpuSub, "-");
+binary_trait!(GpuMul, "*");
+binary_trait!(GpuDiv, "/");
+binary_trait!(GpuRem, "%");
+binary_trait!(GpuEq, "==");
+binary_trait!(GpuGreaterThan, ">");
+binary_trait!(GpuAnd, "&&");
+binary_trait!(GpuOr, "||");
+
+unary_impl!(GpuNeg, i32, i32);
+unary_impl!(GpuNeg, f32, f32);
+unary_impl!(GpuNot, bool, bool);
+binary_impl!(GpuAdd, u32, u32, u32);
+binary_impl!(GpuAdd, u32, i32, i32);
+binary_impl!(GpuAdd, i32, i32, i32);
+binary_impl!(GpuAdd, i32, u32, i32);
+binary_impl!(GpuAdd, f32, f32, f32);
+binary_impl!(GpuSub, u32, u32, u32);
+binary_impl!(GpuSub, u32, i32, i32);
+binary_impl!(GpuSub, i32, i32, i32);
+binary_impl!(GpuSub, i32, u32, i32);
+binary_impl!(GpuSub, f32, f32, f32);
+binary_impl!(GpuMul, u32, u32, u32);
+binary_impl!(GpuMul, u32, i32, i32);
+binary_impl!(GpuMul, i32, i32, i32);
+binary_impl!(GpuMul, i32, u32, i32);
+binary_impl!(GpuMul, f32, f32, f32);
+binary_impl!(GpuDiv, u32, u32, u32);
+binary_impl!(GpuDiv, u32, i32, i32);
+binary_impl!(GpuDiv, i32, i32, i32);
+binary_impl!(GpuDiv, i32, u32, i32);
+binary_impl!(GpuDiv, f32, f32, f32);
+binary_impl!(GpuRem, u32, u32, u32);
+binary_impl!(GpuRem, u32, i32, i32);
+binary_impl!(GpuRem, i32, i32, i32);
+binary_impl!(GpuRem, i32, u32, i32);
+binary_impl!(GpuEq, i32, i32, bool);
+binary_impl!(GpuEq, i32, u32, bool);
+binary_impl!(GpuEq, u32, u32, bool);
+binary_impl!(GpuEq, u32, i32, bool);
+binary_impl!(GpuEq, f32, f32, bool);
+binary_impl!(GpuEq, bool, bool, bool);
+binary_impl!(GpuGreaterThan, i32, i32, bool);
+binary_impl!(GpuGreaterThan, i32, u32, bool);
+binary_impl!(GpuGreaterThan, u32, u32, bool);
+binary_impl!(GpuGreaterThan, u32, i32, bool);
+binary_impl!(GpuGreaterThan, f32, f32, bool);
+binary_impl!(GpuAnd, bool, bool, bool);
+binary_impl!(GpuOr, bool, bool, bool);

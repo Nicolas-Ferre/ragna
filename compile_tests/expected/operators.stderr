@@ -1,33 +1,62 @@
 error: unsupported unary operator
- --> compile_tests/src/operators.rs:9:33
+ --> compile_tests/src/operators.rs:8:37
   |
-9 |     static INVALID_DEREF: u32 = *&CONSTANT;
-  |                                 ^
+8 |     static UNSUPPORTED_UNARY: u32 = *&CONSTANT;
+  |                                     ^
 
 error: unsupported expression
- --> compile_tests/src/operators.rs:9:34
+ --> compile_tests/src/operators.rs:8:38
   |
-9 |     static INVALID_DEREF: u32 = *&CONSTANT;
-  |                                  ^
+8 |     static UNSUPPORTED_UNARY: u32 = *&CONSTANT;
+  |                                      ^
 
-error[E0277]: the trait bound `u32: GpuNeg` is not satisfied
- --> compile_tests/src/operators.rs:7:32
-  |
-7 |     static INVALID_NEG: u32 = -CONSTANT;
-  |                               -^^^^^^^^ the trait `GpuNeg` is not implemented for `u32`
-  |                               |
-  |                               required by a bound introduced by this call
-  |
-  = help: the following other types implement trait `GpuNeg`:
-            f32
-            i32
+error: unsupported binary operator
+  --> compile_tests/src/operators.rs:10:47
+   |
+10 |     static UNSUPPORTED_BINARY: u32 = CONSTANT & CONSTANT;
+   |                                               ^
 
 error[E0277]: the trait bound `u32: GpuNot` is not satisfied
- --> compile_tests/src/operators.rs:8:32
+ --> compile_tests/src/operators.rs:7:34
   |
-8 |     static INVALID_NOT: u32 = !CONSTANT;
-  |                               -^^^^^^^^ the trait `GpuNot` is not implemented for `u32`
-  |                               |
-  |                               required by a bound introduced by this call
+7 |     static INVALID_UNARY: u32 = !CONSTANT;
+  |                                 -^^^^^^^^ the trait `GpuNot` is not implemented for `u32`
+  |                                 |
+  |                                 required by a bound introduced by this call
   |
   = help: the trait `GpuNot` is implemented for `bool`
+
+error[E0277]: the trait bound `u32: GpuNot` is not satisfied
+ --> compile_tests/src/operators.rs:7:33
+  |
+7 |     static INVALID_UNARY: u32 = !CONSTANT;
+  |                                 ^ the trait `GpuNot` is not implemented for `u32`
+  |
+  = help: the trait `GpuNot` is implemented for `bool`
+
+error[E0277]: the trait bound `u32: GpuAnd<_>` is not satisfied
+ --> compile_tests/src/operators.rs:9:46
+  |
+9 |     static INVALID_BINARY: u32 = CONSTANT && CONSTANT;
+  |                                  --------    ^^^^^^^^ the trait `GpuAnd<_>` is not implemented for `u32`
+  |                                  |
+  |                                  required by a bound introduced by this call
+  |
+  = help: the trait `GpuAnd<bool>` is implemented for `bool`
+
+error[E0277]: the trait bound `u32: GpuAnd<u32>` is not satisfied
+ --> compile_tests/src/operators.rs:9:34
+  |
+9 |     static INVALID_BINARY: u32 = CONSTANT && CONSTANT;
+  |                                  ^^^^^^^^ the trait `GpuAnd<u32>` is not implemented for `u32`
+  |
+  = help: the trait `GpuAnd<bool>` is implemented for `bool`
+
+error[E0369]: no implementation for `Gpu<u32, Const> & Gpu<u32, Const>`
+  --> compile_tests/src/operators.rs:10:47
+   |
+10 |     static UNSUPPORTED_BINARY: u32 = CONSTANT & CONSTANT;
+   |                                      -------- ^ -------- Gpu<u32, Const>
+   |                                      |
+   |                                      Gpu<u32, Const>
+   |

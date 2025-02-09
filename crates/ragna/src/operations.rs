@@ -95,6 +95,7 @@ pub(crate) enum Operation {
     DeclareVar(DeclareVarOperation),
     AssignVar(AssignVarOperation),
     Unary(UnaryOperation),
+    Binary(BinaryOperation),
 }
 
 impl Operation {
@@ -110,6 +111,7 @@ impl Operation {
             Self::DeclareVar(_) => vec![],
             Self::AssignVar(op) => vec![&op.left_value, &op.right_value],
             Self::Unary(op) => vec![&op.value],
+            Self::Binary(op) => vec![&op.left_value, &op.right_value],
         }
     }
 }
@@ -130,5 +132,13 @@ pub(crate) struct AssignVarOperation {
 pub(crate) struct UnaryOperation {
     pub(crate) var: Value,
     pub(crate) value: Value,
+    pub(crate) operator: &'static str,
+}
+
+#[derive(Debug)]
+pub(crate) struct BinaryOperation {
+    pub(crate) var: Value,
+    pub(crate) left_value: Value,
+    pub(crate) right_value: Value,
     pub(crate) operator: &'static str,
 }

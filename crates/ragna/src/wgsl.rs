@@ -40,44 +40,53 @@ pub(crate) fn compute_shader_code(ctx: &GpuContext, globs: &[Glob]) -> String {
 }
 
 fn operation_code(operation: &Operation, indent: usize, globs: &[Glob]) -> String {
-    match operation {
+    let instruction = match operation {
         Operation::DeclareVar(op) => {
-            format!(
-                "{empty: >width$}var {}: {};",
-                var_name(op.id),
-                op.type_.name,
-                empty = "",
-                width = indent,
-            )
+            format!("var {}: {};", var_name(op.id), op.type_.name,)
         }
         Operation::AssignVar(op) => {
             format!(
-                "{empty: >width$}{} = {};",
+                "{} = {};",
                 value_code(&op.left_value, globs),
                 value_code(&op.right_value, globs),
-                empty = "",
-                width = indent,
             )
         }
         Operation::Unary(op) => {
-            let value = if op.value.value_type_id() == TypeId::of::<bool>() {
-                format!("bool({})", value_code(&op.value, globs))
-            } else {
-                value_code(&op.value, globs)
-            };
-            let unary_expr = if op.var.value_type_id() == TypeId::of::<bool>() {
-                let bool_gpu_type = bool::gpu_type_details().name;
-                format!("{bool_gpu_type}({}{})", op.operator, value)
-            } else {
-                format!("{}{}", op.operator, value)
-            };
-            format!(
-                "{empty: >width$}{} = {unary_expr};",
-                value_code(&op.var, globs),
-                empty = "",
-                width = indent,
-            )
+            let value = function_arg(&op.value, globs);
+            let operation = format!("{}{}", op.operator, value);
+            let expr = returned_value(&op.var, operation);
+            format!("{} = {expr};", value_code(&op.var, globs))
         }
+        Operation::Binary(op) => {
+            let left_value = function_arg(&op.left_value, globs);
+            let right_value = function_arg(&op.right_value, globs);
+            let operation = format!("{} {} {}", left_value, op.operator, right_value);
+            let expr = returned_value(&op.var, operation);
+            format!("{} = {expr};", value_code(&op.var, globs))
+        }
+    };
+    format!(
+        "{empty: >width$}{}",
+        instruction,
+        empty = "",
+        width = indent,
+    )
+}
+
+fn function_arg(value: &Value, globs: &[Glob]) -> String {
+    if value.value_type_id() == TypeId::of::<bool>() {
+        format!("bool({})", value_code(value, globs))
+    } else {
+        value_code(value, globs)
+    }
+}
+
+fn returned_value(value: &Value, expr: String) -> String {
+    if value.value_type_id() == TypeId::of::<bool>() {
+        let bool_gpu_type = bool::gpu_type_details().name;
+        format!("{bool_gpu_type}({expr})")
+    } else {
+        expr
     }
 }
 
