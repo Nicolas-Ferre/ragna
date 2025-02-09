@@ -151,7 +151,7 @@ impl Fold for GpuModule {
                 BinOp::And(_) => self.transform_binary_op(expr, "GpuAnd"),
                 BinOp::Or(_) => self.transform_binary_op(expr, "GpuOr"),
                 BinOp::Eq(_) => self.transform_binary_op(expr, "GpuEq"),
-                BinOp::Gt(_) => self.transform_binary_op(expr, "GpuGreaterThen"),
+                BinOp::Gt(_) => self.transform_binary_op(expr, "GpuGreaterThan"),
                 BinOp::Ne(_) => {
                     let attrs = &expr.attrs;
                     let left = &expr.left;

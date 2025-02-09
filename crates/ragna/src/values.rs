@@ -130,6 +130,7 @@ where
             GpuValue::Constant(constant) => Self::Constant(Constant {
                 value: constant.value.into_wgsl(),
                 type_id: TypeId::of::<T>(),
+                gpu_type: T::gpu_type_details(),
             }),
             GpuValue::Glob(glob) => Self::Glob(Glob {
                 module: glob.module,

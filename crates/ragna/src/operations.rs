@@ -34,6 +34,7 @@ impl Value {
 pub(crate) struct Constant {
     pub(crate) value: String,
     pub(crate) type_id: TypeId,
+    pub(crate) gpu_type: GpuTypeDetails,
 }
 
 pub(crate) trait DefaultGlobValueFn: DynClone {

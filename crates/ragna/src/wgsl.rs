@@ -92,7 +92,9 @@ fn returned_value(value: &Value, expr: String) -> String {
 
 fn value_code(value: &Value, globs: &[Glob]) -> String {
     match value {
-        Value::Constant(constant) => constant.value.clone(),
+        Value::Constant(constant) => {
+            format!("{}({})", constant.gpu_type.name, constant.value.clone())
+        }
         Value::Glob(glob) => format!("{}.{}", BUFFER_NAME, glob_name(glob, globs)),
         Value::Var(var) => var_name(var.id),
     }
