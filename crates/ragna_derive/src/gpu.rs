@@ -289,10 +289,10 @@ impl Fold for GpuModule {
             },
             eq_token: item.eq_token,
             expr: {
-                let expr = self.fold_expr(*item.expr);
+                let expr = item.expr;
                 let statements = mem::take(&mut self.extracted_statements);
                 parse_quote_spanned! {
-                    expr.span() => { #(#statements)* #expr }
+                    expr.span() => { #(#statements)* ::ragna::Gpu::constant(#expr) }
                 }
             },
             semi_token: item.semi_token,
