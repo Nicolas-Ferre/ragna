@@ -21,7 +21,6 @@ mod gpu {
 
     #[compute]
     fn run() {
-        static LOCAL_GLOB: i32 = 0;
         let var: i32 = 10;
         FROM_VAR = var;
         let mut modified_var = 10;
@@ -29,6 +28,5 @@ mod gpu {
         FROM_MODIFIED_VAR = modified_var;
         FROM_CONSTANT = CONSTANT;
         FROM_GLOB = FROM_CONSTANT;
-        LOCAL_GLOB = 40;
     }
 }

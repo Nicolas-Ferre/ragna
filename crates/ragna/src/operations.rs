@@ -20,14 +20,6 @@ impl Value {
             Self::Var(value) => value.type_id,
         }
     }
-
-    fn glob(&self) -> Option<&Glob> {
-        if let Self::Glob(glob) = self {
-            Some(glob)
-        } else {
-            None
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -97,24 +89,6 @@ pub(crate) enum Operation {
     AssignVar(AssignVarOperation),
     Unary(UnaryOperation),
     Binary(BinaryOperation),
-}
-
-impl Operation {
-    pub(crate) fn glob(&self) -> Vec<&Glob> {
-        self.values()
-            .into_iter()
-            .filter_map(|value| value.glob())
-            .collect()
-    }
-
-    pub(crate) fn values(&self) -> Vec<&Value> {
-        match self {
-            Self::DeclareVar(_) => vec![],
-            Self::AssignVar(op) => vec![&op.left_value, &op.right_value],
-            Self::Unary(op) => vec![&op.value],
-            Self::Binary(op) => vec![&op.left_value, &op.right_value],
-        }
-    }
 }
 
 #[derive(Debug)]

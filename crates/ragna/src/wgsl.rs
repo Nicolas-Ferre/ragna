@@ -31,22 +31,32 @@ pub(crate) fn header_code(types: &FxHashMap<TypeId, GpuTypeDetails>, globs: &[Gl
 
 pub(crate) fn compute_shader_code(ctx: &GpuContext, globs: &[Glob]) -> String {
     format!(
-        "@compute @workgroup_size(1, 1, 1)\nfn main() {{\n{}\n}}",
+        "@compute @workgroup_size(1, 1, 1)\nfn main() {{\n{}\n{}\n}}",
+        globs
+            .iter()
+            .map(|glob| format!(
+                // force the use of global variables to avoid pipeline creation error
+                "    var _vg{} = {}.{};",
+                glob.id,
+                BUFFER_NAME,
+                glob_name(glob, globs)
+            ))
+            .join("\n"),
         ctx.operations
             .iter()
-            .map(|operation| operation_code(operation, 4, globs))
+            .map(|operation| operation_code(operation, globs))
             .join("\n")
     )
 }
 
-fn operation_code(operation: &Operation, indent: usize, globs: &[Glob]) -> String {
-    let instruction = match operation {
+fn operation_code(operation: &Operation, globs: &[Glob]) -> String {
+    match operation {
         Operation::DeclareVar(op) => {
-            format!("var {}: {};", var_name(op.id), op.type_.name,)
+            format!("    var {}: {};", var_name(op.id), op.type_.name)
         }
         Operation::AssignVar(op) => {
             format!(
-                "{} = {};",
+                "    {} = {};",
                 value_code(&op.left_value, globs),
                 value_code(&op.right_value, globs),
             )
@@ -55,22 +65,16 @@ fn operation_code(operation: &Operation, indent: usize, globs: &[Glob]) -> Strin
             let value = function_arg(&op.value, globs);
             let operation = format!("{}{}", op.operator, value);
             let expr = returned_value(&op.var, operation);
-            format!("{} = {expr};", value_code(&op.var, globs))
+            format!("    {} = {expr};", value_code(&op.var, globs))
         }
         Operation::Binary(op) => {
             let left_value = function_arg(&op.left_value, globs);
             let right_value = function_arg(&op.right_value, globs);
             let operation = format!("{} {} {}", left_value, op.operator, right_value);
             let expr = returned_value(&op.var, operation);
-            format!("{} = {expr};", value_code(&op.var, globs))
+            format!("    {} = {expr};", value_code(&op.var, globs))
         }
-    };
-    format!(
-        "{empty: >width$}{}",
-        instruction,
-        empty = "",
-        width = indent,
-    )
+    }
 }
 
 fn function_arg(value: &Value, globs: &[Glob]) -> String {

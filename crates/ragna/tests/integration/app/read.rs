@@ -23,12 +23,12 @@ pub fn read_used_glob() {
 #[test]
 pub fn read_unused_glob() {
     let app = App::default().with_module(register).run(1);
-    assert_eq!(app.read(UNUSED_GLOB), None);
+    assert_eq!(app.read(UNUSED_GLOB), Some(20));
 }
 
 #[ragna::gpu]
 mod gpu {
-    pub(super) static UNUSED_GLOB: i32 = 0;
+    pub(super) static UNUSED_GLOB: i32 = 20;
     pub(super) static USED_GLOB: i32 = 0;
 
     #[compute]

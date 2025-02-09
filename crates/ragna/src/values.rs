@@ -74,7 +74,6 @@ where
 
     /// Assigns a value
     pub fn assign(&mut self, value: Gpu<T, impl Any>, ctx: &mut GpuContext) {
-        ctx.register_type::<T>();
         ctx.operations
             .push(Operation::AssignVar(AssignVarOperation {
                 left_value: self.value.into(),
@@ -83,7 +82,6 @@ where
     }
 
     pub(crate) fn uninitialized_var(ctx: &mut GpuContext) -> Self {
-        ctx.register_type::<T>();
         let id = ctx.next_var_id();
         ctx.operations
             .push(Operation::DeclareVar(DeclareVarOperation {

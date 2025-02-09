@@ -1,8 +1,8 @@
 use proc_macro2::Span;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
+use std::mem;
 use std::ops::Deref;
-use std::{iter, mem};
 use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{
@@ -15,6 +15,10 @@ pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
     let mut fold = GpuModule::default();
     let mut modified_module = fold.fold_item_mod(module.clone());
     if let Some((_, content)) = &mut modified_module.content {
+        let globs = fold
+            .globs
+            .iter()
+            .map(|glob| quote_spanned! { glob.span() => .with_glob(#glob) });
         let compute_calls = fold
             .compute_fns
             .iter()
@@ -22,7 +26,7 @@ pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
         content.push(parse_quote! {
             #[allow(unreachable_pub)]
             pub fn register(app: ::ragna::App) -> ::ragna::App {
-                app #(#compute_calls)*
+                app #(#globs)* #(#compute_calls)*
             }
         });
     } else {
@@ -38,6 +42,7 @@ pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
 #[derive(Default)]
 struct GpuModule {
     next_id: u64,
+    globs: Vec<Ident>,
     compute_fns: Vec<Ident>,
     errors: Vec<syn::Error>,
     extracted_statements: Vec<Stmt>,
@@ -105,10 +110,16 @@ impl Fold for GpuModule {
                 .stmts
                 .into_iter()
                 .flat_map(|stmt| {
-                    let stmt = self.fold_stmt(stmt);
+                    let stmt = if let Stmt::Item(Item::Static(item)) = &stmt {
+                        self.errors
+                            .push(syn::Error::new(item.span(), "unsupported item"));
+                        stmt
+                    } else {
+                        self.fold_stmt(stmt)
+                    };
                     mem::take(&mut self.extracted_statements)
                         .into_iter()
-                        .chain(iter::once(stmt))
+                        .chain([stmt])
                 })
                 .collect(),
         }
@@ -219,6 +230,7 @@ impl Fold for GpuModule {
     fn fold_item(&mut self, item: Item) -> Item {
         match item {
             Item::Static(item) => {
+                self.globs.push(item.ident.clone());
                 let id = LitInt::new(&self.next_id().to_string(), item.span());
                 let ty = item.ty;
                 Item::Const(ItemConst {
