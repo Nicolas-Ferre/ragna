@@ -28,7 +28,7 @@ pub fn read_unused_glob() {
 
 #[test]
 pub fn read_not_registered_glob() {
-    let app = App::default().run(1);
+    let app = App::default().with_module(register).run(1);
     let glob = Gpu::glob("", 0, |ctx| Gpu::var(Gpu::constant(0), ctx));
     assert_eq!(app.read(glob), None);
 }
