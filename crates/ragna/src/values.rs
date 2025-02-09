@@ -1,7 +1,6 @@
 use crate::operations::{
-    AssignVarOperation, CreateVarOperation, GpuConstant, GpuGlob, GpuValue, GpuVar, Operation,
+    AssignVarOperation, Constant, DeclareVarOperation, Glob, Operation, Value, Var,
 };
-use crate::operators::{GpuNeg, GpuNot};
 use crate::types::GpuType;
 use crate::GpuContext;
 use derive_where::derive_where;
@@ -20,7 +19,7 @@ pub struct Gpu<T, M>
 where
     T: GpuType,
 {
-    value: TypedGpuValue<T, M>,
+    value: GpuValue<T, M>,
     phantom: PhantomData<fn(M)>,
 }
 
@@ -34,7 +33,7 @@ where
         T: ToString,
     {
         Self {
-            value: TypedGpuValue::Constant(TypedGpuConstant { value }),
+            value: GpuValue::Constant(GpuConstant { value }),
             phantom: PhantomData,
         }
     }
@@ -52,7 +51,7 @@ where
         default_value: fn(&mut GpuContext) -> Self,
     ) -> Self {
         Self {
-            value: TypedGpuValue::Glob(TypedGpuGlob {
+            value: GpuValue::Glob(GpuGlob {
                 module,
                 id,
                 default_value,
@@ -63,25 +62,31 @@ where
     // coverage: on
 
     /// Creates a local variable.
-    pub fn var(ctx: &mut GpuContext, value: Gpu<T, impl Any>) -> Self {
+    pub fn var(value: Gpu<T, impl Any>, ctx: &mut GpuContext) -> Self {
         ctx.register_type::<T>();
         let id = ctx.next_var_id();
         ctx.operations
-            .push(Operation::CreateVar(CreateVarOperation {
+            .push(Operation::DeclareVar(DeclareVarOperation {
                 id,
-                value: value.value.into(),
+                type_: T::gpu_type_details(),
+            }));
+        let var = GpuValue::Var(Var {
+            id,
+            type_id: TypeId::of::<T>(),
+        });
+        ctx.operations
+            .push(Operation::AssignVar(AssignVarOperation {
+                left_value: var.into(),
+                right_value: value.value.into(),
             }));
         Self {
-            value: TypedGpuValue::Var(GpuVar {
-                id,
-                type_id: TypeId::of::<T>(),
-            }),
+            value: var,
             phantom: PhantomData,
         }
     }
 
     /// Assigns a value
-    pub fn assign(&mut self, ctx: &mut GpuContext, value: Gpu<T, impl Any>) {
+    pub fn assign(&mut self, value: Gpu<T, impl Any>, ctx: &mut GpuContext) {
         ctx.register_type::<T>();
         ctx.operations
             .push(Operation::AssignVar(AssignVarOperation {
@@ -96,49 +101,33 @@ where
     T: GpuType,
     M: 'static,
 {
-    /// Apply `-` unary operator on the value
-    pub fn neg(&self, ctx: &mut GpuContext) -> Gpu<T, Mut>
-    where
-        T: GpuNeg,
-    {
-        T::neg(*self, ctx)
-    }
-
-    /// Apply `!` unary operator on the value
-    pub fn not(&self, ctx: &mut GpuContext) -> Gpu<T, Mut>
-    where
-        T: GpuNot,
-    {
-        T::not(*self, ctx)
-    }
-
-    pub(crate) fn value(self) -> GpuValue {
+    pub(crate) fn value(self) -> Value {
         self.value.into()
     }
 }
 
 #[derive_where(Debug, Clone, Copy; T)]
-enum TypedGpuValue<T, M>
+enum GpuValue<T, M>
 where
     T: GpuType,
 {
-    Constant(TypedGpuConstant<T>),
-    Glob(TypedGpuGlob<T, M>),
-    Var(GpuVar),
+    Constant(GpuConstant<T>),
+    Glob(GpuGlob<T, M>),
+    Var(Var),
 }
 
-impl<T, M> From<TypedGpuValue<T, M>> for GpuValue
+impl<T, M> From<GpuValue<T, M>> for Value
 where
     T: GpuType,
     M: 'static,
 {
-    fn from(value: TypedGpuValue<T, M>) -> Self {
+    fn from(value: GpuValue<T, M>) -> Self {
         match value {
-            TypedGpuValue::Constant(constant) => Self::Constant(GpuConstant {
+            GpuValue::Constant(constant) => Self::Constant(Constant {
                 value: constant.value.into_wgsl(),
                 type_id: TypeId::of::<T>(),
             }),
-            TypedGpuValue::Glob(glob) => Self::Glob(GpuGlob {
+            GpuValue::Glob(glob) => Self::Glob(Glob {
                 module: glob.module,
                 id: glob.id,
                 type_id: TypeId::of::<T>(),
@@ -146,13 +135,13 @@ where
                     (glob.default_value)(ctx).value.into()
                 }),
             }),
-            TypedGpuValue::Var(var) => Self::Var(var),
+            GpuValue::Var(var) => Self::Var(var),
         }
     }
 }
 
 #[derive(Debug, Clone, Copy)]
-struct TypedGpuConstant<T>
+struct GpuConstant<T>
 where
     T: GpuType,
 {
@@ -160,7 +149,7 @@ where
 }
 
 #[derive_where(Debug, Clone, Copy; T)]
-struct TypedGpuGlob<T, M>
+struct GpuGlob<T, M>
 where
     T: GpuType,
 {

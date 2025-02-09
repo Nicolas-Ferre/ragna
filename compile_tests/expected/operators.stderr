@@ -10,26 +10,24 @@ error: unsupported expression
 9 |     static INVALID_DEREF: u32 = *&CONSTANT;
   |                                  ^
 
-error[E0277]: the trait bound `u32: ragna::operators::GpuNeg` is not satisfied
-   --> compile_tests/src/operators.rs:7:31
-    |
-7   |     static INVALID_NEG: u32 = -CONSTANT;
-    |                               -^^^^^^^^
-    |                               |
-    |                               the trait `ragna::operators::GpuNeg` is not implemented for `u32`
-    |                               required by a bound introduced by this call
-    |
-    = help: the following other types implement trait `ragna::operators::GpuNeg`:
-              f32
-              i32
+error[E0277]: the trait bound `u32: GpuNeg` is not satisfied
+ --> compile_tests/src/operators.rs:7:32
+  |
+7 |     static INVALID_NEG: u32 = -CONSTANT;
+  |                               -^^^^^^^^ the trait `GpuNeg` is not implemented for `u32`
+  |                               |
+  |                               required by a bound introduced by this call
+  |
+  = help: the following other types implement trait `GpuNeg`:
+            f32
+            i32
 
-error[E0277]: the trait bound `u32: ragna::operators::GpuNot` is not satisfied
-   --> compile_tests/src/operators.rs:8:31
-    |
-8   |     static INVALID_NOT: u32 = !CONSTANT;
-    |                               -^^^^^^^^
-    |                               |
-    |                               the trait `ragna::operators::GpuNot` is not implemented for `u32`
-    |                               required by a bound introduced by this call
-    |
-    = help: the trait `ragna::operators::GpuNot` is implemented for `bool`
+error[E0277]: the trait bound `u32: GpuNot` is not satisfied
+ --> compile_tests/src/operators.rs:8:32
+  |
+8 |     static INVALID_NOT: u32 = !CONSTANT;
+  |                               -^^^^^^^^ the trait `GpuNot` is not implemented for `u32`
+  |                               |
+  |                               required by a bound introduced by this call
+  |
+  = help: the trait `GpuNot` is implemented for `bool`

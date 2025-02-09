@@ -10,7 +10,7 @@ pub fn read_uninitialized() {
 #[test]
 pub fn read_local_var() {
     let app = App::default().with_module(register).run(1);
-    let var = Gpu::var(&mut GpuContext::default(), Gpu::constant(0));
+    let var = Gpu::var(Gpu::constant(0), &mut GpuContext::default());
     assert_eq!(app.read(var), None);
 }
 

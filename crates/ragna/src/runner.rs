@@ -1,4 +1,4 @@
-use crate::operations::GpuValue;
+use crate::operations::Value;
 use crate::App;
 use futures::executor;
 use std::time::{Duration, Instant};
@@ -54,8 +54,8 @@ impl Runner {
         self.last_delta
     }
 
-    pub(crate) fn read(&self, app: &App, value: &GpuValue) -> Vec<u8> {
-        if let (GpuValue::Glob(glob), Some(buffer)) = (value, &self.program.buffer) {
+    pub(crate) fn read(&self, app: &App, expr: &Value) -> Vec<u8> {
+        if let (Value::Glob(glob), Some(buffer)) = (expr, &self.program.buffer) {
             if let Some(position) = app.globs.iter().position(|other_glob| other_glob == glob) {
                 let tmp_buffer = self.device.create_buffer(&BufferDescriptor {
                     label: Some("modor_texture_buffer"),

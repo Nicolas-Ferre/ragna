@@ -1,3 +1,4 @@
+use crate::types::GpuTypeDetails;
 use crate::GpuContext;
 use derive_where::derive_where;
 use dyn_clone::DynClone;
@@ -5,21 +6,22 @@ use std::any::TypeId;
 use std::hash::{Hash, Hasher};
 
 #[derive(Debug)]
-pub(crate) enum GpuValue {
-    Constant(GpuConstant),
-    Glob(GpuGlob),
-    Var(GpuVar),
+pub(crate) enum Value {
+    Constant(Constant),
+    Glob(Glob),
+    Var(Var),
 }
 
-impl GpuValue {
+impl Value {
     pub(crate) fn value_type_id(&self) -> TypeId {
         match self {
-            Self::Constant(_) | Self::Glob(_) => unreachable!("get `TypeId` from constant/glob"),
+            Self::Constant(value) => value.type_id,
+            Self::Glob(value) => value.type_id,
             Self::Var(value) => value.type_id,
         }
     }
 
-    fn glob(&self) -> Option<&GpuGlob> {
+    fn glob(&self) -> Option<&Glob> {
         if let Self::Glob(glob) = self {
             Some(glob)
         } else {
@@ -29,26 +31,26 @@ impl GpuValue {
 }
 
 #[derive(Debug)]
-pub(crate) struct GpuConstant {
+pub(crate) struct Constant {
     pub(crate) value: String,
     pub(crate) type_id: TypeId,
 }
 
 pub(crate) trait DefaultGlobValueFn: DynClone {
-    fn call(&self, ctx: &mut GpuContext) -> GpuValue;
+    fn call(&self, ctx: &mut GpuContext) -> Value;
 }
 
 impl<F> DefaultGlobValueFn for F
 where
-    F: Fn(&mut GpuContext) -> GpuValue + Clone,
+    F: Fn(&mut GpuContext) -> Value + Clone,
 {
-    fn call(&self, ctx: &mut GpuContext) -> GpuValue {
+    fn call(&self, ctx: &mut GpuContext) -> Value {
         self(ctx)
     }
 }
 
 #[derive_where(Debug)]
-pub(crate) struct GpuGlob {
+pub(crate) struct Glob {
     pub(crate) module: &'static str,
     pub(crate) id: u64,
     pub(crate) type_id: TypeId,
@@ -56,22 +58,22 @@ pub(crate) struct GpuGlob {
     pub(crate) default_value: Box<dyn DefaultGlobValueFn>,
 }
 
-impl PartialEq for GpuGlob {
+impl PartialEq for Glob {
     fn eq(&self, other: &Self) -> bool {
         self.module == other.module && self.id == other.id
     }
 }
 
-impl Eq for GpuGlob {}
+impl Eq for Glob {}
 
-impl Hash for GpuGlob {
+impl Hash for Glob {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.module.hash(state);
         self.id.hash(state);
     }
 }
 
-impl Clone for GpuGlob {
+impl Clone for Glob {
     fn clone(&self) -> Self {
         Self {
             module: self.module,
@@ -83,49 +85,50 @@ impl Clone for GpuGlob {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct GpuVar {
+pub(crate) struct Var {
     pub(crate) id: u64,
     pub(crate) type_id: TypeId,
 }
 
 #[derive(Debug)]
 pub(crate) enum Operation {
-    CreateVar(CreateVarOperation),
+    DeclareVar(DeclareVarOperation),
     AssignVar(AssignVarOperation),
-    UnaryOperator(UnaryOperatorOperation),
+    Unary(UnaryOperation),
 }
 
 impl Operation {
-    pub(crate) fn glob(&self) -> Vec<&GpuGlob> {
+    pub(crate) fn glob(&self) -> Vec<&Glob> {
         self.values()
             .into_iter()
             .filter_map(|value| value.glob())
             .collect()
     }
 
-    pub(crate) fn values(&self) -> Vec<&GpuValue> {
+    pub(crate) fn values(&self) -> Vec<&Value> {
         match self {
-            Self::CreateVar(op) => vec![&op.value],
+            Self::DeclareVar(_) => vec![],
             Self::AssignVar(op) => vec![&op.left_value, &op.right_value],
-            Self::UnaryOperator(op) => vec![&op.value],
+            Self::Unary(op) => vec![&op.value],
         }
     }
 }
 
 #[derive(Debug)]
-pub(crate) struct CreateVarOperation {
+pub(crate) struct DeclareVarOperation {
     pub(crate) id: u64,
-    pub(crate) value: GpuValue,
+    pub(crate) type_: GpuTypeDetails,
 }
 
 #[derive(Debug)]
 pub(crate) struct AssignVarOperation {
-    pub(crate) left_value: GpuValue,
-    pub(crate) right_value: GpuValue,
+    pub(crate) left_value: Value,
+    pub(crate) right_value: Value,
 }
 
 #[derive(Debug)]
-pub(crate) struct UnaryOperatorOperation {
-    pub(crate) value: GpuValue,
+pub(crate) struct UnaryOperation {
+    pub(crate) var: Value,
+    pub(crate) value: Value,
     pub(crate) operator: &'static str,
 }
