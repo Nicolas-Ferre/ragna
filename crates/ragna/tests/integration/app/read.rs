@@ -23,12 +23,19 @@ pub fn read_used_glob() {
 #[test]
 pub fn read_unused_glob() {
     let app = App::default().with_module(register).run(1);
-    assert_eq!(app.read(UNUSED_GLOB), None);
+    assert_eq!(app.read(UNUSED_GLOB), Some(20));
+}
+
+#[test]
+pub fn read_not_registered_glob() {
+    let app = App::default().with_module(register).run(1);
+    let glob = Gpu::glob("", 0, |ctx| Gpu::var(Gpu::constant(0), ctx));
+    assert_eq!(app.read(glob), None);
 }
 
 #[ragna::gpu]
 mod gpu {
-    pub(super) static UNUSED_GLOB: i32 = 0;
+    pub(super) static UNUSED_GLOB: i32 = 20;
     pub(super) static USED_GLOB: i32 = 0;
 
     #[compute]

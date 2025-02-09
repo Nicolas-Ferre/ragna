@@ -3,17 +3,31 @@ use crate::runner::Runner;
 use crate::types::{GpuType, GpuTypeDetails};
 use crate::{wgsl, Gpu, Mut};
 use fxhash::FxHashMap;
-use itertools::Itertools;
 use std::any::TypeId;
 use std::mem;
 
 /// The entrypoint of a Ragna application.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct App {
     pub(crate) contexts: Vec<GpuContext>,
     pub(crate) globs: Vec<Glob>,
     pub(crate) types: FxHashMap<TypeId, GpuTypeDetails>,
     pub(crate) runner: Option<Runner>,
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self {
+            contexts: vec![],
+            globs: vec![],
+            types: FxHashMap::default(),
+            runner: None,
+        }
+        .with_type::<i32>()
+        .with_type::<u32>()
+        .with_type::<f32>()
+        .with_type::<bool>()
+    }
 }
 
 impl App {
@@ -26,16 +40,18 @@ impl App {
     pub fn with_compute(mut self, f: impl FnOnce(&mut GpuContext)) -> Self {
         let mut ctx = GpuContext::default();
         f(&mut ctx);
-        self.globs = mem::take(&mut self.globs)
-            .into_iter()
-            .chain(ctx.globs().cloned())
-            .unique()
-            .collect();
-        self.types = mem::take(&mut self.types)
-            .into_iter()
-            .chain(ctx.types.clone())
-            .collect();
         self.contexts.push(ctx);
+        self
+    }
+
+    /// Registers a global variable.
+    pub fn with_glob<T>(mut self, glob: Gpu<T, Mut>) -> Self
+    where
+        T: GpuType,
+    {
+        if let Value::Glob(glob) = glob.value() {
+            self.globs.push(glob);
+        }
         self
     }
 
@@ -94,32 +110,28 @@ impl App {
             .iter()
             .map(move |ctx| format!("{}{}", header, ctx.wgsl_code(&self.globs)))
     }
+
+    fn with_type<T>(mut self) -> Self
+    where
+        T: GpuType,
+    {
+        self.types.insert(TypeId::of::<T>(), T::gpu_type_details());
+        self
+    }
 }
 
 /// The context used to track GPU operations.
 #[derive(Debug, Default)]
 pub struct GpuContext {
     pub(crate) next_var_id: u64,
-    pub(crate) types: FxHashMap<TypeId, GpuTypeDetails>,
     pub(crate) operations: Vec<Operation>,
 }
 
 impl GpuContext {
-    pub(crate) fn register_type<T>(&mut self)
-    where
-        T: GpuType,
-    {
-        self.types.insert(TypeId::of::<T>(), T::gpu_type_details());
-    }
-
     pub(crate) fn next_var_id(&mut self) -> u64 {
         let id = self.next_var_id;
         self.next_var_id += 1;
         id
-    }
-
-    fn globs(&self) -> impl Iterator<Item = &Glob> {
-        self.operations.iter().flat_map(|op| op.glob())
     }
 
     fn wgsl_code(&self, all_globs: &[Glob]) -> String {

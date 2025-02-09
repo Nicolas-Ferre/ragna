@@ -3,7 +3,6 @@ use crate::GpuContext;
 use derive_where::derive_where;
 use dyn_clone::DynClone;
 use std::any::TypeId;
-use std::hash::{Hash, Hasher};
 
 #[derive(Debug)]
 pub(crate) enum Value {
@@ -18,14 +17,6 @@ impl Value {
             Self::Constant(value) => value.type_id,
             Self::Glob(value) => value.type_id,
             Self::Var(value) => value.type_id,
-        }
-    }
-
-    fn glob(&self) -> Option<&Glob> {
-        if let Self::Glob(glob) = self {
-            Some(glob)
-        } else {
-            None
         }
     }
 }
@@ -67,13 +58,6 @@ impl PartialEq for Glob {
 
 impl Eq for Glob {}
 
-impl Hash for Glob {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.module.hash(state);
-        self.id.hash(state);
-    }
-}
-
 impl Clone for Glob {
     fn clone(&self) -> Self {
         Self {
@@ -97,24 +81,6 @@ pub(crate) enum Operation {
     AssignVar(AssignVarOperation),
     Unary(UnaryOperation),
     Binary(BinaryOperation),
-}
-
-impl Operation {
-    pub(crate) fn glob(&self) -> Vec<&Glob> {
-        self.values()
-            .into_iter()
-            .filter_map(|value| value.glob())
-            .collect()
-    }
-
-    pub(crate) fn values(&self) -> Vec<&Value> {
-        match self {
-            Self::DeclareVar(_) => vec![],
-            Self::AssignVar(op) => vec![&op.left_value, &op.right_value],
-            Self::Unary(op) => vec![&op.value],
-            Self::Binary(op) => vec![&op.left_value, &op.right_value],
-        }
-    }
 }
 
 #[derive(Debug)]
