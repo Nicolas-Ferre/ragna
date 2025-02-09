@@ -1,5 +1,5 @@
 use crate::operations::{
-    AssignVarOperation, Constant, CreateVarOperation, Glob, Operation, Value, Var,
+    AssignVarOperation, Constant, DeclareVarOperation, Glob, Operation, Value, Var,
 };
 use crate::types::GpuType;
 use crate::GpuContext;
@@ -66,15 +66,21 @@ where
         ctx.register_type::<T>();
         let id = ctx.next_var_id();
         ctx.operations
-            .push(Operation::CreateVar(CreateVarOperation {
+            .push(Operation::CreateVar(DeclareVarOperation {
                 id,
-                value: value.value.into(),
+                type_: T::gpu_type_details(),
+            }));
+        let var = GpuValue::Var(Var {
+            id,
+            type_id: TypeId::of::<T>(),
+        });
+        ctx.operations
+            .push(Operation::AssignVar(AssignVarOperation {
+                left_value: var.into(),
+                right_value: value.value.into(),
             }));
         Self {
-            value: GpuValue::Var(Var {
-                id,
-                type_id: TypeId::of::<T>(),
-            }),
+            value: var,
             phantom: PhantomData,
         }
     }

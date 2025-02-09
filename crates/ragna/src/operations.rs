@@ -1,3 +1,4 @@
+use crate::types::GpuTypeDetails;
 use crate::GpuContext;
 use derive_where::derive_where;
 use dyn_clone::DynClone;
@@ -91,7 +92,7 @@ pub(crate) struct Var {
 
 #[derive(Debug)]
 pub(crate) enum Operation {
-    CreateVar(CreateVarOperation),
+    CreateVar(DeclareVarOperation),
     AssignVar(AssignVarOperation),
     Unary(UnaryOperation),
 }
@@ -106,7 +107,7 @@ impl Operation {
 
     pub(crate) fn values(&self) -> Vec<&Value> {
         match self {
-            Self::CreateVar(op) => vec![&op.value],
+            Self::CreateVar(_) => vec![],
             Self::AssignVar(op) => vec![&op.left_value, &op.right_value],
             Self::Unary(op) => vec![&op.value],
         }
@@ -114,9 +115,9 @@ impl Operation {
 }
 
 #[derive(Debug)]
-pub(crate) struct CreateVarOperation {
+pub(crate) struct DeclareVarOperation {
     pub(crate) id: u64,
-    pub(crate) value: Value,
+    pub(crate) type_: GpuTypeDetails,
 }
 
 #[derive(Debug)]

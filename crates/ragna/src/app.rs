@@ -83,16 +83,16 @@ impl App {
         }
         format!(
             "{}{}",
-            wgsl::header_code(&self.globs, &self.types),
-            ctx.wgsl_code()
+            wgsl::header_code(&self.types, &self.globs),
+            ctx.wgsl_code(&self.globs)
         )
     }
 
     pub(crate) fn wgsl_update_shaders(&self) -> impl Iterator<Item = String> + '_ {
-        let header = wgsl::header_code(&self.globs, &self.types);
+        let header = wgsl::header_code(&self.types, &self.globs);
         self.contexts
             .iter()
-            .map(move |ctx| format!("{}{}", header, ctx.wgsl_code()))
+            .map(move |ctx| format!("{}{}", header, ctx.wgsl_code(&self.globs)))
     }
 }
 
@@ -122,7 +122,7 @@ impl GpuContext {
         self.operations.iter().flat_map(|op| op.glob())
     }
 
-    fn wgsl_code(&self) -> String {
-        wgsl::compute_shader_code(self)
+    fn wgsl_code(&self, all_globs: &[Glob]) -> String {
+        wgsl::compute_shader_code(self, all_globs)
     }
 }

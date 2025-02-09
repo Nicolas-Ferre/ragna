@@ -64,7 +64,7 @@ impl GpuType for bool {
 }
 
 /// Details about a GPU type on WGSL side.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct GpuTypeDetails {
     pub(crate) name: &'static str,
 }

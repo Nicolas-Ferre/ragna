@@ -5,10 +5,10 @@ use fxhash::FxHashMap;
 use itertools::Itertools;
 use std::any::TypeId;
 
-const BUFFER_NAME: &str = "buffer";
-const BUFFER_TYPE_NAME: &str = "Buffer";
+const BUFFER_NAME: &str = "buf"; // Rust keyword to ensure no conflict with other identifiers.
+const BUFFER_TYPE_NAME: &str = "Buf"; // Rust keyword to ensure no conflict with other identifiers.
 
-pub(crate) fn header_code(globs: &[Glob], types: &FxHashMap<TypeId, GpuTypeDetails>) -> String {
+pub(crate) fn header_code(types: &FxHashMap<TypeId, GpuTypeDetails>, globs: &[Glob]) -> String {
     if globs.is_empty() {
         String::new()
     } else {
@@ -21,31 +21,31 @@ pub(crate) fn header_code(globs: &[Glob], types: &FxHashMap<TypeId, GpuTypeDetai
                 .iter()
                 .map(|glob| format!(
                     "    {}: {},",
-                    glob_name(glob),
-                    type_name(types, glob.type_id)
+                    glob_name(glob, globs),
+                    types[&glob.type_id].name
                 ))
                 .join("\n")
         )
     }
 }
 
-pub(crate) fn compute_shader_code(ctx: &GpuContext) -> String {
+pub(crate) fn compute_shader_code(ctx: &GpuContext, globs: &[Glob]) -> String {
     format!(
         "@compute @workgroup_size(1, 1, 1)\nfn main() {{\n{}\n}}",
         ctx.operations
             .iter()
-            .map(|operation| operation_code(ctx, operation, 4))
+            .map(|operation| operation_code(operation, 4, globs))
             .join("\n")
     )
 }
 
-fn operation_code(ctx: &GpuContext, operation: &Operation, indent: usize) -> String {
+fn operation_code(operation: &Operation, indent: usize, globs: &[Glob]) -> String {
     match operation {
         Operation::CreateVar(op) => {
             format!(
-                "{empty: >width$}var {} = {};",
+                "{empty: >width$}var {}: {};",
                 var_name(op.id),
-                value_code(ctx, &op.value),
+                op.type_.name,
                 empty = "",
                 width = indent,
             )
@@ -53,17 +53,17 @@ fn operation_code(ctx: &GpuContext, operation: &Operation, indent: usize) -> Str
         Operation::AssignVar(op) => {
             format!(
                 "{empty: >width$}{} = {};",
-                value_code(ctx, &op.left_value),
-                value_code(ctx, &op.right_value),
+                value_code(&op.left_value, globs),
+                value_code(&op.right_value, globs),
                 empty = "",
                 width = indent,
             )
         }
         Operation::Unary(op) => {
             let value = if op.value.value_type_id() == TypeId::of::<bool>() {
-                format!("bool({})", value_code(ctx, &op.value))
+                format!("bool({})", value_code(&op.value, globs))
             } else {
-                value_code(ctx, &op.value)
+                value_code(&op.value, globs)
             };
             let unary_expr = if op.var.value_type_id() == TypeId::of::<bool>() {
                 let bool_gpu_type = bool::gpu_type_details().name;
@@ -73,7 +73,7 @@ fn operation_code(ctx: &GpuContext, operation: &Operation, indent: usize) -> Str
             };
             format!(
                 "{empty: >width$}{} = {unary_expr};",
-                value_code(ctx, &op.var),
+                value_code(&op.var, globs),
                 empty = "",
                 width = indent,
             )
@@ -81,28 +81,22 @@ fn operation_code(ctx: &GpuContext, operation: &Operation, indent: usize) -> Str
     }
 }
 
-fn value_code(ctx: &GpuContext, value: &Value) -> String {
+fn value_code(value: &Value, globs: &[Glob]) -> String {
     match value {
-        Value::Constant(constant) => {
-            format!(
-                "{}({})",
-                type_name(&ctx.types, constant.type_id),
-                constant.value
-            )
-        }
-        Value::Glob(glob) => format!("{}.{}", BUFFER_NAME, glob_name(glob)),
-        Value::Var(var) => format!("var{}", var.id),
+        Value::Constant(constant) => constant.value.clone(),
+        Value::Glob(glob) => format!("{}.{}", BUFFER_NAME, glob_name(glob, globs)),
+        Value::Var(var) => var_name(var.id),
     }
 }
 
-fn glob_name(glob: &Glob) -> String {
-    format!("glob_{}_{}", glob.module.replace("::", "__"), glob.id)
-}
-
-fn type_name(types: &FxHashMap<TypeId, GpuTypeDetails>, type_id: TypeId) -> &str {
-    types[&type_id].name
+fn glob_name(glob: &Glob, globs: &[Glob]) -> String {
+    let index = globs
+        .iter()
+        .position(|g| g == glob)
+        .expect("internal error: glob not found");
+    format!("g{index}")
 }
 
 fn var_name(id: u64) -> String {
-    format!("var{id}")
+    format!("v{id}")
 }
