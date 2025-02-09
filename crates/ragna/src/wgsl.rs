@@ -5,8 +5,8 @@ use fxhash::FxHashMap;
 use itertools::Itertools;
 use std::any::TypeId;
 
-const BUFFER_NAME: &str = "buf"; // Rust keyword to ensure no conflict with other identifiers.
-const BUFFER_TYPE_NAME: &str = "Buf"; // Rust keyword to ensure no conflict with other identifiers.
+const BUFFER_NAME: &str = "buf";
+const BUFFER_TYPE_NAME: &str = "Buf";
 
 pub(crate) fn header_code(types: &FxHashMap<TypeId, GpuTypeDetails>, globs: &[Glob]) -> String {
     if globs.is_empty() {
