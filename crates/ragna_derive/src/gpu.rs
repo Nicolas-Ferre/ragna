@@ -101,6 +101,17 @@ impl GpuModule {
     }
 }
 
+macro_rules! transform_binary_expr {
+    ($self:ident, $expr:expr, $left:ident, $right:ident, $($new_expr:tt)+) => {{
+        let attrs = &$expr.attrs;
+        let $left = &$expr.left;
+        let $right = &$expr.right;
+        $self.fold_expr(parse_quote_spanned! {
+            $expr.span() => #(#attrs)* $($new_expr)+
+        })
+    }};
+}
+
 #[allow(clippy::wildcard_enum_match_arm)]
 impl Fold for GpuModule {
     fn fold_block(&mut self, block: Block) -> Block {
@@ -163,48 +174,20 @@ impl Fold for GpuModule {
                 BinOp::Or(_) => self.transform_binary_op(expr, "GpuOr"),
                 BinOp::Eq(_) => self.transform_binary_op(expr, "GpuEq"),
                 BinOp::Gt(_) => self.transform_binary_op(expr, "GpuGreaterThan"),
-                BinOp::Ne(_) => {
-                    let attrs = &expr.attrs;
-                    let left = &expr.left;
-                    let right = &expr.right;
-                    self.fold_expr(parse_quote_spanned! {
-                        expr.span() => #(#attrs)* (!(#left == #right))
-                    })
-                }
-                BinOp::Lt(_) => {
-                    let attrs = &expr.attrs;
-                    let left = &expr.left;
-                    let right = &expr.right;
-                    self.fold_expr(parse_quote_spanned! {
-                        expr.span() => #(#attrs)* (!(#left > #right || #left == #right))
-                    })
-                }
-                BinOp::Le(_) => {
-                    let attrs = &expr.attrs;
-                    let left = &expr.left;
-                    let right = &expr.right;
-                    self.fold_expr(parse_quote_spanned! {
-                        expr.span() => #(#attrs)* (!(#left > #right))
-                    })
-                }
-                BinOp::Ge(_) => {
-                    let attrs = &expr.attrs;
-                    let left = &expr.left;
-                    let right = &expr.right;
-                    self.fold_expr(parse_quote_spanned! {
-                        expr.span() => #(#attrs)* (#left > #right || #left == #right)
-                    })
-                }
+                BinOp::Ne(_) => transform_binary_expr!(self, expr, l, r, (!(#l == #r))),
+                BinOp::Lt(_) => transform_binary_expr!(self, expr, l, r, (!(#l > #r || #l == #r))),
+                BinOp::Le(_) => transform_binary_expr!(self, expr, l, r, (!(#l > #r))),
+                BinOp::Ge(_) => transform_binary_expr!(self, expr, l, r, (#l > #r || #l == #r)),
+                BinOp::AddAssign(_) => transform_binary_expr!(self, expr, l, r, (#l = #l + #r)),
+                BinOp::SubAssign(_) => transform_binary_expr!(self, expr, l, r, (#l = #l - #r)),
+                BinOp::MulAssign(_) => transform_binary_expr!(self, expr, l, r, (#l = #l * #r)),
+                BinOp::DivAssign(_) => transform_binary_expr!(self, expr, l, r, (#l = #l / #r)),
+                BinOp::RemAssign(_) => transform_binary_expr!(self, expr, l, r, (#l = #l % #r)),
                 BinOp::BitXor(_)
                 | BinOp::BitAnd(_)
                 | BinOp::BitOr(_)
                 | BinOp::Shl(_)
                 | BinOp::Shr(_)
-                | BinOp::AddAssign(_)
-                | BinOp::SubAssign(_)
-                | BinOp::MulAssign(_)
-                | BinOp::DivAssign(_)
-                | BinOp::RemAssign(_)
                 | BinOp::BitXorAssign(_)
                 | BinOp::BitAndAssign(_)
                 | BinOp::BitOrAssign(_)

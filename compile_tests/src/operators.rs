@@ -8,4 +8,9 @@ mod gpu {
     static UNSUPPORTED_UNARY: u32 = *&CONSTANT;
     static INVALID_BINARY: u32 = CONSTANT && CONSTANT;
     static UNSUPPORTED_BINARY: u32 = CONSTANT & CONSTANT;
+
+    #[compute]
+    fn run() {
+        UNSUPPORTED_BINARY += true;
+    }
 }
