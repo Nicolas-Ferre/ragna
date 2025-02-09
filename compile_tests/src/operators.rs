@@ -4,7 +4,8 @@ fn main() {}
 mod gpu {
     const CONSTANT: u32 = 10;
 
-    static INVALID_NEG: u32 = -CONSTANT;
-    static INVALID_NOT: u32 = !CONSTANT;
-    static INVALID_DEREF: u32 = *&CONSTANT;
+    static INVALID_UNARY: u32 = !CONSTANT;
+    static UNSUPPORTED_UNARY: u32 = *&CONSTANT;
+    static INVALID_BINARY: u32 = CONSTANT && CONSTANT;
+    static UNSUPPORTED_BINARY: u32 = CONSTANT & CONSTANT;
 }

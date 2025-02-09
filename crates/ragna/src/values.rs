@@ -63,26 +63,13 @@ where
 
     /// Creates a local variable.
     pub fn var(value: Gpu<T, impl Any>, ctx: &mut GpuContext) -> Self {
-        ctx.register_type::<T>();
-        let id = ctx.next_var_id();
-        ctx.operations
-            .push(Operation::DeclareVar(DeclareVarOperation {
-                id,
-                type_: T::gpu_type_details(),
-            }));
-        let var = GpuValue::Var(Var {
-            id,
-            type_id: TypeId::of::<T>(),
-        });
+        let var = Self::uninitialized_var(ctx);
         ctx.operations
             .push(Operation::AssignVar(AssignVarOperation {
-                left_value: var.into(),
+                left_value: var.value.into(),
                 right_value: value.value.into(),
             }));
-        Self {
-            value: var,
-            phantom: PhantomData,
-        }
+        var
     }
 
     /// Assigns a value
@@ -93,6 +80,23 @@ where
                 left_value: self.value.into(),
                 right_value: value.value.into(),
             }));
+    }
+
+    pub(crate) fn uninitialized_var(ctx: &mut GpuContext) -> Self {
+        ctx.register_type::<T>();
+        let id = ctx.next_var_id();
+        ctx.operations
+            .push(Operation::DeclareVar(DeclareVarOperation {
+                id,
+                type_: T::gpu_type_details(),
+            }));
+        Self {
+            value: GpuValue::Var(Var {
+                id,
+                type_id: TypeId::of::<T>(),
+            }),
+            phantom: PhantomData,
+        }
     }
 }
 
@@ -126,6 +130,7 @@ where
             GpuValue::Constant(constant) => Self::Constant(Constant {
                 value: constant.value.into_wgsl(),
                 type_id: TypeId::of::<T>(),
+                gpu_type: T::gpu_type_details(),
             }),
             GpuValue::Glob(glob) => Self::Glob(Glob {
                 module: glob.module,

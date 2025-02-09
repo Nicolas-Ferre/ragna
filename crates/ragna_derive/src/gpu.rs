@@ -6,9 +6,9 @@ use std::{iter, mem};
 use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{
-    fold, parse_quote, parse_quote_spanned, Attribute, Block, Expr, ExprUnary, Generics, Item,
-    ItemConst, ItemFn, ItemMod, LitInt, Local, LocalInit, Meta, Pat, PatType, ReturnType, Stmt,
-    Token, UnOp,
+    fold, parse_quote, parse_quote_spanned, Attribute, BinOp, Block, Expr, ExprBinary, ExprUnary,
+    Generics, Item, ItemConst, ItemFn, ItemMod, LitInt, Local, LocalInit, Meta, Pat, PatType,
+    ReturnType, Stmt, Token, UnOp,
 };
 
 pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
@@ -80,6 +80,20 @@ impl GpuModule {
         });
         parse_quote_spanned! { span => #var_ident }
     }
+
+    fn transform_binary_op(&mut self, expr: ExprBinary, trait_: &str) -> Expr {
+        let span = expr.span();
+        let trait_ident = Ident::new(trait_, span);
+        let attrs = expr.attrs;
+        let left_expr = self.fold_expr(*expr.left);
+        let right_expr = self.fold_expr(*expr.right);
+        let var_ident = self.new_var_ident(span);
+        self.extracted_statements.push(parse_quote_spanned! {
+            span =>
+            let #var_ident = #(#attrs)* ::ragna::#trait_ident::apply(#left_expr, #right_expr, __ctx);
+        });
+        parse_quote_spanned! { span => #var_ident }
+    }
 }
 
 #[allow(clippy::wildcard_enum_match_arm)]
@@ -119,14 +133,81 @@ impl Fold for GpuModule {
                         UnOp::Not(_) => self.transform_unary_op(expr, "GpuNot"),
                         UnOp::Neg(_) => self.transform_unary_op(expr, "GpuNeg"),
                         UnOp::Deref(_) | _ => {
-                            self.errors
-                                .push(syn::Error::new(expr.span(), "unsupported unary operator"));
+                            self.errors.push(syn::Error::new(
+                                expr.op.span(),
+                                "unsupported unary operator",
+                            ));
                             fold::fold_expr_unary(self, expr).into()
                         }
                     }
                 }
             }
-            expr @ Expr::Path(_) => fold::fold_expr(self, expr),
+            Expr::Binary(expr) => match &expr.op {
+                BinOp::Add(_) => self.transform_binary_op(expr, "GpuAdd"),
+                BinOp::Sub(_) => self.transform_binary_op(expr, "GpuSub"),
+                BinOp::Mul(_) => self.transform_binary_op(expr, "GpuMul"),
+                BinOp::Div(_) => self.transform_binary_op(expr, "GpuDiv"),
+                BinOp::Rem(_) => self.transform_binary_op(expr, "GpuRem"),
+                BinOp::And(_) => self.transform_binary_op(expr, "GpuAnd"),
+                BinOp::Or(_) => self.transform_binary_op(expr, "GpuOr"),
+                BinOp::Eq(_) => self.transform_binary_op(expr, "GpuEq"),
+                BinOp::Gt(_) => self.transform_binary_op(expr, "GpuGreaterThan"),
+                BinOp::Ne(_) => {
+                    let attrs = &expr.attrs;
+                    let left = &expr.left;
+                    let right = &expr.right;
+                    self.fold_expr(parse_quote_spanned! {
+                        expr.span() => #(#attrs)* (!(#left == #right))
+                    })
+                }
+                BinOp::Lt(_) => {
+                    let attrs = &expr.attrs;
+                    let left = &expr.left;
+                    let right = &expr.right;
+                    self.fold_expr(parse_quote_spanned! {
+                        expr.span() => #(#attrs)* (!(#left > #right || #left == #right))
+                    })
+                }
+                BinOp::Le(_) => {
+                    let attrs = &expr.attrs;
+                    let left = &expr.left;
+                    let right = &expr.right;
+                    self.fold_expr(parse_quote_spanned! {
+                        expr.span() => #(#attrs)* (!(#left > #right))
+                    })
+                }
+                BinOp::Ge(_) => {
+                    let attrs = &expr.attrs;
+                    let left = &expr.left;
+                    let right = &expr.right;
+                    self.fold_expr(parse_quote_spanned! {
+                        expr.span() => #(#attrs)* (#left > #right || #left == #right)
+                    })
+                }
+                BinOp::BitXor(_)
+                | BinOp::BitAnd(_)
+                | BinOp::BitOr(_)
+                | BinOp::Shl(_)
+                | BinOp::Shr(_)
+                | BinOp::AddAssign(_)
+                | BinOp::SubAssign(_)
+                | BinOp::MulAssign(_)
+                | BinOp::DivAssign(_)
+                | BinOp::RemAssign(_)
+                | BinOp::BitXorAssign(_)
+                | BinOp::BitAndAssign(_)
+                | BinOp::BitOrAssign(_)
+                | BinOp::ShlAssign(_)
+                | BinOp::ShrAssign(_)
+                | _ => {
+                    self.errors.push(syn::Error::new(
+                        expr.op.span(),
+                        "unsupported binary operator",
+                    ));
+                    fold::fold_expr_binary(self, expr).into()
+                }
+            },
+            expr @ (Expr::Path(_) | Expr::Paren(_)) => fold::fold_expr(self, expr),
             expr => {
                 self.errors
                     .push(syn::Error::new(expr.span(), "unsupported expression"));
