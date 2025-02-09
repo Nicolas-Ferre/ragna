@@ -3,7 +3,6 @@ use crate::GpuContext;
 use derive_where::derive_where;
 use dyn_clone::DynClone;
 use std::any::TypeId;
-use std::hash::{Hash, Hasher};
 
 #[derive(Debug)]
 pub(crate) enum Value {
@@ -58,13 +57,6 @@ impl PartialEq for Glob {
 }
 
 impl Eq for Glob {}
-
-impl Hash for Glob {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.module.hash(state);
-        self.id.hash(state);
-    }
-}
 
 impl Clone for Glob {
     fn clone(&self) -> Self {
