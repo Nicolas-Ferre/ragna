@@ -22,24 +22,6 @@ error: unsupported expression
 12 |         loop {}
    |         ^^^^
 
-error: unsupported function params
-  --> compile_tests/src/unsupported_syntax.rs:15:19
-   |
-15 |     fn invalid_fn(_param: i32) -> i32 {
-   |                   ^^^^^^
-
-error: unsupported function output
-  --> compile_tests/src/unsupported_syntax.rs:15:35
-   |
-15 |     fn invalid_fn(_param: i32) -> i32 {
-   |                                   ^^^
-
-error: unsupported expression
-  --> compile_tests/src/unsupported_syntax.rs:16:9
-   |
-16 |         unimplemented!()
-   |         ^^^^^^^^^^^^^
-
 error[E0381]: used binding `var` isn't initialized
   --> compile_tests/src/unsupported_syntax.rs:10:9
    |

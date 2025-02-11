@@ -103,7 +103,8 @@ where
     T: GpuType,
     M: 'static,
 {
-    pub(crate) fn value(self) -> Value {
+    #[doc(hidden)]
+    pub fn value(self) -> Value {
         self.value.into()
     }
 }

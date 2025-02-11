@@ -11,8 +11,4 @@ mod gpu {
         let _ = 0;
         loop {}
     }
-
-    fn invalid_fn(_param: i32) -> i32 {
-        unimplemented!()
-    }
 }

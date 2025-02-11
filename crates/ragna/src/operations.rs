@@ -5,7 +5,8 @@ use dyn_clone::DynClone;
 use std::any::TypeId;
 
 #[derive(Debug)]
-pub(crate) enum Value {
+#[allow(private_interfaces)]
+pub enum Value {
     Constant(Constant),
     Glob(Glob),
     Var(Var),
@@ -81,6 +82,7 @@ pub(crate) enum Operation {
     AssignVar(AssignVarOperation),
     Unary(UnaryOperation),
     Binary(BinaryOperation),
+    FnCall(FnCallOperation),
 }
 
 #[derive(Debug)]
@@ -108,4 +110,11 @@ pub(crate) struct BinaryOperation {
     pub(crate) left_value: Value,
     pub(crate) right_value: Value,
     pub(crate) operator: &'static str,
+}
+
+#[derive(Debug)]
+pub(crate) struct FnCallOperation {
+    pub(crate) var: Value,
+    pub(crate) fn_name: &'static str,
+    pub(crate) args: Vec<Value>,
 }

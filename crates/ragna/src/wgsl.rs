@@ -74,6 +74,18 @@ fn operation_code(operation: &Operation, globs: &[Glob]) -> String {
             let expr = returned_value(&op.var, operation);
             format!("    {} = {expr};", value_code(&op.var, globs))
         }
+        Operation::FnCall(op) => {
+            let operation = format!(
+                "{}({})",
+                op.fn_name,
+                op.args
+                    .iter()
+                    .map(|value| function_arg(value, globs))
+                    .join(", ")
+            );
+            let expr = returned_value(&op.var, operation);
+            format!("    {} = {expr};", value_code(&op.var, globs))
+        }
     }
 }
 

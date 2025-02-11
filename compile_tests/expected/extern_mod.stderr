@@ -1,0 +1,11 @@
+error: only "wgsl" ABI is supported
+ --> compile_tests/src/extern_mod.rs:5:12
+  |
+5 |     extern "C" {}
+  |            ^^^
+
+error: unsupported item
+ --> compile_tests/src/extern_mod.rs:8:9
+  |
+8 |         static STATIC: u32;
+  |         ^^^^^^
