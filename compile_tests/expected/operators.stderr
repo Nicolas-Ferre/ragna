@@ -82,3 +82,5 @@ error[E0277]: the trait bound `u32: GpuAdd<bool>` is not satisfied
    = help: the following other types implement trait `GpuAdd<R>`:
              `u32` implements `GpuAdd<i32>`
              `u32` implements `GpuAdd<u32>`
+
+

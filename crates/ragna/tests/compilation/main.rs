@@ -18,7 +18,7 @@ pub fn run_compile_tests() {
         .output()
         .unwrap();
     comment_compile_tests();
-    let mut is_note = false;
+    let mut is_skipped = false;
     let grouped_errors = String::from_utf8(output.stderr)
         .unwrap()
         .lines()
@@ -29,12 +29,12 @@ pub fn run_compile_tests() {
                 && !line.contains("could not compile")
         })
         .filter(|line| {
-            if line.starts_with("note:") {
-                is_note = true;
+            if line.starts_with("note:") || line.starts_with("warning:") {
+                is_skipped = true;
             } else if line.is_empty() {
-                is_note = false;
+                is_skipped = false;
             }
-            !is_note
+            !is_skipped
         })
         .join("\n")
         .split("\nerror")

@@ -1,4 +1,5 @@
 use crate::gpu::{attrs, types, GpuModule};
+use proc_macro2::Ident;
 use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{parse_quote_spanned, FnArg, ItemFn, Pat, ReturnType, Signature};
@@ -6,6 +7,15 @@ use syn::{parse_quote_spanned, FnArg, ItemFn, Pat, ReturnType, Signature};
 pub(crate) fn item_to_gpu(mut item: ItemFn, module: &mut GpuModule) -> ItemFn {
     if item.attrs.iter().any(attrs::is_compute) {
         module.compute_fns.push(item.sig.ident.clone());
+    } else {
+        for arg in item.sig.inputs.iter().rev() {
+            if let Some(ident) = arg_ident(arg) {
+                item.block.stmts.insert(
+                    0,
+                    parse_quote_spanned! { ident.span() => let mut #ident = #ident; },
+                );
+            }
+        }
     }
     let span = item.span();
     item.attrs = item
@@ -42,13 +52,26 @@ fn arg_to_gpu(arg: FnArg, module: &mut GpuModule) -> FnArg {
             arg.into()
         }
         FnArg::Typed(mut arg) => {
-            if !matches!(*arg.pat, Pat::Ident(_)) {
+            if let Pat::Ident(_) = &*arg.pat {
+                arg.ty = types::any_to_gpu(&arg.ty).into();
+            } else {
                 module
                     .errors
                     .push(syn::Error::new(arg.pat.span(), "unsupported pattern"));
             }
-            arg.ty = types::any_to_gpu(&arg.ty).into();
             arg.into()
         }
+    }
+}
+
+pub(crate) fn arg_ident(arg: &FnArg) -> Option<&Ident> {
+    if let FnArg::Typed(pat) = arg {
+        if let Pat::Ident(ident) = &*pat.pat {
+            Some(&ident.ident)
+        } else {
+            None
+        }
+    } else {
+        None
     }
 }
