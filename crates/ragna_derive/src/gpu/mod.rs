@@ -38,6 +38,7 @@ pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
     }
     let errors = fold.errors.into_iter().map(syn::Error::into_compile_error);
     quote! {
+        #[allow(unused_mut, clippy::let_and_return)]
         #modified_module
         #(#errors)*
     }

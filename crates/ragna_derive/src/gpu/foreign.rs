@@ -1,10 +1,9 @@
 use crate::gpu::{fns, GpuModule};
-use proc_macro2::Ident;
 use quote::quote;
 use syn::spanned::Spanned;
 use syn::{
-    parse_quote_spanned, FnArg, ForeignItem, ForeignItemFn, Item, ItemFn, ItemForeignMod, LitStr,
-    Pat, ReturnType,
+    parse_quote_spanned, ForeignItem, ForeignItemFn, Item, ItemFn, ItemForeignMod, LitStr,
+    ReturnType,
 };
 
 pub(crate) fn mod_to_gpu(item: ItemForeignMod, module: &mut GpuModule) -> Item {
@@ -37,7 +36,7 @@ fn fn_to_gpu(mut item: ForeignItemFn, module: &mut GpuModule) {
         .sig
         .inputs
         .iter()
-        .filter_map(|arg| arg_ident(arg).cloned())
+        .filter_map(|arg| fns::arg_ident(arg).cloned())
         .collect::<Vec<_>>();
     let span = item.span();
     let fn_name = LitStr::new(&item.sig.ident.to_string(), item.sig.ident.span());
@@ -57,16 +56,4 @@ fn fn_to_gpu(mut item: ForeignItemFn, module: &mut GpuModule) {
             __ctx.call_fn(#fn_name, vec![#(#param_idents.value()),*])
         }},
     }));
-}
-
-fn arg_ident(arg: &FnArg) -> Option<&Ident> {
-    if let FnArg::Typed(pat) = arg {
-        if let Pat::Ident(ident) = &*pat.pat {
-            Some(&ident.ident)
-        } else {
-            None
-        }
-    } else {
-        None
-    }
 }
