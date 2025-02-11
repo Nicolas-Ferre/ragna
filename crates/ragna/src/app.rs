@@ -1,4 +1,4 @@
-use crate::operations::{AssignVarOperation, Glob, Operation, Value};
+use crate::operations::{AssignVarOperation, FnCallOperation, Glob, Operation, Value};
 use crate::runner::Runner;
 use crate::types::{GpuType, GpuTypeDetails};
 use crate::{wgsl, Gpu, Mut};
@@ -31,30 +31,6 @@ impl Default for App {
 }
 
 impl App {
-    /// Registers a GPU module.
-    pub fn with_module(mut self, f: impl FnOnce(Self) -> Self) -> Self {
-        f(mem::take(&mut self))
-    }
-
-    /// Registers a compute shader.
-    pub fn with_compute(mut self, f: impl FnOnce(&mut GpuContext)) -> Self {
-        let mut ctx = GpuContext::default();
-        f(&mut ctx);
-        self.contexts.push(ctx);
-        self
-    }
-
-    /// Registers a global variable.
-    pub fn with_glob<T>(mut self, glob: Gpu<T, Mut>) -> Self
-    where
-        T: GpuType,
-    {
-        if let Value::Glob(glob) = glob.value() {
-            self.globs.push(glob);
-        }
-        self
-    }
-
     /// Runs the application during `update_count` steps.
     #[allow(clippy::print_stdout)]
     pub fn run(mut self, update_count: u64) -> Self {
@@ -66,6 +42,30 @@ impl App {
         for _ in 0..update_count {
             runner.run_step();
             println!("Step duration: {}µs", runner.delta().as_micros());
+        }
+        self
+    }
+
+    /// Registers a GPU module.
+    pub fn with_module(mut self, f: impl FnOnce(Self) -> Self) -> Self {
+        f(mem::take(&mut self))
+    }
+
+    #[doc(hidden)]
+    pub fn with_compute(mut self, f: impl FnOnce(&mut GpuContext)) -> Self {
+        let mut ctx = GpuContext::default();
+        f(&mut ctx);
+        self.contexts.push(ctx);
+        self
+    }
+
+    #[doc(hidden)]
+    pub fn with_glob<T>(mut self, glob: Gpu<T, Mut>) -> Self
+    where
+        T: GpuType,
+    {
+        if let Value::Glob(glob) = glob.value() {
+            self.globs.push(glob);
         }
         self
     }
@@ -128,6 +128,20 @@ pub struct GpuContext {
 }
 
 impl GpuContext {
+    #[doc(hidden)]
+    pub fn call_fn<T>(&mut self, fn_name: &'static str, args: Vec<Value>) -> Gpu<T, Mut>
+    where
+        T: GpuType,
+    {
+        let var = Gpu::uninitialized_var(self);
+        self.operations.push(Operation::FnCall(FnCallOperation {
+            var: var.value(),
+            fn_name,
+            args,
+        }));
+        var
+    }
+
     pub(crate) fn next_var_id(&mut self) -> u64 {
         let id = self.next_var_id;
         self.next_var_id += 1;

@@ -16,12 +16,12 @@ Before you consider using this library, please keep in mind that:
 - It is developed by a single person in his spare time.
 - The library is highly experimental, so it shouldn't be used for production applications.
 
-## Main language features
+## Main characteristics
 
 - 🔥 Maximize execution on GPU side
 - 💪 Strong typing and compile-time checks performed with Rust
 - 🔀 Data race free
-- 🔄 Hot reloadable
+- 🔄 Hot reloadable GPU code
 
 ## Supported platforms
 
