@@ -2,7 +2,7 @@
 
 pub mod app;
 pub mod assignment;
-pub mod fn_call;
+pub mod fns;
 pub mod globs;
 pub mod operators;
 pub mod types;

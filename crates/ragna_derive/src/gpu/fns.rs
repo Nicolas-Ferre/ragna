@@ -35,15 +35,20 @@ pub(crate) fn signature_to_gpu(mut sig: Signature, module: &mut GpuModule) -> Si
 
 fn arg_to_gpu(arg: FnArg, module: &mut GpuModule) -> FnArg {
     match arg {
-        FnArg::Receiver(_) => arg,
-        FnArg::Typed(mut input) => {
-            if !matches!(*input.pat, Pat::Ident(_)) {
+        FnArg::Receiver(arg) => {
+            module
+                .errors
+                .push(syn::Error::new(arg.span(), "unsupported parameter"));
+            arg.into()
+        }
+        FnArg::Typed(mut arg) => {
+            if !matches!(*arg.pat, Pat::Ident(_)) {
                 module
                     .errors
-                    .push(syn::Error::new(input.pat.span(), "unsupported pattern"));
+                    .push(syn::Error::new(arg.pat.span(), "unsupported pattern"));
             }
-            input.ty = types::any_to_gpu(&input.ty).into();
-            input.into()
+            arg.ty = types::any_to_gpu(&arg.ty).into();
+            arg.into()
         }
     }
 }

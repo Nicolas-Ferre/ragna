@@ -1,4 +1,4 @@
-use crate::fn_call::gpu::{register, EXTERN_POW_RETURN, EXTERN_SQRT_RETURN};
+use crate::fns::gpu::{register, EXTERN_POW_RETURN, EXTERN_SQRT_RETURN};
 use ragna::App;
 
 #[test]

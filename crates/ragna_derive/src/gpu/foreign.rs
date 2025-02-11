@@ -1,6 +1,6 @@
 use crate::gpu::{fns, GpuModule};
 use proc_macro2::Ident;
-use quote::{quote, quote_spanned};
+use quote::quote;
 use syn::spanned::Spanned;
 use syn::{
     parse_quote_spanned, FnArg, ForeignItem, ForeignItemFn, Item, ItemFn, ItemForeignMod, LitStr,
@@ -32,7 +32,7 @@ fn check_abi(item: &ItemForeignMod, module: &mut GpuModule) {
     }
 }
 
-fn fn_to_gpu(mut item: ForeignItemFn, module: &mut GpuModule) -> ForeignItemFn {
+fn fn_to_gpu(mut item: ForeignItemFn, module: &mut GpuModule) {
     let param_idents = item
         .sig
         .inputs
@@ -41,20 +41,22 @@ fn fn_to_gpu(mut item: ForeignItemFn, module: &mut GpuModule) -> ForeignItemFn {
         .collect::<Vec<_>>();
     let span = item.span();
     let fn_name = LitStr::new(&item.sig.ident.to_string(), item.sig.ident.span());
-    let semi = match item.sig.output {
-        ReturnType::Default => quote_spanned! { span => ; },
-        ReturnType::Type(_, _) => quote_spanned! { span => },
-    };
+    if item.sig.output == ReturnType::Default {
+        module.errors.push(syn::Error::new(
+            item.sig.ident.span(),
+            "function must have a return type",
+        ));
+        return;
+    }
     item.sig = fns::signature_to_gpu(item.sig, module);
     module.generated_items.push(Item::Fn(ItemFn {
-        attrs: item.attrs.clone(),
-        vis: item.vis.clone(),
-        sig: item.sig.clone(),
+        attrs: item.attrs,
+        vis: item.vis,
+        sig: item.sig,
         block: parse_quote_spanned! { span => {
-            __ctx.call_fn(#fn_name, vec![#(#param_idents.value()),*]) #semi
+            __ctx.call_fn(#fn_name, vec![#(#param_idents.value()),*])
         }},
     }));
-    item
 }
 
 fn arg_ident(arg: &FnArg) -> Option<&Ident> {
