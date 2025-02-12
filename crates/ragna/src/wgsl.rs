@@ -34,10 +34,11 @@ pub(crate) fn compute_shader_code(ctx: &GpuContext, globs: &[Glob]) -> String {
         "@compute @workgroup_size(1, 1, 1)\nfn main() {{\n{}\n{}\n}}",
         globs
             .iter()
-            .map(|glob| format!(
+            .enumerate()
+            .map(|(index, glob)| format!(
                 // force the use of global variables to avoid pipeline creation error
                 "    var _vg{} = {}.{};",
-                glob_index(glob, globs),
+                index,
                 BUFFER_NAME,
                 glob_name(glob, globs)
             ))
