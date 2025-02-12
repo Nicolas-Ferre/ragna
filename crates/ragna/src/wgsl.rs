@@ -37,7 +37,7 @@ pub(crate) fn compute_shader_code(ctx: &GpuContext, globs: &[Glob]) -> String {
             .map(|glob| format!(
                 // force the use of global variables to avoid pipeline creation error
                 "    var _vg{} = {}.{};",
-                glob.id,
+                glob_index(glob, globs),
                 BUFFER_NAME,
                 glob_name(glob, globs)
             ))
@@ -117,11 +117,14 @@ fn value_code(value: &Value, globs: &[Glob]) -> String {
 }
 
 fn glob_name(glob: &Glob, globs: &[Glob]) -> String {
-    let index = globs
+    format!("g{}", glob_index(glob, globs))
+}
+
+fn glob_index(glob: &Glob, globs: &[Glob]) -> usize {
+    globs
         .iter()
         .position(|g| g == glob)
-        .expect("internal error: glob not found");
-    format!("g{index}")
+        .expect("internal error: glob not found")
 }
 
 fn var_name(id: u64) -> String {

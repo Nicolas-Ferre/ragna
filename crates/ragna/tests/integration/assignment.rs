@@ -1,13 +1,12 @@
-use crate::assignment::gpu::{register, FROM_CONSTANT, FROM_GLOB, FROM_MODIFIED_VAR, FROM_VAR};
 use ragna::App;
 
 #[test]
 pub fn assign_values() {
-    let app = App::default().with_module(register).run(1);
-    assert_eq!(app.read(FROM_VAR), Some(10));
-    assert_eq!(app.read(FROM_MODIFIED_VAR), Some(20));
-    assert_eq!(app.read(FROM_CONSTANT), Some(30));
-    assert_eq!(app.read(FROM_GLOB), Some(30));
+    let app = App::default().with_module(gpu::register).run(1);
+    assert_eq!(app.read(gpu::FROM_VAR), Some(10));
+    assert_eq!(app.read(gpu::FROM_MODIFIED_VAR), Some(20));
+    assert_eq!(app.read(gpu::FROM_CONSTANT), Some(30));
+    assert_eq!(app.read(gpu::FROM_GLOB), Some(30));
 }
 
 #[ragna::gpu]
