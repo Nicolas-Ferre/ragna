@@ -90,6 +90,7 @@ impl Fold for GpuModule {
             Item::ForeignMod(item) => foreign::mod_to_gpu(item, self),
             Item::Const(item) => constants::item_to_gpu(item).into(),
             Item::Fn(item) => fns::item_to_gpu(item, self).into(),
+            item @ Item::Use(_) => item,
             item => {
                 self.errors
                     .push(syn::Error::new(item.span(), "unsupported item"));

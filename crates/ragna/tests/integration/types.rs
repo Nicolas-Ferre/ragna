@@ -1,23 +1,22 @@
 #![allow(clippy::lossy_float_literal)]
 
-use crate::types::gpu::{
-    register, BOOL_FALSE_VALUE, BOOL_NOT_VALUE, BOOL_TRUE_VALUE, F32_FRAC_VALUE, F32_INT_VALUE,
-    F32_NEG_VALUE, I32_NEG_VALUE, I32_POS_VALUE, U32_VALUE,
-};
 use ragna::App;
 
 #[test]
 pub fn assign_values() {
-    let app = App::default().with_module(register).run(1);
-    assert_eq!(app.read(I32_POS_VALUE), Some(0x7FFF_FFFF));
-    assert_eq!(app.read(I32_NEG_VALUE), Some(-0x8000_0000));
-    assert_eq!(app.read(U32_VALUE), Some(0xFFFF_FFFF));
-    assert_eq!(app.read(F32_INT_VALUE), Some(999_999_999_999_999_999_999.));
-    assert_eq!(app.read(F32_FRAC_VALUE), Some(123.456));
-    assert_eq!(app.read(F32_NEG_VALUE), Some(-123.456));
-    assert_eq!(app.read(BOOL_FALSE_VALUE), Some(false));
-    assert_eq!(app.read(BOOL_TRUE_VALUE), Some(true));
-    assert_eq!(app.read(BOOL_NOT_VALUE), Some(false));
+    let app = App::default().with_module(gpu::register).run(1);
+    assert_eq!(app.read(gpu::I32_POS_VALUE), Some(0x7FFF_FFFF));
+    assert_eq!(app.read(gpu::I32_NEG_VALUE), Some(-0x8000_0000));
+    assert_eq!(app.read(gpu::U32_VALUE), Some(0xFFFF_FFFF));
+    assert_eq!(
+        app.read(gpu::F32_INT_VALUE),
+        Some(999_999_999_999_999_999_999.)
+    );
+    assert_eq!(app.read(gpu::F32_FRAC_VALUE), Some(123.456));
+    assert_eq!(app.read(gpu::F32_NEG_VALUE), Some(-123.456));
+    assert_eq!(app.read(gpu::BOOL_FALSE_VALUE), Some(false));
+    assert_eq!(app.read(gpu::BOOL_TRUE_VALUE), Some(true));
+    assert_eq!(app.read(gpu::BOOL_NOT_VALUE), Some(false));
 }
 
 #[ragna::gpu]
