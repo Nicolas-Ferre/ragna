@@ -100,7 +100,7 @@ fn function_arg(value: &Value, globs: &[Glob]) -> String {
 
 fn returned_value(value: &Value, expr: String) -> String {
     if value.value_type_id() == TypeId::of::<bool>() {
-        let bool_gpu_type = bool::gpu_type_details().name;
+        let bool_gpu_type = bool::details().name;
         format!("{bool_gpu_type}({expr})")
     } else {
         expr

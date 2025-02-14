@@ -38,7 +38,12 @@ pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
     }
     let errors = fold.errors.into_iter().map(syn::Error::into_compile_error);
     quote! {
-        #[allow(unused_mut, clippy::let_and_return)]
+        #[allow(
+            unused_mut,
+            clippy::let_and_return,
+            clippy::type_repetition_in_bounds,
+            clippy::multiple_bound_locations,
+        )]
         #modified_module
         #(#errors)*
     }

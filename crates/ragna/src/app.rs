@@ -115,7 +115,7 @@ impl App {
     where
         T: GpuType,
     {
-        self.types.insert(TypeId::of::<T>(), T::gpu_type_details());
+        self.types.insert(TypeId::of::<T>(), T::details());
         self
     }
 }

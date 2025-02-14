@@ -13,10 +13,4 @@ mod gpu {
 
     pub(super) static FROM_CONSTANT: i32 = CONSTANT;
     pub(super) static FROM_GLOB: i32 = FROM_CONSTANT;
-
-    #[compute]
-    fn run() {
-        let _from_constant = FROM_CONSTANT;
-        let _from_glob = FROM_GLOB;
-    }
 }

@@ -86,7 +86,7 @@ where
         ctx.operations
             .push(Operation::DeclareVar(DeclareVarOperation {
                 id,
-                type_: T::gpu_type_details(),
+                type_: T::details(),
             }));
         Self {
             value: GpuValue::Var(Var {
@@ -129,7 +129,7 @@ where
             GpuValue::Constant(constant) => Self::Constant(Constant {
                 value: constant.value.into_wgsl(),
                 type_id: TypeId::of::<T>(),
-                gpu_type: T::gpu_type_details(),
+                gpu_type: T::details(),
             }),
             GpuValue::Glob(glob) => Self::Glob(Glob {
                 module: glob.module,

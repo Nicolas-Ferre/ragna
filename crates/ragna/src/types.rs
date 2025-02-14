@@ -3,18 +3,23 @@ use std::any::Any;
 
 /// A trait implemented for types that can be used on GPU side.
 pub trait GpuType: Any + Copy {
-    fn gpu_type_details() -> GpuTypeDetails {
+    /// Returns details about the GPU type.
+    fn details() -> GpuTypeDetails;
+
+    /// Converts a value to WGSL.
+    fn into_wgsl(self) -> String;
+
+    /// Converts bytes from GPU to a CPU instance of the type.
+    fn from_bytes(bytes: &[u8]) -> Self;
+}
+
+impl GpuType for i32 {
+    fn details() -> GpuTypeDetails {
         GpuTypeDetails {
             name: any::type_name::<Self>(),
         }
     }
 
-    fn into_wgsl(self) -> String;
-
-    fn from_bytes(bytes: &[u8]) -> Self;
-}
-
-impl GpuType for i32 {
     fn into_wgsl(self) -> String {
         ToString::to_string(&self)
     }
@@ -25,6 +30,12 @@ impl GpuType for i32 {
 }
 
 impl GpuType for u32 {
+    fn details() -> GpuTypeDetails {
+        GpuTypeDetails {
+            name: any::type_name::<Self>(),
+        }
+    }
+
     fn into_wgsl(self) -> String {
         ToString::to_string(&self)
     }
@@ -35,6 +46,12 @@ impl GpuType for u32 {
 }
 
 impl GpuType for f32 {
+    fn details() -> GpuTypeDetails {
+        GpuTypeDetails {
+            name: any::type_name::<Self>(),
+        }
+    }
+
     fn into_wgsl(self) -> String {
         let value = ToString::to_string(&self);
         if value.contains('.') {
@@ -50,8 +67,8 @@ impl GpuType for f32 {
 }
 
 impl GpuType for bool {
-    fn gpu_type_details() -> GpuTypeDetails {
-        u32::gpu_type_details()
+    fn details() -> GpuTypeDetails {
+        u32::details()
     }
 
     fn into_wgsl(self) -> String {
