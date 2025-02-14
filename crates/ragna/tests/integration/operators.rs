@@ -95,7 +95,6 @@ mod gpu {
         I32_DOUBLE_NEG_VALUE = --I32_DOUBLE_NEG_VALUE;
         F32_NEG_VALUE = -F32_NEG_VALUE;
         BOOL_NOT_VALUE = !BOOL_NOT_VALUE;
-        let _tmp = GLOB_UNARY_INIT_VALUE;
         ADD_ASSIGN_VALUE += 5;
         SUB_ASSIGN_VALUE -= 5;
         MUL_ASSIGN_VALUE *= 5;

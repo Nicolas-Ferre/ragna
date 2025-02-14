@@ -2,7 +2,10 @@ use crate::gpu::{attrs, types, GpuModule};
 use proc_macro2::Ident;
 use syn::fold::Fold;
 use syn::spanned::Spanned;
-use syn::{parse_quote_spanned, FnArg, ItemFn, Pat, ReturnType, Signature};
+use syn::{
+    parse_quote_spanned, FnArg, GenericParam, ItemFn, Pat, ReturnType, Signature, TraitBound,
+    TraitBoundModifier, TypeParamBound,
+};
 
 pub(crate) fn item_to_gpu(mut item: ItemFn, module: &mut GpuModule) -> ItemFn {
     if item.attrs.iter().any(attrs::is_compute) {
@@ -37,6 +40,21 @@ pub(crate) fn signature_to_gpu(mut sig: Signature, module: &mut GpuModule) -> Si
         .map(|arg| arg_to_gpu(arg, module))
         .chain([parse_quote_spanned! { span => __ctx: &mut ::ragna::GpuContext }])
         .collect();
+    for param in &mut sig.generics.params {
+        match param {
+            GenericParam::Type(ty) => ty.bounds.push(TypeParamBound::Trait(TraitBound {
+                paren_token: None,
+                modifier: TraitBoundModifier::None,
+                lifetimes: None,
+                path: parse_quote_spanned! { ty.span() => ::ragna::GpuType },
+            })),
+            param @ (GenericParam::Lifetime(_) | GenericParam::Const(_)) => {
+                module
+                    .errors
+                    .push(syn::Error::new(param.span(), "unsupported generic param"));
+            }
+        }
+    }
     if let ReturnType::Type(_, ty) = &mut sig.output {
         *ty = types::mut_to_gpu(ty).into();
     }

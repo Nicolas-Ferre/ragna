@@ -3,23 +3,27 @@ use ragna::App;
 #[test]
 pub fn assign_values() {
     let app = App::default().with_module(gpu::register).run(1);
-    assert_eq!(app.read(gpu::EXTERN_POW_RETURN), Some(9.));
-    assert_eq!(app.read(gpu::EXTERN_SQRT_RETURN), Some(4.));
-    assert_eq!(app.read(gpu::CUSTOM_FN_RETURN), Some(20.));
-    assert_eq!(app.read(gpu::CUSTOM_FN_INPUT_RETURN), Some(5.));
+    assert_eq!(app.read(gpu::EXTERN_FN_RESULT), Some(9.));
+    assert_eq!(app.read(gpu::EXTERN_GENERIC_FN_RESULT), Some(4.));
+    assert_eq!(app.read(gpu::CUSTOM_FN_RESULT), Some(20.));
+    assert_eq!(app.read(gpu::CUSTOM_GENERIC_FN_RESULT), Some(24.));
+    assert_eq!(app.read(gpu::CUSTOM_FN_INPUT_RESULT), Some(5.));
 }
 
 #[ragna::gpu]
 pub(crate) mod gpu {
-    pub(super) static EXTERN_POW_RETURN: f32 = pow(3., 2.);
-    pub(super) static EXTERN_SQRT_RETURN: f32 = sqrt(16.);
-    pub(super) static CUSTOM_FN_RETURN: f32 = 0.;
-    pub(super) static CUSTOM_FN_INPUT_RETURN: f32 = 5.;
+    use ragna::GpuMul;
+
+    pub(super) static EXTERN_FN_RESULT: f32 = pow(3., 2.);
+    pub(super) static EXTERN_GENERIC_FN_RESULT: f32 = sqrt(16.);
+    pub(super) static CUSTOM_FN_RESULT: f32 = 0.;
+    pub(super) static CUSTOM_GENERIC_FN_RESULT: f32 = generic_multiply(12., 2.);
+    pub(super) static CUSTOM_FN_INPUT_RESULT: f32 = 5.;
 
     #[compute]
     fn run() {
-        let result = multiply(multiply(CUSTOM_FN_INPUT_RETURN, 2.), 2.);
-        CUSTOM_FN_RETURN = result;
+        let result = multiply(multiply(CUSTOM_FN_INPUT_RESULT, 2.), 2.);
+        CUSTOM_FN_RESULT = result;
     }
 
     extern "wgsl" {
@@ -28,10 +32,18 @@ pub(crate) mod gpu {
 
     #[rustfmt::skip]
     extern {
-         pub(crate) fn sqrt(input: f32) -> f32;
+         pub(crate) fn sqrt<T>(input: T) -> T where T: Clone;
     }
 
     fn multiply(value: f32, factor: f32) -> f32 {
+        value = value * factor;
+        value
+    }
+
+    fn generic_multiply<T>(value: T, factor: T) -> T
+    where
+        T: GpuMul<T, Output = T>,
+    {
         value = value * factor;
         value
     }

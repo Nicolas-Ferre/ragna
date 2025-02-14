@@ -7,4 +7,6 @@ mod gpu {
     }
 
     fn func_with_self(self) {}
+
+    fn func_with_lifetime<'a, const N: usize>() {}
 }
