@@ -22,7 +22,7 @@ pub(crate) fn item_to_gpu(item: ItemStatic, module: &mut GpuModule) -> Item {
             expr.span() => ::ragna::Gpu::glob(
                 module_path!(),
                 #id,
-                |__ctx|{ #(#statements)* ::ragna::Gpu::var(#expr, __ctx) }
+                ||{ #(#statements)* ::ragna::Gpu::var(#expr) }
             )
         },
         semi_token: item.semi_token,

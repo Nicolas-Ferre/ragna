@@ -33,12 +33,10 @@ pub(crate) fn item_to_gpu(mut item: ItemFn, module: &mut GpuModule) -> ItemFn {
 }
 
 pub(crate) fn signature_to_gpu(mut sig: Signature, module: &mut GpuModule) -> Signature {
-    let span = sig.span();
     sig.inputs = sig
         .inputs
         .into_iter()
         .map(|arg| arg_to_gpu(arg, module))
-        .chain([parse_quote_spanned! { span => __ctx: &mut ::ragna::GpuContext }])
         .collect();
     for param in &mut sig.generics.params {
         match param {

@@ -1,5 +1,4 @@
 use crate::types::GpuTypeDetails;
-use crate::GpuContext;
 use derive_where::derive_where;
 use dyn_clone::DynClone;
 use std::any::TypeId;
@@ -30,15 +29,15 @@ pub(crate) struct Constant {
 }
 
 pub(crate) trait DefaultGlobValueFn: DynClone {
-    fn call(&self, ctx: &mut GpuContext) -> Value;
+    fn call(&self) -> Value;
 }
 
 impl<F> DefaultGlobValueFn for F
 where
-    F: Fn(&mut GpuContext) -> Value + Clone,
+    F: Fn() -> Value + Clone,
 {
-    fn call(&self, ctx: &mut GpuContext) -> Value {
-        self(ctx)
+    fn call(&self) -> Value {
+        self()
     }
 }
 
@@ -48,7 +47,7 @@ pub(crate) struct Glob {
     pub(crate) id: u64,
     pub(crate) type_id: TypeId,
     #[derive_where(skip)]
-    pub(crate) default_value: Box<dyn DefaultGlobValueFn>,
+    pub(crate) default_value: Box<dyn DefaultGlobValueFn + Sync + Send>,
 }
 
 impl PartialEq for Glob {

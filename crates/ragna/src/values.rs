@@ -45,11 +45,7 @@ where
 {
     // coverage: off (const fn)
     /// Creates a global variable stored in a GPU buffer.
-    pub const fn glob(
-        module: &'static str,
-        id: u64,
-        default_value: fn(&mut GpuContext) -> Self,
-    ) -> Self {
+    pub const fn glob(module: &'static str, id: u64, default_value: fn() -> Self) -> Self {
         Self {
             value: GpuValue::Glob(GpuGlob {
                 module,
@@ -62,32 +58,39 @@ where
     // coverage: on
 
     /// Creates a local variable.
-    pub fn var(value: Gpu<T, impl Any>, ctx: &mut GpuContext) -> Self {
-        let var = Self::uninitialized_var(ctx);
-        ctx.operations
-            .push(Operation::AssignVar(AssignVarOperation {
-                left_value: var.value.into(),
-                right_value: value.value.into(),
-            }));
+    pub fn var(value: Gpu<T, impl Any>) -> Self {
+        let var = Self::uninitialized_var();
+        GpuContext::run_current(|ctx| {
+            ctx.operations
+                .push(Operation::AssignVar(AssignVarOperation {
+                    left_value: var.value.into(),
+                    right_value: value.value.into(),
+                }));
+        });
         var
     }
 
     /// Assigns a value
-    pub fn assign(&mut self, value: Gpu<T, impl Any>, ctx: &mut GpuContext) {
-        ctx.operations
-            .push(Operation::AssignVar(AssignVarOperation {
-                left_value: self.value.into(),
-                right_value: value.value.into(),
-            }));
+    pub fn assign(&mut self, value: Gpu<T, impl Any>) {
+        GpuContext::run_current(|ctx| {
+            ctx.operations
+                .push(Operation::AssignVar(AssignVarOperation {
+                    left_value: self.value.into(),
+                    right_value: value.value.into(),
+                }));
+        })
     }
 
-    pub(crate) fn uninitialized_var(ctx: &mut GpuContext) -> Self {
-        let id = ctx.next_var_id();
-        ctx.operations
-            .push(Operation::DeclareVar(DeclareVarOperation {
-                id,
-                type_: T::details(),
-            }));
+    pub(crate) fn uninitialized_var() -> Self {
+        let id = GpuContext::run_current(|ctx| {
+            let id = ctx.next_var_id();
+            ctx.operations
+                .push(Operation::DeclareVar(DeclareVarOperation {
+                    id,
+                    type_: T::details(),
+                }));
+            id
+        });
         Self {
             value: GpuValue::Var(Var {
                 id,
@@ -135,9 +138,7 @@ where
                 module: glob.module,
                 id: glob.id,
                 type_id: TypeId::of::<T>(),
-                default_value: Box::new(move |ctx: &mut GpuContext| {
-                    (glob.default_value)(ctx).value.into()
-                }),
+                default_value: Box::new(move || (glob.default_value)().value.into()),
             }),
             GpuValue::Var(var) => Self::Var(var),
         }
@@ -159,5 +160,5 @@ where
 {
     module: &'static str,
     id: u64,
-    default_value: fn(&mut GpuContext) -> Gpu<T, M>,
+    default_value: fn() -> Gpu<T, M>,
 }

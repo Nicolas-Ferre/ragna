@@ -11,7 +11,7 @@ macro_rules! unary_trait {
             type Output: GpuType;
 
             /// Applies the operator.
-            fn apply(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self::Output, Mut>;
+            fn apply(value: Gpu<Self, impl Any>) -> Gpu<Self::Output, Mut>;
         }
     };
 }
@@ -21,13 +21,15 @@ macro_rules! unary_impl {
         impl $trait_ for $type_ {
             type Output = $out_type;
 
-            fn apply(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self::Output, Mut> {
-                let var = Gpu::uninitialized_var(ctx);
-                ctx.operations.push(Operation::Unary(UnaryOperation {
-                    var: var.value(),
-                    value: value.value(),
-                    operator: operator!($trait_),
-                }));
+            fn apply(value: Gpu<Self, impl Any>) -> Gpu<Self::Output, Mut> {
+                let var = Gpu::uninitialized_var();
+                GpuContext::run_current(|ctx| {
+                    ctx.operations.push(Operation::Unary(UnaryOperation {
+                        var: var.value(),
+                        value: value.value(),
+                        operator: operator!($trait_),
+                    }));
+                });
                 var
             }
         }
@@ -44,8 +46,7 @@ macro_rules! binary_trait {
             /// Applies the operator.
             fn apply(
                 left_value: Gpu<Self, impl Any>,
-                right_value: Gpu<R, impl Any>,
-                ctx: &mut GpuContext,
+                right_value: Gpu<R, impl Any>
             ) -> Gpu<Self::Output, Mut>;
         }
     };
@@ -60,15 +61,16 @@ macro_rules! binary_impl {
             fn apply(
                 left_value: Gpu<Self, impl Any>,
                 right_value: Gpu<$right_type, impl Any>,
-                ctx: &mut GpuContext,
             ) -> Gpu<Self::Output, Mut> {
-                let var = Gpu::uninitialized_var(ctx);
-                ctx.operations.push(Operation::Binary(BinaryOperation {
-                    var: var.value(),
-                    left_value: left_value.value(),
-                    right_value: right_value.value(),
-                    operator: operator!($trait_),
-                }));
+                let var = Gpu::uninitialized_var();
+                GpuContext::run_current(|ctx| {
+                    ctx.operations.push(Operation::Binary(BinaryOperation {
+                        var: var.value(),
+                        left_value: left_value.value(),
+                        right_value: right_value.value(),
+                        operator: operator!($trait_),
+                    }));
+                });
                 var
             }
         }

@@ -2,9 +2,7 @@ use crate::gpu::{constants, vars, GpuModule};
 use proc_macro2::Ident;
 use syn::fold::Fold;
 use syn::spanned::Spanned;
-use syn::{
-    fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprCall, ExprUnary, UnOp,
-};
+use syn::{fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprUnary, UnOp};
 
 macro_rules! transform_binary_expr {
     ($module:ident, $expr:expr, $left:ident, $right:ident, $($new_expr:tt)+) => {{
@@ -23,7 +21,7 @@ pub(crate) fn assign_to_gpu(expr: ExprAssign, module: &mut GpuModule) -> Expr {
     let right = module.fold_expr(*expr.right);
     parse_quote_spanned! {
         span =>
-        ::ragna::Gpu::assign(&mut #left, #right, __ctx)
+        ::ragna::Gpu::assign(&mut #left, #right)
     }
 }
 
@@ -86,12 +84,6 @@ pub(crate) fn binary_to_gpu(expr: ExprBinary, module: &mut GpuModule) -> Expr {
     }
 }
 
-pub(crate) fn call_to_gpu(mut expr: ExprCall, module: &mut GpuModule) -> Expr {
-    expr.args
-        .push(parse_quote_spanned! { expr.span() => __ctx });
-    module.fold_expr_call(expr).into()
-}
-
 fn transform_unary_op(expr: ExprUnary, trait_: &str, module: &mut GpuModule) -> Expr {
     let span = expr.span();
     let trait_ident = Ident::new(trait_, span);
@@ -100,7 +92,7 @@ fn transform_unary_op(expr: ExprUnary, trait_: &str, module: &mut GpuModule) -> 
     let var_ident = vars::generate_ident(span, module);
     module.extracted_statements.push(parse_quote_spanned! {
         span =>
-        let #var_ident = #(#attrs)* ::ragna::#trait_ident::apply(#expr, __ctx);
+        let #var_ident = #(#attrs)* ::ragna::#trait_ident::apply(#expr);
     });
     parse_quote_spanned! { span => #var_ident }
 }
@@ -114,7 +106,7 @@ fn transform_binary_op(expr: ExprBinary, trait_: &str, module: &mut GpuModule) -
     let var_ident = vars::generate_ident(span, module);
     module.extracted_statements.push(parse_quote_spanned! {
         span =>
-        let #var_ident = #(#attrs)* ::ragna::#trait_ident::apply(#left_expr, #right_expr, __ctx);
+        let #var_ident = #(#attrs)* ::ragna::#trait_ident::apply(#left_expr, #right_expr);
     });
     parse_quote_spanned! { span => #var_ident }
 }

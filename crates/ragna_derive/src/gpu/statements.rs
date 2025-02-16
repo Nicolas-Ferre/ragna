@@ -63,7 +63,7 @@ fn local_pat_to_gpu(pat: Pat, module: &mut GpuModule) -> Pat {
 fn local_init_to_gpu(mut init: LocalInit, module: &mut GpuModule) -> LocalInit {
     let expr = module.fold_expr(*init.expr);
     init.expr = parse_quote_spanned! {
-        expr.span() => ::ragna::Gpu::var(#expr, __ctx)
+        expr.span() => ::ragna::Gpu::var(#expr)
     };
     init
 }

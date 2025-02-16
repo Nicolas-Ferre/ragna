@@ -79,8 +79,7 @@ impl Fold for GpuModule {
             Expr::Assign(expr) => expressions::assign_to_gpu(expr, self),
             Expr::Unary(expr) => expressions::unary_to_gpu(expr, self),
             Expr::Binary(expr) => expressions::binary_to_gpu(expr, self),
-            Expr::Call(expr) => expressions::call_to_gpu(expr, self),
-            expr @ (Expr::Path(_) | Expr::Paren(_)) => fold::fold_expr(self, expr),
+            expr @ (Expr::Path(_) | Expr::Paren(_) | Expr::Call(_)) => fold::fold_expr(self, expr),
             expr => {
                 self.errors
                     .push(syn::Error::new(expr.span(), "unsupported expression"));
