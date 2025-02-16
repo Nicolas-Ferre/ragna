@@ -47,7 +47,7 @@ fn fn_to_gpu(mut item: ForeignItemFn, module: &mut GpuModule) {
         ));
         return;
     }
-    item.sig = fns::signature_to_gpu(item.sig, module);
+    item.sig = fns::fn_sig_to_gpu(item.sig, module);
     module.generated_items.push(Item::Fn(ItemFn {
         attrs: item.attrs,
         vis: item.vis,

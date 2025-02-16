@@ -9,8 +9,11 @@ mod constants;
 mod expressions;
 mod fns;
 mod foreign;
+mod generics;
 mod globs;
+mod impls;
 mod statements;
+mod traits;
 mod types;
 mod vars;
 
@@ -80,6 +83,7 @@ impl Fold for GpuModule {
             Expr::Unary(expr) => expressions::unary_to_gpu(expr, self),
             Expr::Binary(expr) => expressions::binary_to_gpu(expr, self),
             Expr::Call(expr) => expressions::call_to_gpu(expr, self),
+            Expr::MethodCall(expr) => self.fold_expr_method_call(expr).into(),
             expr @ (Expr::Path(_) | Expr::Paren(_)) => fold::fold_expr(self, expr),
             expr => {
                 self.errors
@@ -95,6 +99,8 @@ impl Fold for GpuModule {
             Item::ForeignMod(item) => foreign::mod_to_gpu(item, self),
             Item::Const(item) => constants::item_to_gpu(item).into(),
             Item::Fn(item) => fns::item_to_gpu(item, self).into(),
+            Item::Trait(item) => traits::item_to_gpu(item, self).into(),
+            Item::Impl(item) => impls::item_to_gpu(item, self).into(),
             item @ Item::Use(_) => item,
             item => {
                 self.errors

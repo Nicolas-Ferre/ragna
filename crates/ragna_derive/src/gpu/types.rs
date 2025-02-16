@@ -18,3 +18,13 @@ pub(crate) fn any_to_gpu(ty: &Type) -> Type {
         ty.span() => ::ragna::Gpu<#ty, impl ::std::any::Any>
     }
 }
+
+pub(crate) fn is_self(ty: &Type) -> bool {
+    if let Type::Path(type_path) = ty {
+        type_path.qself.is_none()
+            && type_path.path.segments.len() == 1
+            && type_path.path.segments[0].ident == "Self"
+    } else {
+        false
+    }
+}
