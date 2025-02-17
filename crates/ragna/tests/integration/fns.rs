@@ -43,7 +43,7 @@ pub(crate) mod gpu {
 
     fn generic_multiply<T>(value: T, factor: T) -> T
     where
-        T: Gpu + Mul<T, Output=T>,
+        T: Gpu + Mul<T, Output = T>,
     {
         value = value * factor;
         value
