@@ -14,5 +14,4 @@ pub use types::*;
 /// Transforms a Rust module to a GPU module.
 pub use ragna_derive::gpu;
 
-// TODO: add compile-time check for assignment to constants
 // TODO: adapt compilation tests

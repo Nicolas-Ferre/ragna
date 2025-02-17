@@ -1,4 +1,4 @@
-use ragna::{App, I32};
+use ragna::{App, Cpu, I32};
 
 #[test]
 pub fn read_uninitialized() {
@@ -21,7 +21,7 @@ pub fn read_unused_glob() {
 #[test]
 pub fn read_not_registered_glob() {
     let app = App::default().with_module(gpu::register).run(1);
-    let glob = I32::define_glob("", 0, || I32::from_cpu(0));
+    let glob = I32::define_glob("", 0, || i32::to_gpu(0));
     assert_eq!(app.read(glob), None);
 }
 

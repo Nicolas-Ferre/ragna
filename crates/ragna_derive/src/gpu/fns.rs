@@ -5,6 +5,9 @@ use syn::spanned::Spanned;
 use syn::{parse_quote_spanned, FnArg, ItemFn, Pat, Signature};
 
 pub(crate) fn item_to_gpu(mut item: ItemFn, module: &mut GpuModule) -> ItemFn {
+    if item.sig.constness.is_some() {
+        return item;
+    }
     if item.attrs.iter().any(attrs::is_compute) {
         module.compute_fns.push(item.sig.ident.clone());
     } else {

@@ -11,9 +11,9 @@ pub fn assign_values() {
 
 #[ragna::gpu]
 mod gpu {
-    use ragna::I32;
+    use ragna::{Cpu, I32};
 
-    const CONSTANT: I32 = 30;
+    const CONSTANT: i32 = 30;
 
     pub(super) static FROM_VAR: I32 = 0;
     pub(super) static FROM_MODIFIED_VAR: I32 = 0;
@@ -27,7 +27,7 @@ mod gpu {
         let modified_var = 10;
         modified_var = 20;
         FROM_MODIFIED_VAR = modified_var;
-        FROM_CONSTANT = CONSTANT;
+        FROM_CONSTANT = CONSTANT.to_gpu();
         FROM_GLOB = FROM_CONSTANT;
     }
 }

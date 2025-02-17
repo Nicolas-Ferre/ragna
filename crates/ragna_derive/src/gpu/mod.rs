@@ -76,7 +76,9 @@ impl Fold for GpuModule {
             Expr::Assign(expr) => expressions::assign_to_gpu(expr, self),
             Expr::Unary(expr) => expressions::unary_to_gpu(expr, self),
             Expr::Binary(expr) => expressions::binary_to_gpu(expr, self),
-            expr @ (Expr::Path(_) | Expr::Paren(_) | Expr::Call(_)) => fold::fold_expr(self, expr),
+            expr @ (Expr::Path(_) | Expr::Paren(_) | Expr::Call(_) | Expr::MethodCall(_)) => {
+                fold::fold_expr(self, expr)
+            }
             expr => {
                 self.errors
                     .push(syn::Error::new(expr.span(), "unsupported expression"));
@@ -89,9 +91,8 @@ impl Fold for GpuModule {
         match item {
             Item::Static(item) => globs::item_to_gpu(item, self).into(),
             Item::ForeignMod(item) => foreign::mod_to_gpu(item, self),
-            Item::Const(item) => constants::item_to_gpu(item).into(),
             Item::Fn(item) => fns::item_to_gpu(item, self).into(),
-            item @ Item::Use(_) => item,
+            item @ (Item::Use(_) | Item::Const(_)) => item,
             item => {
                 self.errors
                     .push(syn::Error::new(item.span(), "unsupported item"));

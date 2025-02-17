@@ -51,15 +51,15 @@ pub fn use_operator_assign() {
 
 #[ragna::gpu]
 mod gpu {
-    use ragna::{Bool, F32, I32};
+    use ragna::{Bool, Cpu, F32, I32};
 
-    const CONSTANT: I32 = 30;
+    const CONSTANT: i32 = 30;
 
     pub(super) static I32_NEG_VALUE: I32 = 10;
     pub(super) static I32_DOUBLE_NEG_VALUE: I32 = 10;
     pub(super) static F32_NEG_VALUE: F32 = 20.;
     pub(super) static BOOL_NOT_VALUE: Bool = true;
-    pub(super) static GLOB_UNARY_INIT_VALUE: I32 = -CONSTANT;
+    pub(super) static GLOB_UNARY_INIT_VALUE: I32 = -CONSTANT.to_gpu();
     pub(super) static ADD_VALUE: I32 = 1 + 2;
     pub(super) static SUB_VALUE: I32 = 1 - 2;
     pub(super) static MUL_VALUE: I32 = 4 * 2;

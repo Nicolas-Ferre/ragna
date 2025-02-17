@@ -95,13 +95,6 @@ macro_rules! native_gpu_type {
 
         impl $name {
             #[doc(hidden)]
-            pub const fn from_cpu(value: <Self as Gpu>::Cpu) -> Self {
-                Self {
-                    __value: GpuValue::Constant(value),
-                }
-            }
-
-            #[doc(hidden)]
             pub const fn define_glob(
                 module: &'static str,
                 id: u64,
@@ -177,7 +170,9 @@ impl Cpu for i32 {
     }
 
     fn to_gpu(self) -> Self::Gpu {
-        Self::Gpu::from_cpu(self)
+        Self::Gpu::create_var(I32 {
+            __value: GpuValue::Constant(self),
+        })
     }
 
     fn from_gpu(bytes: &[u8]) -> Self {
@@ -193,7 +188,9 @@ impl Cpu for u32 {
     }
 
     fn to_gpu(self) -> Self::Gpu {
-        Self::Gpu::from_cpu(self)
+        Self::Gpu::create_var(U32 {
+            __value: GpuValue::Constant(self),
+        })
     }
 
     fn from_gpu(bytes: &[u8]) -> Self {
@@ -214,7 +211,9 @@ impl Cpu for f32 {
     }
 
     fn to_gpu(self) -> Self::Gpu {
-        Self::Gpu::from_cpu(self)
+        Self::Gpu::create_var(F32 {
+            __value: GpuValue::Constant(self),
+        })
     }
 
     fn from_gpu(bytes: &[u8]) -> Self {
@@ -230,7 +229,10 @@ impl Cpu for bool {
     }
 
     fn to_gpu(self) -> Self::Gpu {
-        Self::Gpu::from_cpu(self)
+        Self::Gpu::create_var(Bool {
+            // TODO: is constant still useful ?
+            __value: GpuValue::Constant(self),
+        })
     }
 
     fn from_gpu(bytes: &[u8]) -> Self {
