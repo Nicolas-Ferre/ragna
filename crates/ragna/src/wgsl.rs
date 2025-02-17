@@ -1,6 +1,6 @@
 use crate::operations::{Glob, Operation, Value};
-use crate::types::{GpuType, GpuTypeDetails};
-use crate::GpuContext;
+use crate::types::GpuTypeDetails;
+use crate::{Bool, Gpu, GpuContext};
 use fxhash::FxHashMap;
 use itertools::Itertools;
 use std::any::TypeId;
@@ -91,7 +91,7 @@ fn operation_code(operation: &Operation, globs: &[Glob]) -> String {
 }
 
 fn function_arg(value: &Value, globs: &[Glob]) -> String {
-    if value.value_type_id() == TypeId::of::<bool>() {
+    if value.value_type_id() == TypeId::of::<Bool>() {
         format!("bool({})", value_code(value, globs))
     } else {
         value_code(value, globs)
@@ -99,8 +99,8 @@ fn function_arg(value: &Value, globs: &[Glob]) -> String {
 }
 
 fn returned_value(value: &Value, expr: String) -> String {
-    if value.value_type_id() == TypeId::of::<bool>() {
-        let bool_gpu_type = bool::details().name;
+    if value.value_type_id() == TypeId::of::<Bool>() {
+        let bool_gpu_type = Bool::details().name;
         format!("{bool_gpu_type}({expr})")
     } else {
         expr

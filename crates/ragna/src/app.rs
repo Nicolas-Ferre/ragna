@@ -1,7 +1,7 @@
 use crate::operations::{AssignVarOperation, FnCallOperation, Glob, Operation, Value};
 use crate::runner::Runner;
-use crate::types::{GpuType, GpuTypeDetails};
-use crate::{wgsl, Gpu, Mut};
+use crate::types::GpuTypeDetails;
+use crate::{wgsl, Bool, Cpu, Gpu, F32, I32, U32};
 use fxhash::FxHashMap;
 use std::any::TypeId;
 use std::mem;
@@ -26,10 +26,10 @@ impl Default for App {
             types: FxHashMap::default(),
             runner: None,
         }
-        .with_type::<i32>()
-        .with_type::<u32>()
-        .with_type::<f32>()
-        .with_type::<bool>()
+        .with_type::<I32>()
+        .with_type::<U32>()
+        .with_type::<F32>()
+        .with_type::<Bool>()
     }
 }
 
@@ -63,11 +63,11 @@ impl App {
     }
 
     #[doc(hidden)]
-    pub fn with_glob<T>(mut self, glob: Gpu<T, Mut>) -> Self
+    pub fn with_glob<T>(mut self, glob: T) -> Self
     where
-        T: GpuType,
+        T: Gpu,
     {
-        if let Value::Glob(glob) = glob.value() {
+        if let Value::Glob(glob) = glob.value().into() {
             self.globs.push(glob);
         }
         self
@@ -76,16 +76,16 @@ impl App {
     /// Reads a value stored on GPU side.
     ///
     /// If the passed value is not a global variable,
-    pub fn read<T>(&self, value: Gpu<T, Mut>) -> Option<T>
+    pub fn read<T>(&self, value: T) -> Option<T::Cpu>
     where
-        T: GpuType,
+        T: Gpu,
     {
         self.runner.as_ref().and_then(|runner| {
-            let bytes = runner.read(self, &value.value());
+            let bytes = runner.read(self, &value.value().into());
             if bytes.is_empty() {
                 None
             } else {
-                Some(T::from_bytes(&bytes))
+                Some(Cpu::from_gpu(&bytes))
             }
         })
     }
@@ -119,7 +119,7 @@ impl App {
 
     fn with_type<T>(mut self) -> Self
     where
-        T: GpuType,
+        T: Gpu,
     {
         self.types.insert(TypeId::of::<T>(), T::details());
         self
@@ -135,14 +135,14 @@ pub struct GpuContext {
 
 impl GpuContext {
     #[doc(hidden)]
-    pub fn call_fn<T>(fn_name: &'static str, args: Vec<Value>) -> Gpu<T, Mut>
+    pub fn call_fn<T>(fn_name: &'static str, args: Vec<Value>) -> T
     where
-        T: GpuType,
+        T: Gpu,
     {
-        let var = Gpu::uninitialized_var();
+        let var = T::create_uninit_var();
         Self::run_current(|ctx| {
             ctx.operations.push(Operation::FnCall(FnCallOperation {
-                var: var.value(),
+                var: var.value().into(),
                 fn_name,
                 args,
             }));

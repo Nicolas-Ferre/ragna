@@ -10,7 +10,9 @@ pub fn run_app_multiple_times() {
 
 #[ragna::gpu]
 mod gpu {
-    pub(crate) static GLOB: i32 = 0;
+    use ragna::I32;
+
+    pub(crate) static GLOB: I32 = 0;
 
     #[compute]
     fn run() {

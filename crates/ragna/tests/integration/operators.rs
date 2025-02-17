@@ -51,45 +51,48 @@ pub fn use_operator_assign() {
 
 #[ragna::gpu]
 mod gpu {
-    const CONSTANT: i32 = 30;
+    use ragna::{Bool, F32, I32};
 
-    pub(super) static I32_NEG_VALUE: i32 = 10;
-    pub(super) static I32_DOUBLE_NEG_VALUE: i32 = 10;
-    pub(super) static F32_NEG_VALUE: f32 = 20.;
-    pub(super) static BOOL_NOT_VALUE: bool = true;
-    pub(super) static GLOB_UNARY_INIT_VALUE: i32 = -CONSTANT;
-    pub(super) static ADD_VALUE: i32 = 1 + 2;
-    pub(super) static SUB_VALUE: i32 = 1 - 2;
-    pub(super) static MUL_VALUE: i32 = 4 * 2;
-    pub(super) static DIV_VALUE: i32 = 4 / 2;
-    pub(super) static REM_VALUE: i32 = 5 % 2;
-    pub(super) static EQ_TRUE_VALUE: bool = 2 == 2;
-    pub(super) static EQ_FALSE_VALUE: bool = 2 == 1;
-    pub(super) static NEQ_TRUE_VALUE: bool = 2 != 1;
-    pub(super) static NEQ_FALSE_VALUE: bool = 2 != 2;
-    pub(super) static GT_TRUE_VALUE: bool = 2 > 1;
-    pub(super) static GT_FALSE_VALUE: bool = 1 > 2;
-    pub(super) static GT_FALSE_EQ_VALUE: bool = 2 > 2;
-    pub(super) static LT_TRUE_VALUE: bool = 1 < 2;
-    pub(super) static LT_FALSE_VALUE: bool = 2 < 1;
-    pub(super) static LT_FALSE_EQ_VALUE: bool = 2 < 2;
-    pub(super) static GE_TRUE_VALUE: bool = 2 >= 1;
-    pub(super) static GE_TRUE_EQ_VALUE: bool = 2 >= 2;
-    pub(super) static GE_FALSE_VALUE: bool = 1 >= 2;
-    pub(super) static LE_TRUE_VALUE: bool = 1 <= 2;
-    pub(super) static LE_TRUE_EQ_VALUE: bool = 2 <= 2;
-    pub(super) static LE_FALSE_VALUE: bool = 2 <= 1;
-    pub(super) static AND_TRUE_VALUE: bool = true && true;
-    pub(super) static AND_FALSE_VALUE: bool = true && false;
-    pub(super) static OR_TRUE_VALUE: bool = true || false;
-    pub(super) static OR_FALSE_VALUE: bool = false || false;
-    pub(super) static ADD_ASSIGN_VALUE: i32 = 10;
-    pub(super) static SUB_ASSIGN_VALUE: i32 = 10;
-    pub(super) static MUL_ASSIGN_VALUE: i32 = 10;
-    pub(super) static DIV_ASSIGN_VALUE: i32 = 10;
-    pub(super) static REM_ASSIGN_VALUE: i32 = 10;
+    const CONSTANT: I32 = 30;
+
+    pub(super) static I32_NEG_VALUE: I32 = 10;
+    pub(super) static I32_DOUBLE_NEG_VALUE: I32 = 10;
+    pub(super) static F32_NEG_VALUE: F32 = 20.;
+    pub(super) static BOOL_NOT_VALUE: Bool = true;
+    pub(super) static GLOB_UNARY_INIT_VALUE: I32 = -CONSTANT;
+    pub(super) static ADD_VALUE: I32 = 1 + 2;
+    pub(super) static SUB_VALUE: I32 = 1 - 2;
+    pub(super) static MUL_VALUE: I32 = 4 * 2;
+    pub(super) static DIV_VALUE: I32 = 4 / 2;
+    pub(super) static REM_VALUE: I32 = 5 % 2;
+    pub(super) static EQ_TRUE_VALUE: Bool = 2 == 2;
+    pub(super) static EQ_FALSE_VALUE: Bool = 2 == 1;
+    pub(super) static NEQ_TRUE_VALUE: Bool = 2 != 1;
+    pub(super) static NEQ_FALSE_VALUE: Bool = 2 != 2;
+    pub(super) static GT_TRUE_VALUE: Bool = 2 > 1;
+    pub(super) static GT_FALSE_VALUE: Bool = 1 > 2;
+    pub(super) static GT_FALSE_EQ_VALUE: Bool = 2 > 2;
+    pub(super) static LT_TRUE_VALUE: Bool = 1 < 2;
+    pub(super) static LT_FALSE_VALUE: Bool = 2 < 1;
+    pub(super) static LT_FALSE_EQ_VALUE: Bool = 2 < 2;
+    pub(super) static GE_TRUE_VALUE: Bool = 2 >= 1;
+    pub(super) static GE_TRUE_EQ_VALUE: Bool = 2 >= 2;
+    pub(super) static GE_FALSE_VALUE: Bool = 1 >= 2;
+    pub(super) static LE_TRUE_VALUE: Bool = 1 <= 2;
+    pub(super) static LE_TRUE_EQ_VALUE: Bool = 2 <= 2;
+    pub(super) static LE_FALSE_VALUE: Bool = 2 <= 1;
+    pub(super) static AND_TRUE_VALUE: Bool = true && true;
+    pub(super) static AND_FALSE_VALUE: Bool = true && false;
+    pub(super) static OR_TRUE_VALUE: Bool = true || false;
+    pub(super) static OR_FALSE_VALUE: Bool = false || false;
+    pub(super) static ADD_ASSIGN_VALUE: I32 = 10;
+    pub(super) static SUB_ASSIGN_VALUE: I32 = 10;
+    pub(super) static MUL_ASSIGN_VALUE: I32 = 10;
+    pub(super) static DIV_ASSIGN_VALUE: I32 = 10;
+    pub(super) static REM_ASSIGN_VALUE: I32 = 10;
 
     #[compute]
+    #[allow(clippy::double_neg)]
     fn run() {
         I32_NEG_VALUE = -I32_NEG_VALUE;
         I32_DOUBLE_NEG_VALUE = --I32_DOUBLE_NEG_VALUE;

@@ -21,10 +21,12 @@ mod no_item {}
 
 #[ragna::gpu]
 mod gpu {
-    pub(crate) static GLOB: i32 = 10;
+    use ragna::I32;
+
+    pub(crate) static GLOB: I32 = 10;
 
     #[compute]
     fn run() {
-        let _var = 0;
+        let _var = 0_i32;
     }
 }

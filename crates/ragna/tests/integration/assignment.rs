@@ -11,18 +11,20 @@ pub fn assign_values() {
 
 #[ragna::gpu]
 mod gpu {
-    const CONSTANT: i32 = 30;
+    use ragna::I32;
 
-    pub(super) static FROM_VAR: i32 = 0;
-    pub(super) static FROM_MODIFIED_VAR: i32 = 0;
-    pub(super) static FROM_CONSTANT: i32 = 0;
-    pub(super) static FROM_GLOB: i32 = 0;
+    const CONSTANT: I32 = 30;
+
+    pub(super) static FROM_VAR: I32 = 0;
+    pub(super) static FROM_MODIFIED_VAR: I32 = 0;
+    pub(super) static FROM_CONSTANT: I32 = 0;
+    pub(super) static FROM_GLOB: I32 = 0;
 
     #[compute]
     fn run() {
-        let var: i32 = 10;
+        let var: I32 = 10;
         FROM_VAR = var;
-        let mut modified_var = 10;
+        let modified_var = 10;
         modified_var = 20;
         FROM_MODIFIED_VAR = modified_var;
         FROM_CONSTANT = CONSTANT;

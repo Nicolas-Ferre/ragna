@@ -11,7 +11,6 @@ mod fns;
 mod foreign;
 mod globs;
 mod statements;
-mod types;
 mod vars;
 
 pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
@@ -39,10 +38,8 @@ pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
     let errors = fold.errors.into_iter().map(syn::Error::into_compile_error);
     quote! {
         #[allow(
-            unused_mut,
             clippy::let_and_return,
-            clippy::type_repetition_in_bounds,
-            clippy::multiple_bound_locations,
+            clippy::double_parens,
         )]
         #modified_module
         #(#errors)*
@@ -75,7 +72,7 @@ impl Fold for GpuModule {
 
     fn fold_expr(&mut self, expr: Expr) -> Expr {
         match expr {
-            Expr::Lit(expr) => constants::value_to_gpu(expr),
+            Expr::Lit(expr) => constants::expr_to_gpu(expr),
             Expr::Assign(expr) => expressions::assign_to_gpu(expr, self),
             Expr::Unary(expr) => expressions::unary_to_gpu(expr, self),
             Expr::Binary(expr) => expressions::binary_to_gpu(expr, self),
@@ -90,7 +87,7 @@ impl Fold for GpuModule {
 
     fn fold_item(&mut self, item: Item) -> Item {
         match item {
-            Item::Static(item) => globs::item_to_gpu(item, self),
+            Item::Static(item) => globs::item_to_gpu(item, self).into(),
             Item::ForeignMod(item) => foreign::mod_to_gpu(item, self),
             Item::Const(item) => constants::item_to_gpu(item).into(),
             Item::Fn(item) => fns::item_to_gpu(item, self).into(),
