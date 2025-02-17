@@ -7,7 +7,8 @@ pub fn run_empty_app() {
 
 #[test]
 pub fn run_app_with_empty_module() {
-    App::default().with_module(no_item::register).run(1);
+    let app = App::default().with_module(no_item::register).run(1);
+    assert_eq!(app.read(gpu::GLOB), None);
 }
 
 #[test]

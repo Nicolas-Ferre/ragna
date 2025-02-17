@@ -5,7 +5,6 @@ use syn::spanned::Spanned;
 use syn::{fold, parse_quote, Block, Expr, Item, ItemMod, Stmt};
 
 mod attrs;
-mod constants;
 mod expressions;
 mod fns;
 mod foreign;
@@ -72,7 +71,7 @@ impl Fold for GpuModule {
 
     fn fold_expr(&mut self, expr: Expr) -> Expr {
         match expr {
-            Expr::Lit(expr) => constants::expr_to_gpu(expr),
+            Expr::Lit(expr) => expressions::literal_to_gpu(expr),
             Expr::Assign(expr) => expressions::assign_to_gpu(expr, self),
             Expr::Unary(expr) => expressions::unary_to_gpu(expr, self),
             Expr::Binary(expr) => expressions::binary_to_gpu(expr, self),

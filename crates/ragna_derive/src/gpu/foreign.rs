@@ -36,7 +36,7 @@ fn fn_to_gpu(mut item: ForeignItemFn, module: &mut GpuModule) {
         .sig
         .inputs
         .iter()
-        .filter_map(|arg| fns::arg_ident(arg).cloned())
+        .filter_map(|arg| fns::arg_ident(arg, module).cloned())
         .collect::<Vec<_>>();
     let span = item.span();
     let fn_name = LitStr::new(&item.sig.ident.to_string(), item.sig.ident.span());

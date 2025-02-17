@@ -1,5 +1,6 @@
-use crate::gpu::{constants, vars, GpuModule};
+use crate::gpu::{vars, GpuModule};
 use proc_macro2::Ident;
+use quote::ToTokens;
 use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprUnary, UnOp};
@@ -15,6 +16,10 @@ macro_rules! transform_binary_expr {
     }};
 }
 
+pub(crate) fn literal_to_gpu(value: impl ToTokens) -> Expr {
+    parse_quote_spanned! { value.span() => ::ragna::Cpu::to_gpu(#value) }
+}
+
 pub(crate) fn assign_to_gpu(expr: ExprAssign, module: &mut GpuModule) -> Expr {
     let span = expr.span();
     let attrs = &expr.attrs;
@@ -26,7 +31,7 @@ pub(crate) fn assign_to_gpu(expr: ExprAssign, module: &mut GpuModule) -> Expr {
 pub(crate) fn unary_to_gpu(expr: ExprUnary, module: &mut GpuModule) -> Expr {
     if matches!(*expr.expr, Expr::Lit(_)) {
         // to avoid out of range error with -2_147_483_648_i32 value
-        constants::expr_to_gpu(expr)
+        literal_to_gpu(expr)
     } else {
         match &expr.op {
             UnOp::Not(_) | UnOp::Neg(_) => fold::fold_expr_unary(module, expr).into(),
