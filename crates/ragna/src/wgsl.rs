@@ -62,6 +62,13 @@ fn operation_code(operation: &Operation, globs: &[Glob]) -> String {
                 value_code(&op.right_value, globs),
             )
         }
+        Operation::ConstantAssignVar(op) => {
+            format!(
+                "    {} = {};",
+                value_code(&op.left_value, globs),
+                op.right_value,
+            )
+        }
         Operation::Unary(op) => {
             let value = function_arg(&op.value, globs);
             let operation = format!("{}{}", op.operator, value);
@@ -109,9 +116,6 @@ fn returned_value(value: &Value, expr: String) -> String {
 
 fn value_code(value: &Value, globs: &[Glob]) -> String {
     match value {
-        Value::Constant(constant) => {
-            format!("{}({})", constant.gpu_type.name, constant.value.clone())
-        }
         Value::Glob(glob) => format!("{}.{}", BUFFER_NAME, glob_name(glob, globs)),
         Value::Var(var) => var_name(var.id),
     }

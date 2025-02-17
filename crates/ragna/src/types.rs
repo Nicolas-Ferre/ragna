@@ -1,22 +1,33 @@
 use crate::operations::{
-    AssignVarOperation, Constant, DeclareVarOperation, Glob, Operation, Value, Var,
+    AssignVarOperation, ConstantAssignVarOperation, DeclareVarOperation, Glob, Operation, Value,
+    Var,
 };
 use crate::{operators, GpuContext};
 use std::any::TypeId;
 
 /// A trait implemented for Rust types that have a corresponding CPU type.
-pub trait Cpu {
+pub trait Cpu: Sized {
     /// The GPU type.
     type Gpu: Gpu;
+
+    /// Converts bytes from GPU to a CPU instance of the type.
+    fn from_gpu(bytes: &[u8]) -> Self;
 
     /// Converts a value to WGSL code.
     fn to_wgsl(self) -> String;
 
     /// Converts a value to a GPU value.
-    fn to_gpu(self) -> Self::Gpu;
-
-    /// Converts bytes from GPU to a CPU instance of the type.
-    fn from_gpu(bytes: &[u8]) -> Self;
+    fn to_gpu(self) -> Self::Gpu {
+        let var = Self::Gpu::create_uninit_var();
+        GpuContext::run_current(|ctx| {
+            ctx.operations
+                .push(Operation::ConstantAssignVar(ConstantAssignVarOperation {
+                    left_value: var.value().into(),
+                    right_value: self.to_wgsl(),
+                }));
+        });
+        var
+    }
 }
 
 /// A trait implemented for GPU types that have a corresponding CPU type.
@@ -46,8 +57,6 @@ pub enum GpuValue<T>
 where
     T: Gpu,
 {
-    /// A constant.
-    Constant(T::Cpu),
     /// A global variable.
     Glob(&'static str, u64, fn() -> T),
     /// A local variable.
@@ -60,11 +69,6 @@ where
 {
     fn from(value: GpuValue<T>) -> Self {
         match value {
-            GpuValue::Constant(constant) => Self::Constant(Constant {
-                value: Cpu::to_wgsl(constant),
-                type_id: TypeId::of::<T>(),
-                gpu_type: T::details(),
-            }),
             GpuValue::Glob(module, id, default_value) => Self::Glob(Glob {
                 module,
                 id,
@@ -165,41 +169,33 @@ native_gpu_type!(Bool, bool, "u32");
 impl Cpu for i32 {
     type Gpu = I32;
 
-    fn to_wgsl(self) -> String {
-        ToString::to_string(&self)
-    }
-
-    fn to_gpu(self) -> Self::Gpu {
-        Self::Gpu::create_var(I32 {
-            __value: GpuValue::Constant(self),
-        })
-    }
-
     fn from_gpu(bytes: &[u8]) -> Self {
         Self::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
+    }
+
+    fn to_wgsl(self) -> String {
+        ToString::to_string(&self)
     }
 }
 
 impl Cpu for u32 {
     type Gpu = U32;
 
-    fn to_wgsl(self) -> String {
-        ToString::to_string(&self)
-    }
-
-    fn to_gpu(self) -> Self::Gpu {
-        Self::Gpu::create_var(U32 {
-            __value: GpuValue::Constant(self),
-        })
-    }
-
     fn from_gpu(bytes: &[u8]) -> Self {
         Self::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
+    }
+
+    fn to_wgsl(self) -> String {
+        ToString::to_string(&self)
     }
 }
 
 impl Cpu for f32 {
     type Gpu = F32;
+
+    fn from_gpu(bytes: &[u8]) -> Self {
+        Self::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
+    }
 
     fn to_wgsl(self) -> String {
         let value = ToString::to_string(&self);
@@ -209,34 +205,17 @@ impl Cpu for f32 {
             format!("{value}.")
         }
     }
-
-    fn to_gpu(self) -> Self::Gpu {
-        Self::Gpu::create_var(F32 {
-            __value: GpuValue::Constant(self),
-        })
-    }
-
-    fn from_gpu(bytes: &[u8]) -> Self {
-        Self::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
-    }
 }
 
 impl Cpu for bool {
     type Gpu = Bool;
 
-    fn to_wgsl(self) -> String {
-        ToString::to_string(&u32::from(self))
-    }
-
-    fn to_gpu(self) -> Self::Gpu {
-        Self::Gpu::create_var(Bool {
-            // TODO: is constant still useful ?
-            __value: GpuValue::Constant(self),
-        })
-    }
-
     fn from_gpu(bytes: &[u8]) -> Self {
         u32::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) != 0
+    }
+
+    fn to_wgsl(self) -> String {
+        ToString::to_string(&u32::from(self))
     }
 }
 

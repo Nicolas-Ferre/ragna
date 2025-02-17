@@ -6,7 +6,6 @@ use std::any::TypeId;
 #[derive(Debug)]
 #[allow(private_interfaces)]
 pub enum Value {
-    Constant(Constant),
     Glob(Glob),
     Var(Var),
 }
@@ -14,18 +13,10 @@ pub enum Value {
 impl Value {
     pub(crate) fn value_type_id(&self) -> TypeId {
         match self {
-            Self::Constant(value) => value.type_id,
             Self::Glob(value) => value.type_id,
             Self::Var(value) => value.type_id,
         }
     }
-}
-
-#[derive(Debug)]
-pub(crate) struct Constant {
-    pub(crate) value: String,
-    pub(crate) type_id: TypeId,
-    pub(crate) gpu_type: GpuTypeDetails,
 }
 
 pub(crate) trait DefaultGlobValueFn: DynClone {
@@ -79,6 +70,7 @@ pub(crate) struct Var {
 pub(crate) enum Operation {
     DeclareVar(DeclareVarOperation),
     AssignVar(AssignVarOperation),
+    ConstantAssignVar(ConstantAssignVarOperation),
     Unary(UnaryOperation),
     Binary(BinaryOperation),
     FnCall(FnCallOperation),
@@ -94,6 +86,12 @@ pub(crate) struct DeclareVarOperation {
 pub(crate) struct AssignVarOperation {
     pub(crate) left_value: Value,
     pub(crate) right_value: Value,
+}
+
+#[derive(Debug)]
+pub(crate) struct ConstantAssignVarOperation {
+    pub(crate) left_value: Value,
+    pub(crate) right_value: String,
 }
 
 #[derive(Debug)]
