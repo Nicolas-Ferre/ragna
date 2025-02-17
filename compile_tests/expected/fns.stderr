@@ -17,5 +17,3 @@ error: `self` parameter is only allowed in associated functions
   |                       ^^^^ not semantically valid as function parameter
   |
   = note: associated functions are those in `impl` or `trait` definitions
-
-
