@@ -20,7 +20,7 @@ pub(crate) fn item_to_gpu(mut item: ItemFn, module: &mut GpuModule) -> ItemFn {
         .collect();
     item.sig = signature_to_gpu(item.sig, module);
     for arg in item.sig.inputs.iter().rev() {
-        if let (false, Some(ident)) = (is_ref(arg), arg_ident(arg, module)) {
+        if let (false, Some(ident)) = (is_arg_ref(arg), arg_ident(arg, module)) {
             item.block.stmts.insert(
                 0,
                 parse_quote_spanned! { ident.span() => let #ident = #ident; },
@@ -53,7 +53,7 @@ fn arg_to_gpu(arg: FnArg, module: &mut GpuModule) -> FnArg {
     }
 }
 
-pub(crate) fn is_ref(arg: &FnArg) -> bool {
+pub(crate) fn is_arg_ref(arg: &FnArg) -> bool {
     if let FnArg::Typed(PatType { ty, .. }) = arg {
         matches!(**ty, Type::Reference(_))
     } else {
