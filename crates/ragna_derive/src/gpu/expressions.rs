@@ -3,7 +3,7 @@ use proc_macro2::Ident;
 use quote::ToTokens;
 use syn::fold::Fold;
 use syn::spanned::Spanned;
-use syn::{fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprUnary, UnOp};
+use syn::{fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprReturn, ExprUnary};
 
 macro_rules! transform_binary_expr {
     ($module:ident, $expr:expr, $left:ident, $right:ident, $($new_expr:tt)+) => {{
@@ -20,6 +20,24 @@ pub(crate) fn literal_to_gpu(value: impl ToTokens) -> Expr {
     parse_quote_spanned! { value.span() => ::ragna::Cpu::to_gpu(#value) }
 }
 
+pub(crate) fn return_to_gpu(mut expr: ExprReturn, module: &mut GpuModule) -> ExprReturn {
+    if let Some(returned_expr) = expr.expr.take() {
+        expr.expr = Some(return_expr_to_gpu(*returned_expr, module).into());
+    }
+    expr
+}
+
+pub(crate) fn return_expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
+    if module.is_current_fn_returning_copy() {
+        let expr = module.fold_expr(expr);
+        parse_quote_spanned! {
+            expr.span() => ::ragna::Gpu::create_var(#expr)
+        }
+    } else {
+        module.fold_expr(expr)
+    }
+}
+
 pub(crate) fn assign_to_gpu(expr: ExprAssign, module: &mut GpuModule) -> Expr {
     let span = expr.span();
     let attrs = &expr.attrs;
@@ -33,16 +51,7 @@ pub(crate) fn unary_to_gpu(expr: ExprUnary, module: &mut GpuModule) -> Expr {
         // to avoid out of range error with -2_147_483_648_i32 value
         literal_to_gpu(expr)
     } else {
-        match &expr.op {
-            UnOp::Not(_) | UnOp::Neg(_) => fold::fold_expr_unary(module, expr).into(),
-            UnOp::Deref(_) | _ => {
-                module.errors.push(syn::Error::new(
-                    expr.op.span(),
-                    "unsupported unary operator",
-                ));
-                fold::fold_expr_unary(module, expr).into()
-            }
-        }
+        fold::fold_expr_unary(module, expr).into()
     }
 }
 
