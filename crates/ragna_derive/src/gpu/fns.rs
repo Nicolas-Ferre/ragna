@@ -1,10 +1,10 @@
 use crate::gpu::{attrs, GpuModule};
 use proc_macro2::Ident;
-use syn::fold::Fold;
 use syn::spanned::Spanned;
-use syn::{parse_quote_spanned, FnArg, ItemFn, Pat, Signature};
+use syn::{fold, parse_quote_spanned, FnArg, ItemFn, Pat, PatType, Signature, Type};
 
 pub(crate) fn item_to_gpu(mut item: ItemFn, module: &mut GpuModule) -> ItemFn {
+    module.current_fn_signature = Some(item.sig.clone());
     if item.sig.constness.is_some() {
         return item;
     }
@@ -20,14 +20,14 @@ pub(crate) fn item_to_gpu(mut item: ItemFn, module: &mut GpuModule) -> ItemFn {
         .collect();
     item.sig = signature_to_gpu(item.sig, module);
     for arg in item.sig.inputs.iter().rev() {
-        if let Some(ident) = arg_ident(arg, module) {
+        if let (false, Some(ident)) = (is_ref(arg), arg_ident(arg, module)) {
             item.block.stmts.insert(
                 0,
                 parse_quote_spanned! { ident.span() => let #ident = #ident; },
             );
         }
     }
-    item.block = module.fold_block(*item.block).into();
+    item = fold::fold_item_fn(module, item);
     item
 }
 
@@ -50,6 +50,14 @@ fn arg_to_gpu(arg: FnArg, module: &mut GpuModule) -> FnArg {
             arg.into()
         }
         FnArg::Typed(arg) => arg.into(),
+    }
+}
+
+pub(crate) fn is_ref(arg: &FnArg) -> bool {
+    if let FnArg::Typed(PatType { ty, .. }) = arg {
+        matches!(**ty, Type::Reference(_))
+    } else {
+        false
     }
 }
 

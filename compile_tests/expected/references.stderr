@@ -1,0 +1,29 @@
+error: `mut` keyword must not be used for references
+ --> compile_tests/src/references.rs:7:21
+  |
+7 |     fn func(param: &mut I32) -> &mut I32 {
+  |                     ^^^
+
+error: `mut` keyword must not be used for references
+ --> compile_tests/src/references.rs:7:34
+  |
+7 |     fn func(param: &mut I32) -> &mut I32 {
+  |                                  ^^^
+
+error: `mut` keyword must not be used for references
+ --> compile_tests/src/references.rs:8:10
+  |
+8 |         &mut 0
+  |          ^^^
+
+error[E0277]: the trait bound `I32: Cpu` is not satisfied
+ --> compile_tests/src/references.rs:8:14
+  |
+8 |         &mut 0
+  |              ^ the trait `Cpu` is not implemented for `I32`
+  |
+  = help: the following other types implement trait `Cpu`:
+            bool
+            f32
+            i32
+            u32

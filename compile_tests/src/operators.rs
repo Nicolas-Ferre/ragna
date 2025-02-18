@@ -7,7 +7,6 @@ mod gpu {
     const CONSTANT: u32 = 10;
 
     static INVALID_UNARY: U32 = !CONSTANT.to_gpu();
-    static UNSUPPORTED_UNARY: U32 = *&CONSTANT.to_gpu();
     static INVALID_BINARY: U32 = CONSTANT.to_gpu() && CONSTANT.to_gpu();
     static UNSUPPORTED_BINARY: U32 = CONSTANT.to_gpu() & CONSTANT.to_gpu();
 

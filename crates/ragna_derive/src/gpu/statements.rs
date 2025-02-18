@@ -1,8 +1,9 @@
+use crate::gpu::expressions::return_expr_to_gpu;
 use crate::gpu::GpuModule;
 use std::mem;
 use syn::fold::Fold;
 use syn::spanned::Spanned;
-use syn::{parse_quote_spanned, Block, Local, LocalInit, Pat, Stmt};
+use syn::{parse_quote_spanned, Block, Expr, Local, LocalInit, Pat, Stmt};
 
 pub(crate) fn block_to_gpu(mut block: Block, module: &mut GpuModule) -> Block {
     block.stmts = block
@@ -22,7 +23,13 @@ pub(crate) fn block_to_gpu(mut block: Block, module: &mut GpuModule) -> Block {
 fn statement_to_gpu(stmt: Stmt, module: &mut GpuModule) -> Stmt {
     match stmt {
         Stmt::Local(local) => Stmt::Local(local_to_gpu(local, module)),
-        Stmt::Expr(expr, semi) => Stmt::Expr(module.fold_expr(expr), semi),
+        Stmt::Expr(expr, semi) => {
+            let mut expr = module.fold_expr(expr);
+            if semi.is_none() {
+                expr = return_expr_to_gpu(expr, module);
+            }
+            Stmt::Expr(expr, semi)
+        }
         stmt => {
             module
                 .errors
@@ -58,8 +65,10 @@ fn local_pat_to_gpu(pat: Pat, module: &mut GpuModule) -> Pat {
 
 fn local_init_to_gpu(mut init: LocalInit, module: &mut GpuModule) -> LocalInit {
     let expr = module.fold_expr(*init.expr);
-    init.expr = parse_quote_spanned! {
-        expr.span() => ::ragna::Gpu::create_var(#expr)
+    init.expr = if matches!(expr, Expr::Reference(_)) {
+        expr.into()
+    } else {
+        parse_quote_spanned! { expr.span() => ::ragna::Gpu::create_var(#expr) }
     };
     init
 }
