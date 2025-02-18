@@ -2,6 +2,7 @@
 
 pub mod app;
 pub mod assignment;
+pub mod constants;
 pub mod fns;
 pub mod globs;
 pub mod imports;

@@ -7,7 +7,8 @@ pub fn run_empty_app() {
 
 #[test]
 pub fn run_app_with_empty_module() {
-    App::default().with_module(no_item::register).run(1);
+    let app = App::default().with_module(no_item::register).run(1);
+    assert_eq!(app.read(gpu::GLOB), None);
 }
 
 #[test]
@@ -21,10 +22,12 @@ mod no_item {}
 
 #[ragna::gpu]
 mod gpu {
-    pub(crate) static GLOB: i32 = 10;
+    use ragna::I32;
+
+    pub(crate) static GLOB: I32 = 10;
 
     #[compute]
     fn run() {
-        let _var = 0;
+        let _var = 0_i32;
     }
 }

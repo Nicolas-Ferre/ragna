@@ -1,5 +1,4 @@
 use crate::types::GpuTypeDetails;
-use crate::GpuContext;
 use derive_where::derive_where;
 use dyn_clone::DynClone;
 use std::any::TypeId;
@@ -7,7 +6,6 @@ use std::any::TypeId;
 #[derive(Debug)]
 #[allow(private_interfaces)]
 pub enum Value {
-    Constant(Constant),
     Glob(Glob),
     Var(Var),
 }
@@ -15,30 +13,22 @@ pub enum Value {
 impl Value {
     pub(crate) fn value_type_id(&self) -> TypeId {
         match self {
-            Self::Constant(value) => value.type_id,
             Self::Glob(value) => value.type_id,
             Self::Var(value) => value.type_id,
         }
     }
 }
 
-#[derive(Debug)]
-pub(crate) struct Constant {
-    pub(crate) value: String,
-    pub(crate) type_id: TypeId,
-    pub(crate) gpu_type: GpuTypeDetails,
-}
-
 pub(crate) trait DefaultGlobValueFn: DynClone {
-    fn call(&self, ctx: &mut GpuContext) -> Value;
+    fn call(&self) -> Value;
 }
 
 impl<F> DefaultGlobValueFn for F
 where
-    F: Fn(&mut GpuContext) -> Value + Clone,
+    F: Fn() -> Value + Clone,
 {
-    fn call(&self, ctx: &mut GpuContext) -> Value {
-        self(ctx)
+    fn call(&self) -> Value {
+        self()
     }
 }
 
@@ -48,7 +38,7 @@ pub(crate) struct Glob {
     pub(crate) id: u64,
     pub(crate) type_id: TypeId,
     #[derive_where(skip)]
-    pub(crate) default_value: Box<dyn DefaultGlobValueFn>,
+    pub(crate) default_value: Box<dyn DefaultGlobValueFn + Sync + Send>,
 }
 
 impl PartialEq for Glob {
@@ -80,6 +70,7 @@ pub(crate) struct Var {
 pub(crate) enum Operation {
     DeclareVar(DeclareVarOperation),
     AssignVar(AssignVarOperation),
+    ConstantAssignVar(ConstantAssignVarOperation),
     Unary(UnaryOperation),
     Binary(BinaryOperation),
     FnCall(FnCallOperation),
@@ -95,6 +86,12 @@ pub(crate) struct DeclareVarOperation {
 pub(crate) struct AssignVarOperation {
     pub(crate) left_value: Value,
     pub(crate) right_value: Value,
+}
+
+#[derive(Debug)]
+pub(crate) struct ConstantAssignVarOperation {
+    pub(crate) left_value: Value,
+    pub(crate) right_value: String,
 }
 
 #[derive(Debug)]

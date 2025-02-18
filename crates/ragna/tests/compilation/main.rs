@@ -44,6 +44,7 @@ pub fn run_compile_tests() {
     let mut is_new = false;
     for (path, errors) in grouped_errors {
         let errors = errors.join("\n");
+        let errors = errors.trim();
         if fs::exists(&path).unwrap() {
             let expected = String::from_utf8(fs::read(&path).unwrap()).unwrap();
             assert_eq!(expected, errors, "invalid errors for {path}");

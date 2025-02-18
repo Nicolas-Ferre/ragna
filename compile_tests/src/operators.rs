@@ -2,12 +2,14 @@ fn main() {}
 
 #[ragna::gpu]
 mod gpu {
+    use ragna::{U32, Cpu};
+
     const CONSTANT: u32 = 10;
 
-    static INVALID_UNARY: u32 = !CONSTANT;
-    static UNSUPPORTED_UNARY: u32 = *&CONSTANT;
-    static INVALID_BINARY: u32 = CONSTANT && CONSTANT;
-    static UNSUPPORTED_BINARY: u32 = CONSTANT & CONSTANT;
+    static INVALID_UNARY: U32 = !CONSTANT.to_gpu();
+    static UNSUPPORTED_UNARY: U32 = *&CONSTANT.to_gpu();
+    static INVALID_BINARY: U32 = CONSTANT.to_gpu() && CONSTANT.to_gpu();
+    static UNSUPPORTED_BINARY: U32 = CONSTANT.to_gpu() & CONSTANT.to_gpu();
 
     #[compute]
     fn run() {

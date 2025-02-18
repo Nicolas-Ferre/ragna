@@ -1,4 +1,4 @@
-use crate::gpu::{types, GpuModule};
+use crate::gpu::GpuModule;
 use std::mem;
 use syn::fold::Fold;
 use syn::spanned::Spanned;
@@ -45,11 +45,7 @@ fn local_to_gpu(local: Local, module: &mut GpuModule) -> Local {
 #[allow(clippy::wildcard_enum_match_arm)]
 fn local_pat_to_gpu(pat: Pat, module: &mut GpuModule) -> Pat {
     match pat {
-        Pat::Type(mut pat) => {
-            pat.ty = types::mut_to_gpu(&pat.ty).into();
-            pat.into()
-        }
-        pat @ Pat::Ident(_) => pat,
+        pat @ (Pat::Type(_) | Pat::Ident(_)) => pat,
         pat => {
             module.errors.push(syn::Error::new(
                 pat.span(),
@@ -63,7 +59,7 @@ fn local_pat_to_gpu(pat: Pat, module: &mut GpuModule) -> Pat {
 fn local_init_to_gpu(mut init: LocalInit, module: &mut GpuModule) -> LocalInit {
     let expr = module.fold_expr(*init.expr);
     init.expr = parse_quote_spanned! {
-        expr.span() => ::ragna::Gpu::var(#expr, __ctx)
+        expr.span() => ::ragna::Gpu::create_var(#expr)
     };
     init
 }

@@ -1,165 +1,150 @@
 use crate::operations::{BinaryOperation, Operation, UnaryOperation};
-use crate::types::GpuType;
-use crate::{Gpu, GpuContext, Mut};
-use std::any::Any;
+use crate::{Bool, Gpu, GpuContext, F32, I32, U32};
+use std::ops::{Add, Div, Mul, Neg, Not, Rem, Sub};
 
-macro_rules! unary_trait {
-    ($name:ident) => {
-        #[doc = concat!("A trait implemented for types that support `", operator!($name), "` unary operator on GPU side.")]
-        pub trait $name: GpuType {
-            /// The resulting type after applying the operator.
-            type Output: GpuType;
+pub(crate) fn apply_unary_op<I: Gpu, O: Gpu>(input: I, operator: &'static str) -> O {
+    let var = O::create_uninit_var();
+    GpuContext::run_current(|ctx| {
+        ctx.operations.push(Operation::Unary(UnaryOperation {
+            var: var.value().into(),
+            value: input.value().into(),
+            operator,
+        }));
+    });
+    var
+}
 
-            /// Applies the operator.
-            fn apply(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self::Output, Mut>;
-        }
-    };
+pub(crate) fn apply_binary_op<L: Gpu, R: Gpu, O: Gpu>(
+    left: L,
+    right: R,
+    operator: &'static str,
+) -> O {
+    let var = O::create_uninit_var();
+    GpuContext::run_current(|ctx| {
+        ctx.operations.push(Operation::Binary(BinaryOperation {
+            var: var.value().into(),
+            left_value: left.value().into(),
+            right_value: right.value().into(),
+            operator,
+        }));
+    });
+    var
 }
 
 macro_rules! unary_impl {
-    ($trait_:ident, $type_:ty, $out_type:ty) => {
+    ($trait_:ident, $method:ident, $type_:ty, $out_type:ty) => {
         impl $trait_ for $type_ {
             type Output = $out_type;
 
-            fn apply(value: Gpu<Self, impl Any>, ctx: &mut GpuContext) -> Gpu<Self::Output, Mut> {
-                let var = Gpu::uninitialized_var(ctx);
-                ctx.operations.push(Operation::Unary(UnaryOperation {
-                    var: var.value(),
-                    value: value.value(),
-                    operator: operator!($trait_),
-                }));
-                var
+            fn $method(self) -> Self::Output {
+                apply_unary_op(self, operator!($trait_))
             }
         }
     };
 }
 
-macro_rules! binary_trait {
+macro_rules! bool_binary_trait {
     ($name:ident) => {
         #[doc = concat!("A trait implemented for types that support `", operator!($name), "` binary operator on GPU side.")]
-        pub trait $name<R: GpuType>: GpuType {
-            /// The resulting type after applying the operator.
-            type Output: GpuType;
-
+        pub trait $name<R> {
             /// Applies the operator.
-            fn apply(
-                left_value: Gpu<Self, impl Any>,
-                right_value: Gpu<R, impl Any>,
-                ctx: &mut GpuContext,
-            ) -> Gpu<Self::Output, Mut>;
+            fn apply(self, right_value: R) -> Bool;
+        }
+    };
+}
+
+macro_rules! bool_binary_impl {
+    ($trait_:ident, $method:ident, $left_type:ty, $right_type:ty) => {
+        #[allow(clippy::use_self)]
+        impl $trait_<$right_type> for $left_type {
+            fn $method(self, right_value: $right_type) -> Bool {
+                apply_binary_op(self, right_value, operator!($trait_))
+            }
         }
     };
 }
 
 macro_rules! binary_impl {
-    ($trait_:ident, $left_type:ty, $right_type:ty, $out_type:ty) => {
+    ($trait_:ident, $method:ident, $left_type:ty, $right_type:ty, $out_type:ty) => {
         #[allow(clippy::use_self)]
         impl $trait_<$right_type> for $left_type {
             type Output = $out_type;
 
-            fn apply(
-                left_value: Gpu<Self, impl Any>,
-                right_value: Gpu<$right_type, impl Any>,
-                ctx: &mut GpuContext,
-            ) -> Gpu<Self::Output, Mut> {
-                let var = Gpu::uninitialized_var(ctx);
-                ctx.operations.push(Operation::Binary(BinaryOperation {
-                    var: var.value(),
-                    left_value: left_value.value(),
-                    right_value: right_value.value(),
-                    operator: operator!($trait_),
-                }));
-                var
+            fn $method(self, right_value: $right_type) -> Self::Output {
+                apply_binary_op(self, right_value, operator!($trait_))
             }
         }
     };
 }
 
 macro_rules! operator {
-    (GpuNeg) => {
+    (Neg) => {
         "-"
     };
-    (GpuNot) => {
+    (Not) => {
         "!"
     };
-    (GpuAdd) => {
+    (Add) => {
         "+"
     };
-    (GpuSub) => {
+    (Sub) => {
         "-"
     };
-    (GpuMul) => {
+    (Mul) => {
         "*"
     };
-    (GpuDiv) => {
+    (Div) => {
         "/"
     };
-    (GpuRem) => {
+    (Rem) => {
         "%"
     };
-    (GpuEq) => {
+    (Equal) => {
         "=="
     };
-    (GpuGreaterThan) => {
+    (GreaterThan) => {
         ">"
-    };
-    (GpuAnd) => {
-        "&&"
-    };
-    (GpuOr) => {
-        "||"
     };
 }
 
-unary_trait!(GpuNeg);
-unary_trait!(GpuNot);
-binary_trait!(GpuAdd);
-binary_trait!(GpuSub);
-binary_trait!(GpuMul);
-binary_trait!(GpuDiv);
-binary_trait!(GpuRem);
-binary_trait!(GpuEq);
-binary_trait!(GpuGreaterThan);
-binary_trait!(GpuAnd);
-binary_trait!(GpuOr);
+bool_binary_trait!(Equal);
+bool_binary_trait!(GreaterThan);
 
-unary_impl!(GpuNeg, i32, i32);
-unary_impl!(GpuNeg, f32, f32);
-unary_impl!(GpuNot, bool, bool);
-binary_impl!(GpuAdd, u32, u32, u32);
-binary_impl!(GpuAdd, u32, i32, i32);
-binary_impl!(GpuAdd, i32, i32, i32);
-binary_impl!(GpuAdd, i32, u32, i32);
-binary_impl!(GpuAdd, f32, f32, f32);
-binary_impl!(GpuSub, u32, u32, u32);
-binary_impl!(GpuSub, u32, i32, i32);
-binary_impl!(GpuSub, i32, i32, i32);
-binary_impl!(GpuSub, i32, u32, i32);
-binary_impl!(GpuSub, f32, f32, f32);
-binary_impl!(GpuMul, u32, u32, u32);
-binary_impl!(GpuMul, u32, i32, i32);
-binary_impl!(GpuMul, i32, i32, i32);
-binary_impl!(GpuMul, i32, u32, i32);
-binary_impl!(GpuMul, f32, f32, f32);
-binary_impl!(GpuDiv, u32, u32, u32);
-binary_impl!(GpuDiv, u32, i32, i32);
-binary_impl!(GpuDiv, i32, i32, i32);
-binary_impl!(GpuDiv, i32, u32, i32);
-binary_impl!(GpuDiv, f32, f32, f32);
-binary_impl!(GpuRem, u32, u32, u32);
-binary_impl!(GpuRem, u32, i32, i32);
-binary_impl!(GpuRem, i32, i32, i32);
-binary_impl!(GpuRem, i32, u32, i32);
-binary_impl!(GpuEq, i32, i32, bool);
-binary_impl!(GpuEq, i32, u32, bool);
-binary_impl!(GpuEq, u32, u32, bool);
-binary_impl!(GpuEq, u32, i32, bool);
-binary_impl!(GpuEq, f32, f32, bool);
-binary_impl!(GpuEq, bool, bool, bool);
-binary_impl!(GpuGreaterThan, i32, i32, bool);
-binary_impl!(GpuGreaterThan, i32, u32, bool);
-binary_impl!(GpuGreaterThan, u32, u32, bool);
-binary_impl!(GpuGreaterThan, u32, i32, bool);
-binary_impl!(GpuGreaterThan, f32, f32, bool);
-binary_impl!(GpuAnd, bool, bool, bool);
-binary_impl!(GpuOr, bool, bool, bool);
+unary_impl!(Neg, neg, I32, I32);
+unary_impl!(Neg, neg, F32, F32);
+unary_impl!(Not, not, Bool, Bool);
+binary_impl!(Add, add, U32, U32, U32);
+binary_impl!(Add, add, U32, I32, I32);
+binary_impl!(Add, add, I32, I32, I32);
+binary_impl!(Add, add, I32, U32, I32);
+binary_impl!(Add, add, F32, F32, F32);
+binary_impl!(Sub, sub, U32, U32, U32);
+binary_impl!(Sub, sub, U32, I32, I32);
+binary_impl!(Sub, sub, I32, I32, I32);
+binary_impl!(Sub, sub, I32, U32, I32);
+binary_impl!(Sub, sub, F32, F32, F32);
+binary_impl!(Mul, mul, U32, U32, U32);
+binary_impl!(Mul, mul, U32, I32, I32);
+binary_impl!(Mul, mul, I32, I32, I32);
+binary_impl!(Mul, mul, I32, U32, I32);
+binary_impl!(Mul, mul, F32, F32, F32);
+binary_impl!(Div, div, U32, U32, U32);
+binary_impl!(Div, div, U32, I32, I32);
+binary_impl!(Div, div, I32, I32, I32);
+binary_impl!(Div, div, I32, U32, I32);
+binary_impl!(Div, div, F32, F32, F32);
+binary_impl!(Rem, rem, U32, U32, U32);
+binary_impl!(Rem, rem, U32, I32, I32);
+binary_impl!(Rem, rem, I32, I32, I32);
+binary_impl!(Rem, rem, I32, U32, I32);
+bool_binary_impl!(Equal, apply, I32, I32);
+bool_binary_impl!(Equal, apply, I32, U32);
+bool_binary_impl!(Equal, apply, U32, U32);
+bool_binary_impl!(Equal, apply, U32, I32);
+bool_binary_impl!(Equal, apply, F32, F32);
+bool_binary_impl!(Equal, apply, Bool, Bool);
+bool_binary_impl!(GreaterThan, apply, I32, I32);
+bool_binary_impl!(GreaterThan, apply, I32, U32);
+bool_binary_impl!(GreaterThan, apply, U32, U32);
+bool_binary_impl!(GreaterThan, apply, U32, I32);
+bool_binary_impl!(GreaterThan, apply, F32, F32);

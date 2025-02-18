@@ -1,36 +1,42 @@
 error: unsupported item
- --> compile_tests/src/unsupported_syntax.rs:5:5
+ --> compile_tests/src/unsupported_syntax.rs:7:5
   |
-5 |     enum Enum {}
+7 |     enum Enum {}
   |     ^^^^
 
 error: unsupported item
- --> compile_tests/src/unsupported_syntax.rs:8:9
-  |
-8 |         static LOCAL_GLOB: i32 = 0;
-  |         ^^^^^^
+  --> compile_tests/src/unsupported_syntax.rs:10:9
+   |
+10 |         static LOCAL_GLOB: I32 = 0;
+   |         ^^^^^^
 
 error: unsupported variable definition syntax
-  --> compile_tests/src/unsupported_syntax.rs:11:13
+  --> compile_tests/src/unsupported_syntax.rs:13:13
    |
-11 |         let _ = 0;
+13 |         let _ = 0;
    |             ^
 
 error: unsupported expression
-  --> compile_tests/src/unsupported_syntax.rs:12:9
+  --> compile_tests/src/unsupported_syntax.rs:14:9
    |
-12 |         loop {}
+14 |         loop {}
    |         ^^^^
 
-error[E0381]: used binding `var` isn't initialized
-  --> compile_tests/src/unsupported_syntax.rs:10:9
+error[E0308]: mismatched types
+  --> compile_tests/src/unsupported_syntax.rs:10:34
    |
-9  |         let mut var: i32;
+10 |         static LOCAL_GLOB: I32 = 0;
+   |                                  ^ expected `I32`, found integer
+
+error[E0381]: used binding `var` isn't initialized
+  --> compile_tests/src/unsupported_syntax.rs:12:9
+   |
+11 |         let mut var: I32;
    |             ------- binding declared here but left uninitialized
-10 |         var = 0;
+12 |         var = 0;
    |         ^^^ `var` used here but it isn't initialized
    |
 help: consider assigning a value
    |
-9  |         let mut var: i32 = /* value */;
+11 |         let mut var: I32 = /* value */;
    |                          +++++++++++++

@@ -9,8 +9,10 @@ pub fn assign_values() {
 
 #[ragna::gpu]
 mod gpu {
+    use ragna::{Cpu, I32};
+
     const CONSTANT: i32 = 10;
 
-    pub(super) static FROM_CONSTANT: i32 = CONSTANT;
-    pub(super) static FROM_GLOB: i32 = FROM_CONSTANT;
+    pub(super) static FROM_CONSTANT: I32 = CONSTANT.to_gpu();
+    pub(super) static FROM_GLOB: I32 = FROM_CONSTANT;
 }

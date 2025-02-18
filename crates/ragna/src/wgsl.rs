@@ -1,6 +1,6 @@
 use crate::operations::{Glob, Operation, Value};
-use crate::types::{GpuType, GpuTypeDetails};
-use crate::GpuContext;
+use crate::types::GpuTypeDetails;
+use crate::{Bool, Gpu, GpuContext};
 use fxhash::FxHashMap;
 use itertools::Itertools;
 use std::any::TypeId;
@@ -62,6 +62,13 @@ fn operation_code(operation: &Operation, globs: &[Glob]) -> String {
                 value_code(&op.right_value, globs),
             )
         }
+        Operation::ConstantAssignVar(op) => {
+            format!(
+                "    {} = {};",
+                value_code(&op.left_value, globs),
+                op.right_value,
+            )
+        }
         Operation::Unary(op) => {
             let value = function_arg(&op.value, globs);
             let operation = format!("{}{}", op.operator, value);
@@ -91,7 +98,7 @@ fn operation_code(operation: &Operation, globs: &[Glob]) -> String {
 }
 
 fn function_arg(value: &Value, globs: &[Glob]) -> String {
-    if value.value_type_id() == TypeId::of::<bool>() {
+    if value.value_type_id() == TypeId::of::<Bool>() {
         format!("bool({})", value_code(value, globs))
     } else {
         value_code(value, globs)
@@ -99,8 +106,8 @@ fn function_arg(value: &Value, globs: &[Glob]) -> String {
 }
 
 fn returned_value(value: &Value, expr: String) -> String {
-    if value.value_type_id() == TypeId::of::<bool>() {
-        let bool_gpu_type = bool::details().name;
+    if value.value_type_id() == TypeId::of::<Bool>() {
+        let bool_gpu_type = Bool::details().name;
         format!("{bool_gpu_type}({expr})")
     } else {
         expr
@@ -109,9 +116,6 @@ fn returned_value(value: &Value, expr: String) -> String {
 
 fn value_code(value: &Value, globs: &[Glob]) -> String {
     match value {
-        Value::Constant(constant) => {
-            format!("{}({})", constant.gpu_type.name, constant.value.clone())
-        }
         Value::Glob(glob) => format!("{}.{}", BUFFER_NAME, glob_name(glob, globs)),
         Value::Var(var) => var_name(var.id),
     }

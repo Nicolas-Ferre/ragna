@@ -10,7 +10,8 @@ pub fn assign_values() {
 #[ragna::gpu]
 mod gpu {
     use crate::fns::gpu::pow;
+    use ragna::F32;
 
-    pub(super) static IMPORTED_FUNCTION: f32 = pow(3., 2.);
-    pub(super) static QUALIFIED_FUNCTION: f32 = crate::fns::gpu::sqrt(16.);
+    pub(super) static IMPORTED_FUNCTION: F32 = pow(3., 2.);
+    pub(super) static QUALIFIED_FUNCTION: F32 = crate::fns::gpu::sqrt(16.);
 }

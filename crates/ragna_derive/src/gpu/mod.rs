@@ -5,13 +5,11 @@ use syn::spanned::Spanned;
 use syn::{fold, parse_quote, Block, Expr, Item, ItemMod, Stmt};
 
 mod attrs;
-mod constants;
 mod expressions;
 mod fns;
 mod foreign;
 mod globs;
 mod statements;
-mod types;
 mod vars;
 
 pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
@@ -39,10 +37,8 @@ pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
     let errors = fold.errors.into_iter().map(syn::Error::into_compile_error);
     quote! {
         #[allow(
-            unused_mut,
             clippy::let_and_return,
-            clippy::type_repetition_in_bounds,
-            clippy::multiple_bound_locations,
+            clippy::double_parens,
         )]
         #modified_module
         #(#errors)*
@@ -75,12 +71,13 @@ impl Fold for GpuModule {
 
     fn fold_expr(&mut self, expr: Expr) -> Expr {
         match expr {
-            Expr::Lit(expr) => constants::value_to_gpu(expr),
+            Expr::Lit(expr) => expressions::literal_to_gpu(expr),
             Expr::Assign(expr) => expressions::assign_to_gpu(expr, self),
             Expr::Unary(expr) => expressions::unary_to_gpu(expr, self),
             Expr::Binary(expr) => expressions::binary_to_gpu(expr, self),
-            Expr::Call(expr) => expressions::call_to_gpu(expr, self),
-            expr @ (Expr::Path(_) | Expr::Paren(_)) => fold::fold_expr(self, expr),
+            expr @ (Expr::Path(_) | Expr::Paren(_) | Expr::Call(_) | Expr::MethodCall(_)) => {
+                fold::fold_expr(self, expr)
+            }
             expr => {
                 self.errors
                     .push(syn::Error::new(expr.span(), "unsupported expression"));
@@ -91,11 +88,10 @@ impl Fold for GpuModule {
 
     fn fold_item(&mut self, item: Item) -> Item {
         match item {
-            Item::Static(item) => globs::item_to_gpu(item, self),
+            Item::Static(item) => globs::item_to_gpu(item, self).into(),
             Item::ForeignMod(item) => foreign::mod_to_gpu(item, self),
-            Item::Const(item) => constants::item_to_gpu(item).into(),
             Item::Fn(item) => fns::item_to_gpu(item, self).into(),
-            item @ Item::Use(_) => item,
+            item @ (Item::Use(_) | Item::Const(_)) => item,
             item => {
                 self.errors
                     .push(syn::Error::new(item.span(), "unsupported item"));

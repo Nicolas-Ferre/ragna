@@ -1,37 +1,31 @@
 error: only "wgsl" ABI is supported
- --> compile_tests/src/extern_mod.rs:5:12
+ --> compile_tests/src/extern_mod.rs:7:12
   |
-5 |     extern "C" {}
+7 |     extern "C" {}
   |            ^^^
 
 error: unsupported item
- --> compile_tests/src/extern_mod.rs:8:9
-  |
-8 |         static STATIC: u32;
-  |         ^^^^^^
+  --> compile_tests/src/extern_mod.rs:10:9
+   |
+10 |         static STATIC: U32;
+   |         ^^^^^^
 
 error: function must have a return type
-  --> compile_tests/src/extern_mod.rs:10:12
+  --> compile_tests/src/extern_mod.rs:12:12
    |
-10 |         fn no_return_type();
+12 |         fn no_return_type();
    |            ^^^^^^^^^^^^^^
-
-error: unsupported pattern
-  --> compile_tests/src/extern_mod.rs:12:44
-   |
-12 |         fn func_with_invalid_param_pattern((a, b): (f32, f32)) -> f32;
-   |                                            ^^^^^^
 
 error: unsupported parameter
   --> compile_tests/src/extern_mod.rs:14:27
    |
-14 |         fn func_with_self(self) -> f32;
+14 |         fn func_with_self(self) -> F32;
    |                           ^^^^
 
 error: `self` parameter is only allowed in associated functions
   --> compile_tests/src/extern_mod.rs:14:27
    |
-14 |         fn func_with_self(self) -> f32;
+14 |         fn func_with_self(self) -> F32;
    |                           ^^^^ not semantically valid as function parameter
    |
    = note: associated functions are those in `impl` or `trait` definitions
