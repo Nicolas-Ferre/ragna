@@ -1,19 +1,7 @@
-error: unsupported unary operator
-  --> compile_tests/src/operators.rs:10:37
-   |
-10 |     static UNSUPPORTED_UNARY: U32 = *&CONSTANT.to_gpu();
-   |                                     ^
-
-error: unsupported expression
-  --> compile_tests/src/operators.rs:10:38
-   |
-10 |     static UNSUPPORTED_UNARY: U32 = *&CONSTANT.to_gpu();
-   |                                      ^
-
 error: unsupported binary operator
-  --> compile_tests/src/operators.rs:12:56
+  --> compile_tests/src/operators.rs:11:56
    |
-12 |     static UNSUPPORTED_BINARY: U32 = CONSTANT.to_gpu() & CONSTANT.to_gpu();
+11 |     static UNSUPPORTED_BINARY: U32 = CONSTANT.to_gpu() & CONSTANT.to_gpu();
    |                                                        ^
 
 error[E0600]: cannot apply unary operator `!` to type `U32`
@@ -24,33 +12,33 @@ error[E0600]: cannot apply unary operator `!` to type `U32`
     |
 
 error[E0308]: arguments to this function are incorrect
-   --> compile_tests/src/operators.rs:11:34
+   --> compile_tests/src/operators.rs:10:34
     |
-11  |     static INVALID_BINARY: U32 = CONSTANT.to_gpu() && CONSTANT.to_gpu();
+10  |     static INVALID_BINARY: U32 = CONSTANT.to_gpu() && CONSTANT.to_gpu();
     |                                  ^^^^^^^^---------    ----------------- expected `Bool`, found `U32`
     |                                  |
     |                                  expected `Bool`, found `U32`
     |
 
 error[E0308]: mismatched types
-  --> compile_tests/src/operators.rs:11:34
+  --> compile_tests/src/operators.rs:10:34
    |
-11 |     static INVALID_BINARY: U32 = CONSTANT.to_gpu() && CONSTANT.to_gpu();
+10 |     static INVALID_BINARY: U32 = CONSTANT.to_gpu() && CONSTANT.to_gpu();
    |                                  ^^^^^^^^ expected `U32`, found `Bool`
 
 error[E0369]: no implementation for `U32 & U32`
-   --> compile_tests/src/operators.rs:12:56
+   --> compile_tests/src/operators.rs:11:56
     |
-12  |     static UNSUPPORTED_BINARY: U32 = CONSTANT.to_gpu() & CONSTANT.to_gpu();
+11  |     static UNSUPPORTED_BINARY: U32 = CONSTANT.to_gpu() & CONSTANT.to_gpu();
     |                                      ----------------- ^ ----------------- U32
     |                                      |
     |                                      U32
     |
 
 error[E0277]: cannot add `Bool` to `U32`
-  --> compile_tests/src/operators.rs:16:9
+  --> compile_tests/src/operators.rs:15:9
    |
-16 |         UNSUPPORTED_BINARY += true;
+15 |         UNSUPPORTED_BINARY += true;
    |         ^^^^^^^^^^^^^^^^^^ no implementation for `U32 + Bool`
    |
    = help: the trait `Add<Bool>` is not implemented for `U32`
