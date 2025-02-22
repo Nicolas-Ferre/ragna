@@ -1,9 +1,12 @@
 use crate::gpu::{vars, GpuModule};
-use proc_macro2::Ident;
+use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
+use std::mem;
 use syn::fold::Fold;
 use syn::spanned::Spanned;
-use syn::{fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprReturn, ExprUnary};
+use syn::{
+    fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprIf, ExprUnary, Stmt,
+};
 
 macro_rules! transform_binary_expr {
     ($module:ident, $expr:expr, $left:ident, $right:ident, $($new_expr:tt)+) => {{
@@ -18,13 +21,6 @@ macro_rules! transform_binary_expr {
 
 pub(crate) fn literal_to_gpu(value: impl ToTokens) -> Expr {
     parse_quote_spanned! { value.span() => ::ragna::Cpu::to_gpu(#value) }
-}
-
-pub(crate) fn return_to_gpu(mut expr: ExprReturn, module: &mut GpuModule) -> ExprReturn {
-    if let Some(returned_expr) = expr.expr.take() {
-        expr.expr = Some(return_expr_to_gpu(*returned_expr, module).into());
-    }
-    expr
 }
 
 pub(crate) fn return_expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
@@ -100,6 +96,57 @@ pub(crate) fn binary_to_gpu(expr: ExprBinary, module: &mut GpuModule) -> Expr {
                 "unsupported binary operator",
             ));
             fold::fold_expr_binary(module, expr).into()
+        }
+    }
+}
+
+pub(crate) fn if_to_gpu(expr: ExprIf, module: &mut GpuModule) -> TokenStream {
+    let span = expr.span();
+    let var_ident = vars::generate_ident(span, module);
+    let is_returning_value = !expr.then_branch.stmts.is_empty()
+        && matches!(expr.then_branch.stmts[0], Stmt::Expr(_, None));
+    let cond = module.fold_expr(*expr.cond);
+    let cond_statements = mem::take(&mut module.extracted_statements);
+    let then_branch = expr.then_branch;
+    let new_then_branch = module.fold_stmt(if is_returning_value {
+        parse_quote_spanned! { then_branch.span() => #var_ident = #then_branch; }
+    } else {
+        parse_quote_spanned! { then_branch.span() => #then_branch; }
+    });
+    let else_branch: Option<TokenStream> = if let Some((else_kw, else_expr)) = expr.else_branch {
+        let new_else_expr = module.fold_stmt(if is_returning_value {
+            parse_quote_spanned! { then_branch.span() => #var_ident = #else_expr; }
+        } else {
+            parse_quote_spanned! { then_branch.span() => #else_expr; }
+        });
+        Some(parse_quote_spanned! { else_kw.span() => ::ragna::else_(); #new_else_expr })
+    } else {
+        None
+    };
+    if is_returning_value {
+        parse_quote_spanned! {
+            span =>
+            {
+                let #var_ident = ::ragna::Gpu::create_uninit_var();
+                #(#cond_statements)*
+                ::ragna::if_(#cond);
+                #new_then_branch
+                #else_branch
+                ::ragna::end_if();
+                #var_ident
+            }
+        }
+    } else {
+        parse_quote_spanned! {
+            span =>
+            #[allow(redundant_semicolons)]
+            {
+                #(#cond_statements)*
+                ::ragna::if_(#cond);
+                #new_then_branch
+                #else_branch
+                ::ragna::end_if();
+            };
         }
     }
 }

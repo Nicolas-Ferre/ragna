@@ -1,6 +1,8 @@
 //! A library for creating easily a GPU-native application.
 
 mod app;
+mod control_flow;
+mod functions;
 mod operations;
 mod operators;
 mod runner;
@@ -8,6 +10,8 @@ mod types;
 mod wgsl;
 
 pub use app::*;
+pub use control_flow::*;
+pub use functions::*;
 pub use operators::*;
 pub use types::*;
 

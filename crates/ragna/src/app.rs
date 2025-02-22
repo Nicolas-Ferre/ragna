@@ -1,4 +1,4 @@
-use crate::operations::{AssignVarOperation, FnCallOperation, Glob, Operation, Value};
+use crate::operations::{AssignVarOperation, Glob, Operation, Value};
 use crate::runner::Runner;
 use crate::types::GpuTypeDetails;
 use crate::{wgsl, Bool, Cpu, Gpu, F32, I32, U32};
@@ -134,22 +134,6 @@ pub struct GpuContext {
 }
 
 impl GpuContext {
-    #[doc(hidden)]
-    pub fn call_fn<T>(fn_name: &'static str, args: Vec<Value>) -> T
-    where
-        T: Gpu,
-    {
-        let var = T::create_uninit_var();
-        Self::run_current(|ctx| {
-            ctx.operations.push(Operation::FnCall(FnCallOperation {
-                var: var.value().into(),
-                fn_name,
-                args,
-            }));
-        });
-        var
-    }
-
     pub(crate) fn next_var_id(&mut self) -> u64 {
         let id = self.next_var_id;
         self.next_var_id += 1;
