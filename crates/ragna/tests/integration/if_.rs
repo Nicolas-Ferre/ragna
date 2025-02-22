@@ -13,6 +13,8 @@ mod gpu {
     use ragna::I32;
 
     pub(super) static IF_RESULT: I32 = 0;
+    pub(super) static IF_EXPR_RESULT: I32 = 0;
+    pub(super) static CONDITIONAL_RETURN_RESULT: I32 = 0;
 
     #[compute]
     fn run_if() {
@@ -35,8 +37,6 @@ mod gpu {
         }
     }
 
-    pub(super) static IF_EXPR_RESULT: I32 = 0;
-
     #[compute]
     fn run_if_expr() {
         let value = if 0 < 3 {
@@ -48,8 +48,6 @@ mod gpu {
         };
         IF_EXPR_RESULT = value + if 0 > 3 { 3 } else { 4 };
     }
-
-    pub(super) static CONDITIONAL_RETURN_RESULT: I32 = 0;
 
     #[compute]
     fn run_conditional_return() {

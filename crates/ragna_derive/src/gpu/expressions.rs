@@ -5,8 +5,8 @@ use std::mem;
 use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{
-    fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprBreak, ExprIf, ExprUnary,
-    ExprWhile, Stmt,
+    fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprBreak, ExprCall,
+    ExprContinue, ExprIf, ExprUnary, ExprWhile, Stmt,
 };
 
 macro_rules! transform_binary_expr {
@@ -28,8 +28,9 @@ pub(crate) fn expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
         Expr::Unary(expr) => unary_to_gpu(expr, module),
         Expr::Binary(expr) => binary_to_gpu(expr, module),
         Expr::If(expr) => Expr::Verbatim(if_to_gpu(expr, module)),
-        Expr::While(expr) => Expr::Verbatim(while_to_gpu(expr, module)),
-        Expr::Break(expr) => Expr::Verbatim(break_to_gpu(expr, module)),
+        Expr::While(expr) => Expr::Verbatim(while_to_gpu(expr, module).to_token_stream()),
+        Expr::Break(expr) => break_to_gpu(expr, module).into(),
+        Expr::Continue(expr) => continue_to_gpu(expr, module).into(),
         expr @ (Expr::Path(_)
         | Expr::Paren(_)
         | Expr::Call(_)
@@ -184,7 +185,8 @@ fn if_to_gpu(expr: ExprIf, module: &mut GpuModule) -> TokenStream {
     }
 }
 
-fn while_to_gpu(expr: ExprWhile, module: &mut GpuModule) -> TokenStream {
+fn while_to_gpu(expr: ExprWhile, module: &mut GpuModule) -> Stmt {
+    module.current_loop_level += 1;
     let span = expr.span();
     let attrs = expr.attrs;
     let cond = module.fold_expr(*expr.cond);
@@ -195,28 +197,30 @@ fn while_to_gpu(expr: ExprWhile, module: &mut GpuModule) -> TokenStream {
             .errors
             .push(syn::Error::new(label.span(), "labels not supported"));
     }
+    module.current_loop_level -= 1;
     parse_quote_spanned! {
         span =>
         #(#attrs)*
         {
             ::ragna::loop_block();
-            {
-                #[allow(clippy::no_effect_underscore_binding)]
-                let __loop = (); // to ensure `break` and `continue` are called from inside the loop
-                #(#cond_statements)*
-                ::ragna::if_block(!#cond);
-                ::ragna::break_();
-                ::ragna::end_block();
-                #body
-            };
+            #(#cond_statements)*
+            ::ragna::if_block(!#cond);
+            ::ragna::break_();
+            ::ragna::end_block();
+            #body
             ::ragna::end_block();
         };
     }
 }
 
-fn break_to_gpu(expr: ExprBreak, module: &mut GpuModule) -> TokenStream {
+fn break_to_gpu(expr: ExprBreak, module: &mut GpuModule) -> ExprCall {
     let span = expr.span();
     let attrs = expr.attrs;
+    if module.current_loop_level == 0 {
+        module
+            .errors
+            .push(syn::Error::new(span, "not allowed outside loops"));
+    }
     if let Some(label) = expr.label {
         module
             .errors
@@ -228,12 +232,21 @@ fn break_to_gpu(expr: ExprBreak, module: &mut GpuModule) -> TokenStream {
             "break expressions not supported",
         ));
     }
-    parse_quote_spanned! {
-        span =>
-        #(#attrs)*
-        {
-            #[allow(path_statements)] __loop; // to ensure `break` is called from inside a loop
-            ::ragna::break_();
-        }
+    parse_quote_spanned! { span => #(#attrs)* ::ragna::break_() }
+}
+
+fn continue_to_gpu(expr: ExprContinue, module: &mut GpuModule) -> ExprCall {
+    let span = expr.span();
+    let attrs = expr.attrs;
+    if module.current_loop_level == 0 {
+        module
+            .errors
+            .push(syn::Error::new(span, "not allowed outside loops"));
     }
+    if let Some(label) = expr.label {
+        module
+            .errors
+            .push(syn::Error::new(label.span(), "labels not supported"));
+    }
+    parse_quote_spanned! { span => #(#attrs)* ::ragna::continue_() }
 }

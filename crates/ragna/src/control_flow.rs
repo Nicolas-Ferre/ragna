@@ -29,3 +29,8 @@ pub fn end_block() {
 pub fn break_() {
     GpuContext::run_current(|ctx| ctx.operations.push(Operation::Break));
 }
+
+#[doc(hidden)]
+pub fn continue_() {
+    GpuContext::run_current(|ctx| ctx.operations.push(Operation::Continue));
+}

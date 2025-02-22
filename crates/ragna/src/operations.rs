@@ -79,6 +79,7 @@ pub(crate) enum Operation {
     LoopBlock,
     EndBlock,
     Break,
+    Continue,
 }
 
 #[derive(Debug)]

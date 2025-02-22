@@ -57,6 +57,7 @@ struct GpuModule {
     errors: Vec<syn::Error>,
     extracted_statements: Vec<Stmt>,
     current_fn_signature: Option<Signature>,
+    current_loop_level: u32,
 }
 
 impl GpuModule {
