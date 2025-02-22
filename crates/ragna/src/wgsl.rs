@@ -94,9 +94,11 @@ fn operation_code(operation: &Operation, globs: &[Glob]) -> String {
             let expr = returned_value(&op.var, operation);
             format!("    {} = {expr};", value_code(&op.var, globs))
         }
-        Operation::If(op) => format!("    if (bool({})) {{", value_code(&op.condition, globs)),
-        Operation::Else => "    } else {".to_string(),
-        Operation::EndIf => "    }".to_string(),
+        Operation::IfBlock(op) => format!("    if (bool({})) {{", value_code(&op.condition, globs)),
+        Operation::ElseBlock => "    } else {".to_string(),
+        Operation::LoopBlock => "    loop {".to_string(),
+        Operation::EndBlock => "    }".to_string(),
+        Operation::Break => "    break;".to_string(),
     }
 }
 

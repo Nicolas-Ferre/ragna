@@ -2,20 +2,30 @@ use crate::operations::{IfOperation, Operation};
 use crate::{Bool, Gpu, GpuContext};
 
 #[doc(hidden)]
-pub fn if_(condition: Bool) {
+pub fn if_block(condition: Bool) {
     GpuContext::run_current(|ctx| {
-        ctx.operations.push(Operation::If(IfOperation {
+        ctx.operations.push(Operation::IfBlock(IfOperation {
             condition: condition.value().into(),
         }));
     });
 }
 
 #[doc(hidden)]
-pub fn else_() {
-    GpuContext::run_current(|ctx| ctx.operations.push(Operation::Else));
+pub fn else_block() {
+    GpuContext::run_current(|ctx| ctx.operations.push(Operation::ElseBlock));
 }
 
 #[doc(hidden)]
-pub fn end_if() {
-    GpuContext::run_current(|ctx| ctx.operations.push(Operation::EndIf));
+pub fn loop_block() {
+    GpuContext::run_current(|ctx| ctx.operations.push(Operation::LoopBlock));
+}
+
+#[doc(hidden)]
+pub fn end_block() {
+    GpuContext::run_current(|ctx| ctx.operations.push(Operation::EndBlock));
+}
+
+#[doc(hidden)]
+pub fn break_() {
+    GpuContext::run_current(|ctx| ctx.operations.push(Operation::Break));
 }

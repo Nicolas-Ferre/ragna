@@ -1,7 +1,7 @@
 use ragna::App;
 
 #[test]
-pub fn assign_values() {
+pub fn use_globs() {
     let app = App::default().with_module(gpu::register).run(1);
     assert_eq!(app.read(gpu::FROM_CONSTANT), Some(10));
     assert_eq!(app.read(gpu::FROM_GLOB), Some(10));

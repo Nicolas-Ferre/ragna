@@ -89,6 +89,7 @@ impl Fold for GpuModule {
             Expr::Unary(expr) => expressions::unary_to_gpu(expr, self),
             Expr::Binary(expr) => expressions::binary_to_gpu(expr, self),
             Expr::If(expr) => Expr::Verbatim(expressions::if_to_gpu(expr, self)),
+            Expr::While(expr) => Expr::Verbatim(expressions::while_to_gpu(expr, self)),
             expr @ (Expr::Path(_)
             | Expr::Paren(_)
             | Expr::Call(_)

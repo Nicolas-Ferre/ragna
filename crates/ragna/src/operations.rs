@@ -74,9 +74,11 @@ pub(crate) enum Operation {
     Unary(UnaryOperation),
     Binary(BinaryOperation),
     FnCall(FnCallOperation),
-    If(IfOperation),
-    Else,
-    EndIf,
+    IfBlock(IfOperation),
+    ElseBlock,
+    LoopBlock,
+    EndBlock,
+    Break,
 }
 
 #[derive(Debug)]

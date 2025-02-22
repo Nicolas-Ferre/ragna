@@ -5,7 +5,8 @@ use std::mem;
 use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{
-    fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprIf, ExprUnary, Stmt,
+    fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprIf, ExprUnary, ExprWhile,
+    Stmt,
 };
 
 macro_rules! transform_binary_expr {
@@ -102,6 +103,7 @@ pub(crate) fn binary_to_gpu(expr: ExprBinary, module: &mut GpuModule) -> Expr {
 
 pub(crate) fn if_to_gpu(expr: ExprIf, module: &mut GpuModule) -> TokenStream {
     let span = expr.span();
+    let attrs = expr.attrs;
     let var_ident = vars::generate_ident(span, module);
     let is_returning_value = !expr.then_branch.stmts.is_empty()
         && matches!(expr.then_branch.stmts[0], Stmt::Expr(_, None));
@@ -119,35 +121,63 @@ pub(crate) fn if_to_gpu(expr: ExprIf, module: &mut GpuModule) -> TokenStream {
         } else {
             parse_quote_spanned! { then_branch.span() => #else_expr; }
         });
-        Some(parse_quote_spanned! { else_kw.span() => ::ragna::else_(); #new_else_expr })
+        Some(parse_quote_spanned! { else_kw.span() => ::ragna::else_block(); #new_else_expr })
     } else {
         None
     };
     if is_returning_value {
         parse_quote_spanned! {
             span =>
+            #(#attrs)*
             {
                 let #var_ident = ::ragna::Gpu::create_uninit_var();
                 #(#cond_statements)*
-                ::ragna::if_(#cond);
+                ::ragna::if_block(#cond);
                 #new_then_branch
                 #else_branch
-                ::ragna::end_if();
+                ::ragna::end_block();
                 #var_ident
             }
         }
     } else {
         parse_quote_spanned! {
             span =>
+            #(#attrs)*
             #[allow(redundant_semicolons)]
             {
                 #(#cond_statements)*
-                ::ragna::if_(#cond);
+                ::ragna::if_block(#cond);
                 #new_then_branch
                 #else_branch
-                ::ragna::end_if();
+                ::ragna::end_block();
             };
         }
+    }
+}
+
+pub(crate) fn while_to_gpu(expr: ExprWhile, module: &mut GpuModule) -> TokenStream {
+    let span = expr.span();
+    let attrs = expr.attrs;
+    let cond = module.fold_expr(*expr.cond);
+    let cond_statements = mem::take(&mut module.extracted_statements);
+    let body = module.fold_block(expr.body);
+    if let Some(label) = expr.label {
+        module
+            .errors
+            .push(syn::Error::new(label.span(), "labels not supported"));
+    }
+    parse_quote_spanned! {
+        span =>
+        #(#attrs)*
+        {
+            ::ragna::loop_block();
+            #(#cond_statements)*
+            ::ragna::if_block(!#cond);
+            ::ragna::break_();
+            ::ragna::end_block();
+            #body
+            ::ragna::end_block();
+        };
     }
 }
 
