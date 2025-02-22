@@ -99,6 +99,7 @@ fn operation_code(operation: &Operation, globs: &[Glob]) -> String {
         Operation::LoopBlock => "    loop {".to_string(),
         Operation::EndBlock => "    }".to_string(),
         Operation::Break => "    break;".to_string(),
+        Operation::Continue => "    continue;".to_string(),
     }
 }
 
