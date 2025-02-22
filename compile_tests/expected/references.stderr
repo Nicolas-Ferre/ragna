@@ -16,6 +16,20 @@ error: `mut` keyword must not be used for references
 8 |         &mut 0
   |          ^^^
 
+error[E0277]: the trait bound `&I32: Gpu` is not satisfied
+  --> compile_tests/src/references.rs:12:9
+   |
+12 |         if true {
+   |         ^^ the trait `Gpu` is not implemented for `&I32`
+   |
+help: consider borrowing here
+   |
+12 |         &if true {
+   |         +
+
+
+
+
 error[E0515]: cannot return reference to temporary value
  --> compile_tests/src/references.rs:8:9
   |
