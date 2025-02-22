@@ -128,7 +128,7 @@ impl App {
 
 /// The context used to track GPU operations.
 #[derive(Debug, Default)]
-pub struct GpuContext {
+pub(crate) struct GpuContext {
     pub(crate) next_var_id: u64,
     pub(crate) operations: Vec<Operation>,
 }

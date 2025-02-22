@@ -1,0 +1,5 @@
+error: labels not supported
+ --> compile_tests/src/control_flow.rs:6:9
+  |
+6 |         'label: while true {}
+  |         ^^^^^^
