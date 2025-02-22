@@ -5,8 +5,8 @@ use std::mem;
 use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{
-    fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprIf, ExprUnary, ExprWhile,
-    Stmt,
+    fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprBreak, ExprIf, ExprUnary,
+    ExprWhile, Stmt,
 };
 
 macro_rules! transform_binary_expr {
@@ -20,22 +20,37 @@ macro_rules! transform_binary_expr {
     }};
 }
 
-pub(crate) fn literal_to_gpu(value: impl ToTokens) -> Expr {
-    parse_quote_spanned! { value.span() => ::ragna::Cpu::to_gpu(#value) }
-}
-
-pub(crate) fn return_expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
-    if module.is_current_fn_returning_copy() {
-        let expr = module.fold_expr(expr);
-        parse_quote_spanned! {
-            expr.span() => ::ragna::Gpu::create_var(#expr)
+#[allow(clippy::wildcard_enum_match_arm)]
+pub(crate) fn expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
+    match expr {
+        Expr::Lit(expr) => literal_to_gpu(expr),
+        Expr::Assign(expr) => assign_to_gpu(expr, module),
+        Expr::Unary(expr) => unary_to_gpu(expr, module),
+        Expr::Binary(expr) => binary_to_gpu(expr, module),
+        Expr::If(expr) => Expr::Verbatim(if_to_gpu(expr, module)),
+        Expr::While(expr) => Expr::Verbatim(while_to_gpu(expr, module)),
+        Expr::Break(expr) => Expr::Verbatim(break_to_gpu(expr, module)),
+        expr @ (Expr::Path(_)
+        | Expr::Paren(_)
+        | Expr::Call(_)
+        | Expr::MethodCall(_)
+        | Expr::Reference(_)
+        | Expr::Block(_)
+        | Expr::Verbatim(_)) => fold::fold_expr(module, expr),
+        expr => {
+            module
+                .errors
+                .push(syn::Error::new(expr.span(), "unsupported expression"));
+            fold::fold_expr(module, expr)
         }
-    } else {
-        module.fold_expr(expr)
     }
 }
 
-pub(crate) fn assign_to_gpu(expr: ExprAssign, module: &mut GpuModule) -> Expr {
+fn literal_to_gpu(value: impl ToTokens) -> Expr {
+    parse_quote_spanned! { value.span() => ::ragna::Cpu::to_gpu(#value) }
+}
+
+fn assign_to_gpu(expr: ExprAssign, module: &mut GpuModule) -> Expr {
     let span = expr.span();
     let attrs = &expr.attrs;
     let left = &expr.left;
@@ -43,7 +58,7 @@ pub(crate) fn assign_to_gpu(expr: ExprAssign, module: &mut GpuModule) -> Expr {
     parse_quote_spanned! { span => #(#attrs)* (::ragna::Gpu::assign(#left, #right)) }
 }
 
-pub(crate) fn unary_to_gpu(expr: ExprUnary, module: &mut GpuModule) -> Expr {
+fn unary_to_gpu(expr: ExprUnary, module: &mut GpuModule) -> Expr {
     if matches!(*expr.expr, Expr::Lit(_)) {
         // to avoid out of range error with -2_147_483_648_i32 value
         literal_to_gpu(expr)
@@ -52,7 +67,7 @@ pub(crate) fn unary_to_gpu(expr: ExprUnary, module: &mut GpuModule) -> Expr {
     }
 }
 
-pub(crate) fn binary_to_gpu(expr: ExprBinary, module: &mut GpuModule) -> Expr {
+fn binary_to_gpu(expr: ExprBinary, module: &mut GpuModule) -> Expr {
     let span = expr.span();
     match &expr.op {
         BinOp::And(_) => {
@@ -101,7 +116,21 @@ pub(crate) fn binary_to_gpu(expr: ExprBinary, module: &mut GpuModule) -> Expr {
     }
 }
 
-pub(crate) fn if_to_gpu(expr: ExprIf, module: &mut GpuModule) -> TokenStream {
+fn transform_bool_binary_op(expr: ExprBinary, trait_: &str, module: &mut GpuModule) -> Expr {
+    let span = expr.span();
+    let trait_ident = Ident::new(trait_, span);
+    let attrs = expr.attrs;
+    let left_expr = module.fold_expr(*expr.left);
+    let right_expr = module.fold_expr(*expr.right);
+    let var_ident = vars::generate_ident(span, module);
+    module.extracted_statements.push(parse_quote_spanned! {
+        span =>
+        let #var_ident = #(#attrs)* ::ragna::#trait_ident::apply(#left_expr, #right_expr);
+    });
+    parse_quote_spanned! { span => #var_ident }
+}
+
+fn if_to_gpu(expr: ExprIf, module: &mut GpuModule) -> TokenStream {
     let span = expr.span();
     let attrs = expr.attrs;
     let var_ident = vars::generate_ident(span, module);
@@ -155,7 +184,7 @@ pub(crate) fn if_to_gpu(expr: ExprIf, module: &mut GpuModule) -> TokenStream {
     }
 }
 
-pub(crate) fn while_to_gpu(expr: ExprWhile, module: &mut GpuModule) -> TokenStream {
+fn while_to_gpu(expr: ExprWhile, module: &mut GpuModule) -> TokenStream {
     let span = expr.span();
     let attrs = expr.attrs;
     let cond = module.fold_expr(*expr.cond);
@@ -171,26 +200,40 @@ pub(crate) fn while_to_gpu(expr: ExprWhile, module: &mut GpuModule) -> TokenStre
         #(#attrs)*
         {
             ::ragna::loop_block();
-            #(#cond_statements)*
-            ::ragna::if_block(!#cond);
-            ::ragna::break_();
-            ::ragna::end_block();
-            #body
+            {
+                #[allow(clippy::no_effect_underscore_binding)]
+                let __loop = (); // to ensure `break` and `continue` are called from inside the loop
+                #(#cond_statements)*
+                ::ragna::if_block(!#cond);
+                ::ragna::break_();
+                ::ragna::end_block();
+                #body
+            };
             ::ragna::end_block();
         };
     }
 }
 
-fn transform_bool_binary_op(expr: ExprBinary, trait_: &str, module: &mut GpuModule) -> Expr {
+fn break_to_gpu(expr: ExprBreak, module: &mut GpuModule) -> TokenStream {
     let span = expr.span();
-    let trait_ident = Ident::new(trait_, span);
     let attrs = expr.attrs;
-    let left_expr = module.fold_expr(*expr.left);
-    let right_expr = module.fold_expr(*expr.right);
-    let var_ident = vars::generate_ident(span, module);
-    module.extracted_statements.push(parse_quote_spanned! {
+    if let Some(label) = expr.label {
+        module
+            .errors
+            .push(syn::Error::new(label.span(), "labels not supported"));
+    }
+    if let Some(expr) = expr.expr {
+        module.errors.push(syn::Error::new(
+            expr.span(),
+            "break expressions not supported",
+        ));
+    }
+    parse_quote_spanned! {
         span =>
-        let #var_ident = #(#attrs)* ::ragna::#trait_ident::apply(#left_expr, #right_expr);
-    });
-    parse_quote_spanned! { span => #var_ident }
+        #(#attrs)*
+        {
+            #[allow(path_statements)] __loop; // to ensure `break` is called from inside a loop
+            ::ragna::break_();
+        }
+    }
 }

@@ -1,5 +1,17 @@
 error: labels not supported
+ --> compile_tests/src/control_flow.rs:7:19
+  |
+7 |             break 'label;
+  |                   ^^^^^^
+
+error: break expressions not supported
+ --> compile_tests/src/control_flow.rs:8:19
+  |
+8 |             break 0;
+  |                   ^
+
+error: labels not supported
  --> compile_tests/src/control_flow.rs:6:9
   |
-6 |         'label: while true {}
+6 |         'label: while true {
   |         ^^^^^^

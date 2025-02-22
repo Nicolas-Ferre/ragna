@@ -11,12 +11,25 @@ mod gpu {
     use ragna::I32;
 
     pub(super) static WHILE_RESULT: I32 = 0;
+    pub(super) static BREAK_RESULT: I32 = 15;
 
     #[compute]
-    fn run_if() {
+    fn run_while() {
         let i = 0;
         while i < 10 {
             WHILE_RESULT += i;
+            i += 1;
+        }
+    }
+
+    #[compute]
+    fn run_break() {
+        let i = 0;
+        while i < 10 {
+            BREAK_RESULT += i;
+            if i > 4 {
+                break;
+            }
             i += 1;
         }
     }
