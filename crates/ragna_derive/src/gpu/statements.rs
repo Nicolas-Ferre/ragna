@@ -23,13 +23,14 @@ pub(crate) fn block_to_gpu(mut block: Block, module: &mut GpuModule) -> Block {
 fn statement_to_gpu(stmt: Stmt, module: &mut GpuModule) -> Stmt {
     match stmt {
         Stmt::Local(local) => Stmt::Local(local_to_gpu(local, module)),
-        Stmt::Expr(expr, semi) => {
-            let mut expr = module.fold_expr(expr);
+        Stmt::Expr(expr, semi) => Stmt::Expr(
             if semi.is_none() {
-                expr = return_expr_to_gpu(expr, module);
-            }
-            Stmt::Expr(expr, semi)
-        }
+                return_expr_to_gpu(expr, module)
+            } else {
+                module.fold_expr(expr)
+            },
+            semi,
+        ),
         stmt => {
             module
                 .errors

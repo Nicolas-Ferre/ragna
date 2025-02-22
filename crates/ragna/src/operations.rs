@@ -74,6 +74,9 @@ pub(crate) enum Operation {
     Unary(UnaryOperation),
     Binary(BinaryOperation),
     FnCall(FnCallOperation),
+    If(IfOperation),
+    Else,
+    EndIf,
 }
 
 #[derive(Debug)]
@@ -114,4 +117,9 @@ pub(crate) struct FnCallOperation {
     pub(crate) var: Value,
     pub(crate) fn_name: &'static str,
     pub(crate) args: Vec<Value>,
+}
+
+#[derive(Debug)]
+pub(crate) struct IfOperation {
+    pub(crate) condition: Value,
 }

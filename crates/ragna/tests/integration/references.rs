@@ -23,8 +23,6 @@ mod gpu {
 
     fn increment(value: &I32) {
         *value += 1;
-        #[allow(clippy::needless_return)]
-        return;
     }
 
     fn add(value: &I32, added: I32) -> &I32 {
@@ -33,7 +31,6 @@ mod gpu {
     }
 
     fn value() -> I32 {
-        #[allow(clippy::needless_return)]
-        return RESULT;
+        RESULT
     }
 }
