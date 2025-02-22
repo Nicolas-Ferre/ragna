@@ -16,14 +16,11 @@ error: `mut` keyword must not be used for references
 8 |         &mut 0
   |          ^^^
 
-error[E0277]: the trait bound `I32: Cpu` is not satisfied
- --> compile_tests/src/references.rs:8:14
+error[E0515]: cannot return reference to temporary value
+ --> compile_tests/src/references.rs:8:9
   |
 8 |         &mut 0
-  |              ^ the trait `Cpu` is not implemented for `I32`
-  |
-  = help: the following other types implement trait `Cpu`:
-            bool
-            f32
-            i32
-            u32
+  |         ^^^^^-
+  |         |    |
+  |         |    temporary value created here
+  |         returns a reference to data owned by the current function
