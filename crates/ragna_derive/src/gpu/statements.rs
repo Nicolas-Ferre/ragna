@@ -1,4 +1,3 @@
-use crate::gpu::expressions::return_expr_to_gpu;
 use crate::gpu::GpuModule;
 use std::mem;
 use syn::fold::Fold;
@@ -25,7 +24,7 @@ fn statement_to_gpu(stmt: Stmt, module: &mut GpuModule) -> Stmt {
         Stmt::Local(local) => Stmt::Local(local_to_gpu(local, module)),
         Stmt::Expr(expr, semi) => Stmt::Expr(
             if semi.is_none() {
-                return_expr_to_gpu(expr, module)
+                returned_expr_to_gpu(expr, module)
             } else {
                 module.fold_expr(expr)
             },
@@ -37,6 +36,17 @@ fn statement_to_gpu(stmt: Stmt, module: &mut GpuModule) -> Stmt {
                 .push(syn::Error::new(stmt.span(), "unsupported item"));
             stmt
         }
+    }
+}
+
+fn returned_expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
+    if module.is_current_fn_returning_copy() {
+        let expr = module.fold_expr(expr);
+        parse_quote_spanned! {
+            expr.span() => ::ragna::Gpu::create_var(#expr)
+        }
+    } else {
+        module.fold_expr(expr)
     }
 }
 

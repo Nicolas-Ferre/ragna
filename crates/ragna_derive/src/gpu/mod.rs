@@ -76,33 +76,13 @@ impl GpuModule {
     }
 }
 
-#[allow(clippy::wildcard_enum_match_arm)]
 impl Fold for GpuModule {
     fn fold_block(&mut self, block: Block) -> Block {
         statements::block_to_gpu(block, self)
     }
 
     fn fold_expr(&mut self, expr: Expr) -> Expr {
-        match expr {
-            Expr::Lit(expr) => expressions::literal_to_gpu(expr),
-            Expr::Assign(expr) => expressions::assign_to_gpu(expr, self),
-            Expr::Unary(expr) => expressions::unary_to_gpu(expr, self),
-            Expr::Binary(expr) => expressions::binary_to_gpu(expr, self),
-            Expr::If(expr) => Expr::Verbatim(expressions::if_to_gpu(expr, self)),
-            Expr::While(expr) => Expr::Verbatim(expressions::while_to_gpu(expr, self)),
-            expr @ (Expr::Path(_)
-            | Expr::Paren(_)
-            | Expr::Call(_)
-            | Expr::MethodCall(_)
-            | Expr::Reference(_)
-            | Expr::Block(_)
-            | Expr::Verbatim(_)) => fold::fold_expr(self, expr),
-            expr => {
-                self.errors
-                    .push(syn::Error::new(expr.span(), "unsupported expression"));
-                fold::fold_expr(self, expr)
-            }
-        }
+        expressions::expr_to_gpu(expr, self)
     }
 
     fn fold_expr_reference(&mut self, expr: ExprReference) -> ExprReference {
@@ -115,6 +95,7 @@ impl Fold for GpuModule {
         fold::fold_expr_reference(self, expr)
     }
 
+    #[allow(clippy::wildcard_enum_match_arm)]
     fn fold_item(&mut self, item: Item) -> Item {
         match item {
             Item::Static(item) => globs::item_to_gpu(item, self).into(),
