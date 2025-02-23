@@ -1,6 +1,5 @@
 use crate::types::GpuTypeDetails;
 use derive_where::derive_where;
-use dyn_clone::DynClone;
 use std::any::TypeId;
 
 #[derive(Debug)]
@@ -8,6 +7,7 @@ use std::any::TypeId;
 pub enum Value {
     Glob(Glob),
     Var(Var),
+    Field(Field),
 }
 
 impl Value {
@@ -15,54 +15,30 @@ impl Value {
         match self {
             Self::Glob(value) => value.type_id,
             Self::Var(value) => value.type_id,
+            Self::Field(value) => value.type_id,
         }
     }
 }
 
-pub(crate) trait DefaultGlobValueFn: DynClone {
-    fn call(&self) -> Value;
-}
-
-impl<F> DefaultGlobValueFn for F
-where
-    F: Fn() -> Value + Clone,
-{
-    fn call(&self) -> Value {
-        self()
-    }
-}
-
-#[derive_where(Debug)]
+#[derive(Debug, Clone)]
+#[derive_where(PartialEq, Eq)]
 pub(crate) struct Glob {
     pub(crate) module: &'static str,
     pub(crate) id: u64,
-    pub(crate) type_id: TypeId,
     #[derive_where(skip)]
-    pub(crate) default_value: Box<dyn DefaultGlobValueFn + Sync + Send>,
-}
-
-impl PartialEq for Glob {
-    fn eq(&self, other: &Self) -> bool {
-        self.module == other.module && self.id == other.id
-    }
-}
-
-impl Eq for Glob {}
-
-impl Clone for Glob {
-    fn clone(&self) -> Self {
-        Self {
-            module: self.module,
-            id: self.id,
-            type_id: self.type_id,
-            default_value: dyn_clone::clone_box(&*self.default_value),
-        }
-    }
+    pub(crate) type_id: TypeId,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Var {
     pub(crate) id: u64,
+    pub(crate) type_id: TypeId,
+}
+
+#[derive(Debug)]
+pub(crate) struct Field {
+    pub(crate) source: Box<Value>,
+    pub(crate) indexes: Vec<usize>,
     pub(crate) type_id: TypeId,
 }
 

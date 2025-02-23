@@ -1,4 +1,5 @@
 use crate::{operators, Cpu, Gpu, GpuTypeDetails, GpuValue};
+use std::any::TypeId;
 
 macro_rules! native_gpu_type {
     ($name:ident, $cpu_name:ident, $wgsl_name:literal) => {
@@ -12,7 +13,12 @@ macro_rules! native_gpu_type {
             type Cpu = $cpu_name;
 
             fn details() -> GpuTypeDetails {
-                GpuTypeDetails { name: $wgsl_name }
+                GpuTypeDetails {
+                    type_id: TypeId::of::<Self>(),
+                    name: Some($wgsl_name),
+                    size: Some(4),
+                    field_types: vec![],
+                }
             }
 
             fn value(self) -> GpuValue<Self> {
