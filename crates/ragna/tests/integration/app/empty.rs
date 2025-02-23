@@ -8,13 +8,13 @@ pub fn run_empty_app() {
 #[test]
 pub fn run_app_with_empty_module() {
     let app = App::default().with_module(no_item::register).run(1);
-    assert_eq!(app.read(gpu::GLOB), None);
+    assert_eq!(app.read(*gpu::GLOB), None);
 }
 
 #[test]
 pub fn run_app_with_no_used_glob() {
     let app = App::default().with_module(gpu::register).run(1);
-    assert_eq!(app.read(gpu::GLOB), Some(10));
+    assert_eq!(app.read(*gpu::GLOB), Some(10));
 }
 
 #[ragna::gpu]

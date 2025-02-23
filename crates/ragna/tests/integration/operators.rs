@@ -5,48 +5,48 @@ use ragna::App;
 #[test]
 pub fn use_unary_operator() {
     let app = App::default().with_module(gpu::register).run(1);
-    assert_eq!(app.read(gpu::I32_NEG_VALUE), Some(-10));
-    assert_eq!(app.read(gpu::I32_DOUBLE_NEG_VALUE), Some(10));
-    assert_eq!(app.read(gpu::F32_NEG_VALUE), Some(-20.));
-    assert_eq!(app.read(gpu::BOOL_NOT_VALUE), Some(false));
-    assert_eq!(app.read(gpu::GLOB_UNARY_INIT_VALUE), Some(-30));
+    assert_eq!(app.read(*gpu::I32_NEG_VALUE), Some(-10));
+    assert_eq!(app.read(*gpu::I32_DOUBLE_NEG_VALUE), Some(10));
+    assert_eq!(app.read(*gpu::F32_NEG_VALUE), Some(-20.));
+    assert_eq!(app.read(*gpu::BOOL_NOT_VALUE), Some(false));
+    assert_eq!(app.read(*gpu::GLOB_UNARY_INIT_VALUE), Some(-30));
 }
 
 #[test]
 pub fn use_binary_operator() {
     let app = App::default().with_module(gpu::register).run(1);
-    assert_eq!(app.read(gpu::ADD_VALUE), Some(3));
-    assert_eq!(app.read(gpu::SUB_VALUE), Some(-1));
-    assert_eq!(app.read(gpu::MUL_VALUE), Some(8));
-    assert_eq!(app.read(gpu::DIV_VALUE), Some(2));
-    assert_eq!(app.read(gpu::REM_VALUE), Some(1));
-    assert_eq!(app.read(gpu::EQ_TRUE_VALUE), Some(true));
-    assert_eq!(app.read(gpu::EQ_FALSE_VALUE), Some(false));
-    assert_eq!(app.read(gpu::NEQ_TRUE_VALUE), Some(true));
-    assert_eq!(app.read(gpu::NEQ_FALSE_VALUE), Some(false));
-    assert_eq!(app.read(gpu::GT_TRUE_VALUE), Some(true));
-    assert_eq!(app.read(gpu::GT_FALSE_VALUE), Some(false));
-    assert_eq!(app.read(gpu::GT_FALSE_EQ_VALUE), Some(false));
-    assert_eq!(app.read(gpu::GE_TRUE_VALUE), Some(true));
-    assert_eq!(app.read(gpu::GE_TRUE_EQ_VALUE), Some(true));
-    assert_eq!(app.read(gpu::GE_FALSE_VALUE), Some(false));
-    assert_eq!(app.read(gpu::LE_TRUE_VALUE), Some(true));
-    assert_eq!(app.read(gpu::LE_TRUE_EQ_VALUE), Some(true));
-    assert_eq!(app.read(gpu::LE_FALSE_VALUE), Some(false));
-    assert_eq!(app.read(gpu::AND_TRUE_VALUE), Some(true));
-    assert_eq!(app.read(gpu::AND_FALSE_VALUE), Some(false));
-    assert_eq!(app.read(gpu::OR_TRUE_VALUE), Some(true));
-    assert_eq!(app.read(gpu::OR_FALSE_VALUE), Some(false));
+    assert_eq!(app.read(*gpu::ADD_VALUE), Some(3));
+    assert_eq!(app.read(*gpu::SUB_VALUE), Some(-1));
+    assert_eq!(app.read(*gpu::MUL_VALUE), Some(8));
+    assert_eq!(app.read(*gpu::DIV_VALUE), Some(2));
+    assert_eq!(app.read(*gpu::REM_VALUE), Some(1));
+    assert_eq!(app.read(*gpu::EQ_TRUE_VALUE), Some(true));
+    assert_eq!(app.read(*gpu::EQ_FALSE_VALUE), Some(false));
+    assert_eq!(app.read(*gpu::NEQ_TRUE_VALUE), Some(true));
+    assert_eq!(app.read(*gpu::NEQ_FALSE_VALUE), Some(false));
+    assert_eq!(app.read(*gpu::GT_TRUE_VALUE), Some(true));
+    assert_eq!(app.read(*gpu::GT_FALSE_VALUE), Some(false));
+    assert_eq!(app.read(*gpu::GT_FALSE_EQ_VALUE), Some(false));
+    assert_eq!(app.read(*gpu::GE_TRUE_VALUE), Some(true));
+    assert_eq!(app.read(*gpu::GE_TRUE_EQ_VALUE), Some(true));
+    assert_eq!(app.read(*gpu::GE_FALSE_VALUE), Some(false));
+    assert_eq!(app.read(*gpu::LE_TRUE_VALUE), Some(true));
+    assert_eq!(app.read(*gpu::LE_TRUE_EQ_VALUE), Some(true));
+    assert_eq!(app.read(*gpu::LE_FALSE_VALUE), Some(false));
+    assert_eq!(app.read(*gpu::AND_TRUE_VALUE), Some(true));
+    assert_eq!(app.read(*gpu::AND_FALSE_VALUE), Some(false));
+    assert_eq!(app.read(*gpu::OR_TRUE_VALUE), Some(true));
+    assert_eq!(app.read(*gpu::OR_FALSE_VALUE), Some(false));
 }
 
 #[test]
 pub fn use_operator_assign() {
     let app = App::default().with_module(gpu::register).run(1);
-    assert_eq!(app.read(gpu::ADD_ASSIGN_VALUE), Some(15));
-    assert_eq!(app.read(gpu::SUB_ASSIGN_VALUE), Some(5));
-    assert_eq!(app.read(gpu::MUL_ASSIGN_VALUE), Some(50));
-    assert_eq!(app.read(gpu::DIV_ASSIGN_VALUE), Some(2));
-    assert_eq!(app.read(gpu::REM_ASSIGN_VALUE), Some(1));
+    assert_eq!(app.read(*gpu::ADD_ASSIGN_VALUE), Some(15));
+    assert_eq!(app.read(*gpu::SUB_ASSIGN_VALUE), Some(5));
+    assert_eq!(app.read(*gpu::MUL_ASSIGN_VALUE), Some(50));
+    assert_eq!(app.read(*gpu::DIV_ASSIGN_VALUE), Some(2));
+    assert_eq!(app.read(*gpu::REM_ASSIGN_VALUE), Some(1));
 }
 
 #[ragna::gpu]
@@ -94,14 +94,14 @@ mod gpu {
     #[compute]
     #[allow(clippy::double_neg)]
     fn run() {
-        I32_NEG_VALUE = -I32_NEG_VALUE;
-        I32_DOUBLE_NEG_VALUE = --I32_DOUBLE_NEG_VALUE;
-        F32_NEG_VALUE = -F32_NEG_VALUE;
-        BOOL_NOT_VALUE = !BOOL_NOT_VALUE;
-        ADD_ASSIGN_VALUE += 5;
-        SUB_ASSIGN_VALUE -= 5;
-        MUL_ASSIGN_VALUE *= 5;
-        DIV_ASSIGN_VALUE /= 5;
-        REM_ASSIGN_VALUE %= 3;
+        *I32_NEG_VALUE = -*I32_NEG_VALUE;
+        *I32_DOUBLE_NEG_VALUE = --*I32_DOUBLE_NEG_VALUE;
+        *F32_NEG_VALUE = -*F32_NEG_VALUE;
+        *BOOL_NOT_VALUE = !*BOOL_NOT_VALUE;
+        *ADD_ASSIGN_VALUE += 5;
+        *SUB_ASSIGN_VALUE -= 5;
+        *MUL_ASSIGN_VALUE *= 5;
+        *DIV_ASSIGN_VALUE /= 5;
+        *REM_ASSIGN_VALUE %= 3;
     }
 }

@@ -56,7 +56,7 @@ fn assign_to_gpu(expr: ExprAssign, module: &mut GpuModule) -> Expr {
     let attrs = &expr.attrs;
     let left = &expr.left;
     let right = module.fold_expr(*expr.right);
-    parse_quote_spanned! { span => #(#attrs)* (::ragna::Gpu::assign(#left, #right)) }
+    parse_quote_spanned! { span => #(#attrs)* (::ragna::assign(#left, #right)) }
 }
 
 fn unary_to_gpu(expr: ExprUnary, module: &mut GpuModule) -> Expr {
@@ -160,7 +160,7 @@ fn if_to_gpu(expr: ExprIf, module: &mut GpuModule) -> TokenStream {
             span =>
             #(#attrs)*
             {
-                let #var_ident = ::ragna::Gpu::create_uninit_var();
+                let #var_ident = ::ragna::create_uninit_var();
                 #(#cond_statements)*
                 ::ragna::if_block(#cond);
                 #new_then_branch

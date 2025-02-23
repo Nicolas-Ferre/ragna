@@ -12,6 +12,6 @@ mod gpu {
 
     #[compute]
     fn run() {
-        UNSUPPORTED_BINARY += true;
+        *UNSUPPORTED_BINARY += true;
     }
 }

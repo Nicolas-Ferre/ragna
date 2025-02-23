@@ -3,9 +3,9 @@ use ragna::App;
 #[test]
 pub fn run_loops() {
     let app = App::default().with_module(gpu::register).run(1);
-    assert_eq!(app.read(gpu::WHILE_RESULT), Some(45));
-    assert_eq!(app.read(gpu::BREAK_RESULT), Some(15));
-    assert_eq!(app.read(gpu::CONTINUE_RESULT), Some(49));
+    assert_eq!(app.read(*gpu::WHILE_RESULT), Some(45));
+    assert_eq!(app.read(*gpu::BREAK_RESULT), Some(15));
+    assert_eq!(app.read(*gpu::CONTINUE_RESULT), Some(49));
 }
 
 #[ragna::gpu]
@@ -20,7 +20,7 @@ mod gpu {
     fn run_while() {
         let i = 0;
         while i < 10 {
-            WHILE_RESULT += i;
+            *WHILE_RESULT += i;
             i += 1;
         }
     }
@@ -29,7 +29,7 @@ mod gpu {
     fn run_break() {
         let i = 0;
         while i < 10 {
-            BREAK_RESULT += i;
+            *BREAK_RESULT += i;
             if i > 4 {
                 break;
             }
@@ -42,7 +42,7 @@ mod gpu {
         let i = 0;
         let continued = false;
         while i < 10 {
-            CONTINUE_RESULT += i;
+            *CONTINUE_RESULT += i;
             if i == 4 && !continued {
                 continued = true;
                 continue;

@@ -43,7 +43,7 @@ fn returned_expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
     if module.is_current_fn_returning_copy() {
         let expr = module.fold_expr(expr);
         parse_quote_spanned! {
-            expr.span() => ::ragna::Gpu::create_var(#expr)
+            expr.span() => ::ragna::create_var(#expr)
         }
     } else {
         module.fold_expr(expr)
@@ -79,7 +79,7 @@ fn local_init_to_gpu(mut init: LocalInit, module: &mut GpuModule) -> LocalInit {
     init.expr = if matches!(expr, Expr::Reference(_)) {
         expr.into()
     } else {
-        parse_quote_spanned! { expr.span() => ::ragna::Gpu::create_var(#expr) }
+        parse_quote_spanned! { expr.span() => ::ragna::create_var(#expr) }
     };
     init
 }
