@@ -48,15 +48,15 @@ pub trait Gpu: 'static + Copy {
 
 #[doc(hidden)]
 #[derive(Debug, Clone, Copy)]
-pub enum GpuValue<T: Gpu> {
+pub enum GpuValue<T> {
     Glob(&'static str, u64, fn() -> T),
     Var(u64),
     GlobField(&'static str, u64, FieldIndexes),
     VarField(u64, FieldIndexes),
 }
 
-impl<T: Gpu> GpuValue<T> {
-    fn field<U: Gpu>(self, index: usize) -> GpuValue<U> {
+impl<T> GpuValue<T> {
+    fn field<U>(self, index: usize) -> GpuValue<U> {
         match self {
             Self::Glob(module, id, _) => GpuValue::GlobField(module, id, FieldIndexes::new(index)),
             Self::Var(id) => GpuValue::VarField(id, FieldIndexes::new(index)),
@@ -68,7 +68,7 @@ impl<T: Gpu> GpuValue<T> {
     }
 }
 
-impl<T: Gpu> From<GpuValue<T>> for Value {
+impl<T: 'static> From<GpuValue<T>> for Value {
     fn from(value: GpuValue<T>) -> Self {
         let type_id = TypeId::of::<T>();
         match value {

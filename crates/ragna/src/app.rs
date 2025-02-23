@@ -56,10 +56,7 @@ impl App {
     }
 
     #[doc(hidden)]
-    pub fn with_glob<T>(mut self, glob: T) -> Self
-    where
-        T: Gpu,
-    {
+    pub fn with_glob<T: Gpu>(mut self, glob: T) -> Self {
         if let (GpuValue::Glob(_, _, default_value), Value::Glob(glob)) =
             (glob.value(), glob.value().into())
         {
@@ -74,10 +71,7 @@ impl App {
     /// Reads a value stored on GPU side.
     ///
     /// If the passed value is not a global variable,
-    pub fn read<T>(&self, value: T) -> Option<T::Cpu>
-    where
-        T: Gpu,
-    {
+    pub fn read<T: Gpu>(&self, value: T) -> Option<T::Cpu> {
         self.runner.as_ref().and_then(|runner| {
             let bytes = runner.read(self, &value.value().into());
             if bytes.is_empty() {
