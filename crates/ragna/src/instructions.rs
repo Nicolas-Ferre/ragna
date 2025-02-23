@@ -11,6 +11,7 @@ pub fn create_glob<T: Gpu>(module: &'static str, id: u64, default_value: fn() ->
 #[doc(hidden)]
 pub fn create_uninit_var<T: Gpu>() -> T {
     let id = GpuContext::run_current(|ctx| {
+        ctx.register_type::<T>();
         let id = ctx.next_var_id();
         ctx.operations
             .push(Operation::DeclareVar(DeclareVarOperation {

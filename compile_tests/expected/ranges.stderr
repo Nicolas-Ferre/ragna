@@ -1,0 +1,35 @@
+error: missing bound start
+ --> compile_tests/src/ranges.rs:7:46
+  |
+7 |     static RANGE_WITHOUT_START: Range<I32> = ..5;
+  |                                              ^
+
+error: missing bound end
+ --> compile_tests/src/ranges.rs:8:44
+  |
+8 |     static RANGE_WITHOUT_END: Range<I32> = 3..;
+  |                                            ^
+
+error: unsupported range type
+ --> compile_tests/src/ranges.rs:9:50
+  |
+9 |     static UNSUPPORTED_RANGE_FORM: Range<I32> = 3..=5;
+  |                                                  ^
+
+error[E0308]: mismatched types
+ --> compile_tests/src/ranges.rs:7:46
+  |
+7 |     static RANGE_WITHOUT_START: Range<I32> = ..5;
+  |                                              ^^^ expected `Range<I32>`, found `RangeTo<{integer}>`
+  |
+  = note: expected struct `ragna::Range<I32>`
+             found struct `RangeTo<{integer}>`
+
+error[E0308]: mismatched types
+ --> compile_tests/src/ranges.rs:8:44
+  |
+8 |     static RANGE_WITHOUT_END: Range<I32> = 3..;
+  |                                            ^^^ expected `Range<I32>`, found `RangeFrom<{integer}>`
+  |
+  = note: expected struct `ragna::Range<I32>`
+             found struct `std::ops::RangeFrom<{integer}>`

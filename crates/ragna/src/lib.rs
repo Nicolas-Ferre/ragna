@@ -11,7 +11,8 @@ mod wgsl;
 pub use app::*;
 pub use instructions::*;
 pub use operators::*;
-pub use types::native::*;
+pub use types::primitive::*;
+pub use types::range::*;
 pub use types::*;
 
 /// Transforms a Rust module to a GPU module.
