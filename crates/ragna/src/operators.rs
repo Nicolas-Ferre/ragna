@@ -3,7 +3,7 @@ use crate::{Bool, Gpu, GpuContext, F32, I32, U32};
 use std::ops::{Add, Div, Mul, Neg, Not, Rem, Sub};
 
 pub(crate) fn apply_unary_op<I: Gpu, O: Gpu>(input: I, operator: &'static str) -> O {
-    let var = O::create_uninit_var();
+    let var = crate::create_uninit_var::<O>();
     GpuContext::run_current(|ctx| {
         ctx.operations.push(Operation::Unary(UnaryOperation {
             var: var.value().into(),
@@ -19,7 +19,7 @@ pub(crate) fn apply_binary_op<L: Gpu, R: Gpu, O: Gpu>(
     right: R,
     operator: &'static str,
 ) -> O {
-    let var = O::create_uninit_var();
+    let var = crate::create_uninit_var::<O>();
     GpuContext::run_current(|ctx| {
         ctx.operations.push(Operation::Binary(BinaryOperation {
             var: var.value().into(),

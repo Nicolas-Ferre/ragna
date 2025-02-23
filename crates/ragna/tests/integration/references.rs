@@ -3,7 +3,7 @@ use ragna::App;
 #[test]
 pub fn use_references() {
     let app = App::default().with_module(gpu::register).run(1);
-    assert_eq!(app.read(gpu::RESULT), Some(26));
+    assert_eq!(app.read(*gpu::RESULT), Some(26));
 }
 
 #[ragna::gpu]
@@ -31,6 +31,6 @@ mod gpu {
     }
 
     fn value() -> I32 {
-        RESULT
+        *RESULT
     }
 }

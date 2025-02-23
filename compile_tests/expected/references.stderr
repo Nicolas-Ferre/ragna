@@ -22,10 +22,6 @@ error[E0277]: the trait bound `&I32: Gpu` is not satisfied
 12 |         if true {
    |         ^^ the trait `Gpu` is not implemented for `&I32`
    |
-help: consider borrowing here
-   |
-12 |         &if true {
-   |         +
 
 
 

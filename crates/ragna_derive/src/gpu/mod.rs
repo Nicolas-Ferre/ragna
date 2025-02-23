@@ -22,7 +22,7 @@ pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
         let globs = fold
             .globs
             .iter()
-            .map(|glob| quote_spanned! { glob.span() => .with_glob(#glob) });
+            .map(|glob| quote_spanned! { glob.span() => .with_glob(*#glob) });
         let compute_calls = fold
             .compute_fns
             .iter()

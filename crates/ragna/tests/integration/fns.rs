@@ -3,11 +3,11 @@ use ragna::App;
 #[test]
 pub fn use_functions() {
     let app = App::default().with_module(gpu::register).run(1);
-    assert_eq!(app.read(gpu::EXTERN_FN_RESULT), Some(9.));
-    assert_eq!(app.read(gpu::EXTERN_GENERIC_FN_RESULT), Some(4.));
-    assert_eq!(app.read(gpu::CUSTOM_FN_RESULT), Some(20.));
-    assert_eq!(app.read(gpu::CUSTOM_GENERIC_FN_RESULT), Some(24.));
-    assert_eq!(app.read(gpu::CUSTOM_FN_INPUT_RESULT), Some(5.));
+    assert_eq!(app.read(*gpu::EXTERN_FN_RESULT), Some(9.));
+    assert_eq!(app.read(*gpu::EXTERN_GENERIC_FN_RESULT), Some(4.));
+    assert_eq!(app.read(*gpu::CUSTOM_FN_RESULT), Some(20.));
+    assert_eq!(app.read(*gpu::CUSTOM_GENERIC_FN_RESULT), Some(24.));
+    assert_eq!(app.read(*gpu::CUSTOM_FN_INPUT_RESULT), Some(5.));
 }
 
 #[ragna::gpu]
@@ -23,8 +23,8 @@ pub(crate) mod gpu {
 
     #[compute]
     fn run() {
-        let result = multiply(multiply(CUSTOM_FN_INPUT_RESULT, 2.), 2.);
-        CUSTOM_FN_RESULT = result;
+        let result = multiply(multiply(*CUSTOM_FN_INPUT_RESULT, 2.), 2.);
+        *CUSTOM_FN_RESULT = result;
     }
 
     extern "wgsl" {

@@ -3,8 +3,8 @@ use ragna::App;
 #[test]
 pub fn use_imports() {
     let app = App::default().with_module(gpu::register).run(1);
-    assert_eq!(app.read(gpu::IMPORTED_FUNCTION), Some(9.));
-    assert_eq!(app.read(gpu::QUALIFIED_FUNCTION), Some(4.));
+    assert_eq!(app.read(*gpu::IMPORTED_FUNCTION), Some(9.));
+    assert_eq!(app.read(*gpu::QUALIFIED_FUNCTION), Some(4.));
 }
 
 #[ragna::gpu]
