@@ -61,7 +61,7 @@ pub enum GpuValue<T> {
 
 impl<T> GpuValue<T> {
     pub(crate) fn unregistered_var() -> Self {
-        GpuValue::Var(context::next_var_id())
+        Self::Var(context::next_var_id())
     }
 
     fn field<U>(self, index: usize) -> GpuValue<U> {

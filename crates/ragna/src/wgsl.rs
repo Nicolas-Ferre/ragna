@@ -1,10 +1,10 @@
+use crate::context::GpuContext;
 use crate::operations::{Glob, Operation, Value};
 use crate::types::GpuTypeDetails;
 use crate::Bool;
 use fxhash::FxHashMap;
 use itertools::Itertools;
 use std::any::TypeId;
-use crate::context::GpuContext;
 
 const BUFFER_NAME: &str = "buf";
 const BUFFER_TYPE_NAME: &str = "Buf";

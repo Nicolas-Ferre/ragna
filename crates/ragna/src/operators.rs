@@ -1,7 +1,7 @@
+use crate::context::GpuContext;
 use crate::operations::{BinaryOperation, Operation, UnaryOperation};
 use crate::{Bool, Gpu, F32, I32, U32};
 use std::ops::{Add, Div, Mul, Neg, Not, Rem, Sub};
-use crate::context::GpuContext;
 
 pub(crate) fn apply_unary_op<I: Gpu, O: Gpu>(input: I, operator: &'static str) -> O {
     let var = crate::create_uninit_var::<O>();
