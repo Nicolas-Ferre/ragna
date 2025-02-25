@@ -1,3 +1,4 @@
+use crate::context::GpuContext;
 use crate::operations::{AssignVarOperation, Glob, Operation, Value};
 use crate::runner::Runner;
 use crate::types::GpuTypeDetails;
@@ -6,7 +7,7 @@ use derive_where::derive_where;
 use fxhash::FxHashMap;
 use std::any::TypeId;
 use std::mem;
-use std::sync::{LockResult, Mutex, MutexGuard};
+use std::sync::Mutex;
 
 pub(crate) static CURRENT_CTX: Mutex<Option<GpuContext>> = Mutex::new(None);
 
@@ -118,63 +119,5 @@ impl App {
         self.types
             .entry(type_.type_id)
             .or_insert((type_count, type_));
-    }
-}
-
-/// The context used to track GPU operations.
-#[doc(hidden)]
-#[derive(Debug, Default)]
-pub struct GpuContext {
-    pub(crate) next_var_id: u64,
-    pub(crate) operations: Vec<Operation>,
-    pub(crate) types: Vec<GpuTypeDetails>,
-}
-
-impl GpuContext {
-    pub(crate) fn next_var_id(&mut self) -> u64 {
-        let id = self.next_var_id;
-        self.next_var_id += 1;
-        id
-    }
-
-    pub(crate) fn register_type<T: Gpu>(&mut self) {
-        let mut types_to_register = vec![T::details()];
-        while !types_to_register.is_empty() {
-            let types = mem::take(&mut types_to_register);
-            for type_ in &types {
-                types_to_register.extend(type_.field_types.clone());
-            }
-            self.types.extend(types);
-        }
-    }
-
-    pub(crate) fn run_current<O>(f: impl FnOnce(&mut Self) -> O) -> O {
-        f(CURRENT_CTX
-            .try_lock()
-            .as_mut()
-            .expect("cannot lock GPU context")
-            .as_mut()
-            .expect("internal error: missing GPU context"))
-    }
-
-    fn lock_current<'a>() -> LockResult<MutexGuard<'a, ()>> {
-        static CTX_LOCK: Mutex<()> = Mutex::new(());
-        let lock = CTX_LOCK.lock();
-        **CURRENT_CTX
-            .try_lock()
-            .as_mut()
-            .expect("cannot lock GPU context") = Some(Self::default());
-        lock
-    }
-
-    fn unlock_current(lock: LockResult<MutexGuard<'_, ()>>) -> Self {
-        let ctx = CURRENT_CTX
-            .try_lock()
-            .as_mut()
-            .expect("cannot lock GPU context")
-            .take()
-            .expect("internal error: missing GPU context");
-        drop(lock);
-        ctx
     }
 }

@@ -1,5 +1,6 @@
+use crate::context;
+use crate::context::GpuContext;
 use crate::operations::{ConstantAssignVarOperation, Field, Glob, Operation, Value, Var};
-use crate::GpuContext;
 use std::any::TypeId;
 use std::default::Default;
 
@@ -43,6 +44,9 @@ pub trait Gpu: 'static + Copy {
     fn value(self) -> GpuValue<Self>;
 
     #[doc(hidden)]
+    fn unregistered() -> Self;
+
+    #[doc(hidden)]
     fn from_value(value: GpuValue<Self>) -> Self;
 }
 
@@ -56,6 +60,10 @@ pub enum GpuValue<T> {
 }
 
 impl<T> GpuValue<T> {
+    pub(crate) fn unregistered_var() -> Self {
+        GpuValue::Var(context::next_var_id())
+    }
+
     fn field<U>(self, index: usize) -> GpuValue<U> {
         match self {
             Self::Glob(module, id, _) => GpuValue::GlobField(module, id, FieldIndexes::new(index)),

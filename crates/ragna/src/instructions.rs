@@ -1,7 +1,8 @@
+use crate::context::GpuContext;
 use crate::operations::{
     AssignVarOperation, DeclareVarOperation, FnCallOperation, IfOperation, Operation, Value,
 };
-use crate::{Bool, Gpu, GpuContext, GpuValue};
+use crate::{context, Bool, Gpu, GpuValue};
 
 #[doc(hidden)]
 pub fn create_glob<T: Gpu>(module: &'static str, id: u64, default_value: fn() -> T) -> T {
@@ -12,7 +13,7 @@ pub fn create_glob<T: Gpu>(module: &'static str, id: u64, default_value: fn() ->
 pub fn create_uninit_var<T: Gpu>() -> T {
     let id = GpuContext::run_current(|ctx| {
         ctx.register_type::<T>();
-        let id = ctx.next_var_id();
+        let id = context::next_var_id();
         ctx.operations
             .push(Operation::DeclareVar(DeclareVarOperation {
                 id,
