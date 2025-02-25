@@ -37,6 +37,7 @@ pub(crate) fn expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
         | Expr::Call(_)
         | Expr::MethodCall(_)
         | Expr::Reference(_)
+        | Expr::Index(_)
         | Expr::Field(_)
         | Expr::Block(_)
         | Expr::Verbatim(_)) => fold::fold_expr(module, expr),

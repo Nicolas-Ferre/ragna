@@ -1,6 +1,7 @@
 //! A library for creating easily a GPU-native application.
 
 mod app;
+mod context;
 mod instructions;
 mod operations;
 mod operators;
@@ -9,6 +10,7 @@ mod types;
 mod wgsl;
 
 pub use app::*;
+pub use context::*;
 pub use instructions::*;
 pub use operators::*;
 pub use types::primitive::*;

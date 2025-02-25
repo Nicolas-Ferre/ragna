@@ -1,6 +1,7 @@
+use crate::context::GpuContext;
 use crate::operations::{Glob, Operation, Value};
 use crate::types::GpuTypeDetails;
-use crate::{Bool, GpuContext};
+use crate::Bool;
 use fxhash::FxHashMap;
 use itertools::Itertools;
 use std::any::TypeId;
@@ -105,7 +106,7 @@ fn operation_code(
         Operation::Unary(op) => {
             let var_name = value_code(&op.var, globs);
             let value = function_arg(&op.value, globs);
-            let operation = format!("{}{}", op.operator, value);
+            let operation = format!("{}{value}", op.operator);
             let expr = returned_value(&op.var, operation, types);
             format!("    {var_name} = {expr};")
         }
