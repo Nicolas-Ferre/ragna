@@ -11,7 +11,7 @@ pub fn run_loops() {
 
 #[ragna::gpu]
 mod gpu {
-    use ragna::{I32, U32};
+    use ragna::{Iterable, I32, U32};
 
     pub(super) static WHILE_RESULT: I32 = 0;
     pub(super) static BREAK_RESULT: I32 = 0;
@@ -57,7 +57,7 @@ mod gpu {
     fn run_range_iteration() {
         let i = 0_u32;
         let range = 3_u32..6_u32;
-        while i < 3_u32 {
+        while i < range.len() {
             *RANGE_ITERATION_RESULT += range[i];
             i += 1_u32;
         }

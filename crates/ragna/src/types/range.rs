@@ -1,7 +1,7 @@
-use crate::{Cpu, Gpu, GpuContext, GpuTypeDetails, GpuValue, U32};
+use crate::{Cpu, Gpu, GpuContext, GpuTypeDetails, GpuValue, Iterable, U32};
 use std::any::TypeId;
 use std::ops;
-use std::ops::{Add, Index};
+use std::ops::Index;
 
 /// A GPU type to iterate on a range of values.
 #[derive(Clone, Copy)]
@@ -73,15 +73,18 @@ impl<T: Cpu> Cpu for ops::Range<T> {
     }
 }
 
-impl<T> Index<U32> for Range<T>
-where
-    T: Gpu + Add<U32, Output = T>,
-{
-    type Output = T;
+impl Index<U32> for Range<U32> {
+    type Output = U32;
 
     fn index(&self, index: U32) -> &Self::Output {
         GpuContext::run_current(|ctx| ctx.register_var(self.item));
-        crate::assign(self.item, self.start + index);
+        crate::assign(self.item, self.start + index % (self.end - self.start));
         &self.item
+    }
+}
+
+impl Iterable for Range<U32> {
+    fn len(&self) -> U32 {
+        self.end - self.start
     }
 }
