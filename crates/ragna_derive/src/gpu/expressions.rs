@@ -6,7 +6,7 @@ use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{
     fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprBreak, ExprCall,
-    ExprContinue, ExprIf, ExprUnary, ExprWhile, Stmt,
+    ExprContinue, ExprIf, ExprRange, ExprUnary, ExprWhile, RangeLimits, Stmt,
 };
 
 macro_rules! transform_binary_expr {
@@ -31,11 +31,13 @@ pub(crate) fn expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
         Expr::While(expr) => Expr::Verbatim(while_to_gpu(expr, module).to_token_stream()),
         Expr::Break(expr) => break_to_gpu(expr, module).into(),
         Expr::Continue(expr) => continue_to_gpu(expr, module).into(),
+        Expr::Range(expr) => range_to_gpu(expr, module),
         expr @ (Expr::Path(_)
         | Expr::Paren(_)
         | Expr::Call(_)
         | Expr::MethodCall(_)
         | Expr::Reference(_)
+        | Expr::Field(_)
         | Expr::Block(_)
         | Expr::Verbatim(_)) => fold::fold_expr(module, expr),
         expr => {
@@ -249,4 +251,32 @@ fn continue_to_gpu(expr: ExprContinue, module: &mut GpuModule) -> ExprCall {
             .push(syn::Error::new(label.span(), "labels not supported"));
     }
     parse_quote_spanned! { span => #(#attrs)* ::ragna::continue_() }
+}
+
+fn range_to_gpu(expr: ExprRange, module: &mut GpuModule) -> Expr {
+    let initial_expr = expr.clone();
+    let span = expr.span();
+    let attrs = expr.attrs;
+    let start = if let Some(expr) = expr.start {
+        module.fold_expr(*expr)
+    } else {
+        module
+            .errors
+            .push(syn::Error::new(span, "missing bound start"));
+        return initial_expr.into();
+    };
+    let end = if let Some(expr) = expr.end {
+        module.fold_expr(*expr)
+    } else {
+        module
+            .errors
+            .push(syn::Error::new(span, "missing bound end"));
+        return initial_expr.into();
+    };
+    if let RangeLimits::Closed(token) = expr.limits {
+        module
+            .errors
+            .push(syn::Error::new(token.span(), "unsupported range type"));
+    }
+    parse_quote_spanned! { span => #(#attrs)* ::ragna::Range::new(#start, #end) }
 }

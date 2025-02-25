@@ -14,7 +14,6 @@ rust-version.workspace = true
 
 [dependencies]
 derive-where.workspace = true
-dyn-clone.workspace = true
 futures.workspace = true
 fxhash.workspace = true
 itertools.workspace = true

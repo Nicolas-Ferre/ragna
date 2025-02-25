@@ -10,8 +10,6 @@ use wgpu::{
     ShaderModuleDescriptor,
 };
 
-const GPU_TYPES_SIZE_BYTES: u64 = 4;
-
 #[derive(Debug)]
 pub(crate) struct Runner {
     device: Device,
@@ -59,7 +57,11 @@ impl Runner {
             if let Some(position) = app.globs.iter().position(|other_glob| other_glob == glob) {
                 let tmp_buffer = self.device.create_buffer(&BufferDescriptor {
                     label: Some("modor_texture_buffer"),
-                    size: GPU_TYPES_SIZE_BYTES,
+                    size: app
+                        .globs
+                        .iter()
+                        .map(|glob| app.types[&glob.type_id].1.size())
+                        .sum(),
                     usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
                     mapped_at_creation: false,
                 });
@@ -70,10 +72,15 @@ impl Runner {
                     });
                 encoder.copy_buffer_to_buffer(
                     buffer,
-                    position as u64 * GPU_TYPES_SIZE_BYTES,
+                    app.globs
+                        .iter()
+                        .rev()
+                        .skip(app.globs.len() - position)
+                        .map(|glob| app.types[&glob.type_id].1.size())
+                        .sum(),
                     &tmp_buffer,
                     0,
-                    GPU_TYPES_SIZE_BYTES,
+                    app.types[&glob.type_id].1.size(),
                 );
                 let submission_index = self.queue.submit(Some(encoder.finish()));
                 let slice = tmp_buffer.slice(..);
@@ -174,12 +181,18 @@ impl Program {
         if app.globs.is_empty() {
             None
         } else {
-            Some(device.create_buffer(&BufferDescriptor {
-                label: Some("ragna:buffer"),
-                size: (app.globs.len() * 4) as u64,
-                usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC,
-                mapped_at_creation: false,
-            }))
+            Some(
+                device.create_buffer(&BufferDescriptor {
+                    label: Some("ragna:buffer"),
+                    size: app
+                        .globs
+                        .iter()
+                        .map(|glob| app.types[&glob.type_id].1.size())
+                        .sum(),
+                    usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC,
+                    mapped_at_creation: false,
+                }),
+            )
         }
     }
 
