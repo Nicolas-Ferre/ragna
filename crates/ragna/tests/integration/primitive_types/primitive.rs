@@ -25,7 +25,7 @@ mod gpu {
 
     pub(super) static I32_POS_VALUE: I32 = 0;
     pub(super) static I32_NEG_VALUE: I32 = 0;
-    pub(super) static U32_VALUE: U32 = 0_u32;
+    pub(super) static U32_VALUE: U32 = 0u;
     pub(super) static F32_INT_VALUE: F32 = 0.;
     pub(super) static F32_FRAC_VALUE: F32 = 0.;
     pub(super) static F32_NEG_VALUE: F32 = 0.;
@@ -38,7 +38,7 @@ mod gpu {
     fn run() {
         *I32_POS_VALUE = 0x7FFF_FFFF;
         *I32_NEG_VALUE = -0x8000_0000;
-        *U32_VALUE = 0xFFFF_FFFF_u32;
+        *U32_VALUE = 0xFFFF_FFFFu;
         *F32_INT_VALUE = 999_999_999_999_999_999_999.;
         *F32_FRAC_VALUE = 123.456;
         *F32_NEG_VALUE = -123.456;

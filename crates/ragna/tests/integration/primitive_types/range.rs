@@ -20,27 +20,27 @@ pub fn use_ranges() {
 mod gpu {
     use ragna::{Bool, Iterable, U32};
 
-    pub(super) static START: U32 = 0_u32;
-    pub(super) static END: U32 = 0_u32;
-    pub(super) static FIRST_ITEM: U32 = 0_u32;
-    pub(super) static SECOND_ITEM: U32 = 0_u32;
-    pub(super) static OUT_OF_BOUND_ITEM: U32 = 0_u32;
-    pub(super) static LEN_POSITIVE: U32 = 0_u32;
-    pub(super) static LEN_NEGATIVE: U32 = 42_u32;
+    pub(super) static START: U32 = 0u;
+    pub(super) static END: U32 = 0u;
+    pub(super) static FIRST_ITEM: U32 = 0u;
+    pub(super) static SECOND_ITEM: U32 = 0u;
+    pub(super) static OUT_OF_BOUND_ITEM: U32 = 0u;
+    pub(super) static LEN_POSITIVE: U32 = 0u;
+    pub(super) static LEN_NEGATIVE: U32 = 42u;
     pub(super) static IS_EMPTY_TRUE: Bool = false;
     pub(super) static IS_EMPTY_FALSE: Bool = true;
 
     #[compute]
     fn run() {
-        let range = 3_u32..6_u32;
+        let range = 3u..6u;
         *START = range.start;
         *END = range.end;
-        *FIRST_ITEM = range[0_u32];
-        *SECOND_ITEM = range[1_u32];
-        *OUT_OF_BOUND_ITEM = range[3_u32];
+        *FIRST_ITEM = range[0u];
+        *SECOND_ITEM = range[1u];
+        *OUT_OF_BOUND_ITEM = range[3u];
         *LEN_POSITIVE = range.len();
-        *LEN_NEGATIVE = (6_u32..3_u32).len();
-        *IS_EMPTY_TRUE = (3_u32..3_u32).is_empty();
+        *LEN_NEGATIVE = (6u..3u).len();
+        *IS_EMPTY_TRUE = (3u..3u).is_empty();
         *IS_EMPTY_FALSE = range.is_empty();
     }
 }
