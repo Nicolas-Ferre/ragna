@@ -11,5 +11,6 @@ mod gpu {
         'label: for i in 0_u32..1_u32 {}
         continue;
         break;
+        for (a, b, c) in 0_u32..1_u32 {}
     }
 }
