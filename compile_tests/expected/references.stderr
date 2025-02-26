@@ -26,7 +26,6 @@ error[E0277]: the trait bound `&I32: Gpu` is not satisfied
 
 
 
-
 error[E0515]: cannot return reference to temporary value
  --> compile_tests/src/references.rs:8:9
   |
