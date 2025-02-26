@@ -1,4 +1,10 @@
 error: labels not supported
+ --> compile_tests/src/control_flow.rs:6:9
+  |
+6 |         'label: while true {
+  |         ^^^^^^
+
+error: labels not supported
  --> compile_tests/src/control_flow.rs:7:22
   |
 7 |             continue 'label;
@@ -17,19 +23,19 @@ error: break expressions not supported
   |                   ^
 
 error: labels not supported
- --> compile_tests/src/control_flow.rs:6:9
-  |
-6 |         'label: while true {
-  |         ^^^^^^
-
-error: not allowed outside loops
   --> compile_tests/src/control_flow.rs:11:9
    |
-11 |         continue;
-   |         ^^^^^^^^
+11 |         'label: for i in 0_u32..1_u32 {}
+   |         ^^^^^^
 
 error: not allowed outside loops
   --> compile_tests/src/control_flow.rs:12:9
    |
-12 |         break;
+12 |         continue;
+   |         ^^^^^^^^
+
+error: not allowed outside loops
+  --> compile_tests/src/control_flow.rs:13:9
+   |
+13 |         break;
    |         ^^^^^
