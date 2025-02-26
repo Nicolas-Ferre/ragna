@@ -6,7 +6,7 @@ use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{
     fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprBreak, ExprCall,
-    ExprContinue, ExprIf, ExprRange, ExprUnary, ExprWhile, RangeLimits, Stmt,
+    ExprContinue, ExprForLoop, ExprIf, ExprRange, ExprUnary, ExprWhile, RangeLimits, Stmt,
 };
 
 macro_rules! transform_binary_expr {
@@ -29,6 +29,7 @@ pub(crate) fn expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
         Expr::Binary(expr) => binary_to_gpu(expr, module),
         Expr::If(expr) => Expr::Verbatim(if_to_gpu(expr, module)),
         Expr::While(expr) => Expr::Verbatim(while_to_gpu(expr, module).to_token_stream()),
+        Expr::ForLoop(expr) => Expr::Verbatim(for_loop_to_gpu(expr, module).to_token_stream()),
         Expr::Break(expr) => break_to_gpu(expr, module).into(),
         Expr::Continue(expr) => continue_to_gpu(expr, module).into(),
         Expr::Range(expr) => range_to_gpu(expr, module),
@@ -190,16 +191,16 @@ fn if_to_gpu(expr: ExprIf, module: &mut GpuModule) -> TokenStream {
 
 fn while_to_gpu(expr: ExprWhile, module: &mut GpuModule) -> Stmt {
     module.current_loop_level += 1;
+    if let Some(label) = &expr.label {
+        module
+            .errors
+            .push(syn::Error::new(label.span(), "labels not supported"));
+    }
     let span = expr.span();
     let attrs = expr.attrs;
     let cond = module.fold_expr(*expr.cond);
     let cond_statements = mem::take(&mut module.extracted_statements);
     let body = module.fold_block(expr.body);
-    if let Some(label) = expr.label {
-        module
-            .errors
-            .push(syn::Error::new(label.span(), "labels not supported"));
-    }
     module.current_loop_level -= 1;
     parse_quote_spanned! {
         span =>
@@ -214,6 +215,33 @@ fn while_to_gpu(expr: ExprWhile, module: &mut GpuModule) -> Stmt {
             ::ragna::end_block();
         };
     }
+}
+
+fn for_loop_to_gpu(expr: ExprForLoop, module: &mut GpuModule) -> Stmt {
+    if let Some(label) = &expr.label {
+        module
+            .errors
+            .push(syn::Error::new(label.span(), "labels not supported"));
+    }
+    let span = expr.span();
+    let attrs = expr.attrs;
+    let pat = expr.pat;
+    let iterable = expr.expr;
+    let body = expr.body;
+    module.fold_stmt(parse_quote_spanned! {
+        span =>
+        {
+            let __iterable = &(#iterable);
+            let __index = 0_u32;
+            let __len = ::ragna::Iterable::len(__iterable);
+            #(#attrs)*
+            while __index < __len {
+                let #pat = &__iterable[__index];
+                #body;
+                __index += 1_u32;
+            }
+        };
+    })
 }
 
 fn break_to_gpu(expr: ExprBreak, module: &mut GpuModule) -> ExprCall {
