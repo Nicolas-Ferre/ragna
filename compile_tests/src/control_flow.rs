@@ -8,9 +8,9 @@ mod gpu {
             break 'label;
             break 0;
         }
-        'label: for i in 0_u32..1_u32 {}
+        'label: for i in 0u..1u {}
         continue;
         break;
-        for (a, b, c) in 0_u32..1_u32 {}
+        for (a, b, c) in 0u..1u {}
     }
 }

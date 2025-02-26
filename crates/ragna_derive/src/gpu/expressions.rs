@@ -6,7 +6,8 @@ use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{
     fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprBreak, ExprCall,
-    ExprContinue, ExprForLoop, ExprIf, ExprRange, ExprUnary, ExprWhile, Pat, RangeLimits, Stmt,
+    ExprContinue, ExprForLoop, ExprIf, ExprLit, ExprRange, ExprUnary, ExprWhile, Lit, LitInt, Pat,
+    RangeLimits, Stmt,
 };
 
 macro_rules! transform_binary_expr {
@@ -23,7 +24,10 @@ macro_rules! transform_binary_expr {
 #[allow(clippy::wildcard_enum_match_arm)]
 pub(crate) fn expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
     match expr {
-        Expr::Lit(expr) => literal_to_gpu(expr),
+        Expr::Lit(mut expr) => {
+            transform_literal(&mut expr);
+            literal_to_gpu(expr)
+        }
         Expr::Assign(expr) => assign_to_gpu(expr, module),
         Expr::Unary(expr) => unary_to_gpu(expr, module),
         Expr::Binary(expr) => binary_to_gpu(expr, module),
@@ -51,6 +55,17 @@ pub(crate) fn expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
     }
 }
 
+fn transform_literal(expr: &mut ExprLit) {
+    if let Lit::Int(lit) = &mut expr.lit {
+        if lit.suffix() == "u" {
+            *lit = LitInt::new(&format!("{lit}32"), lit.span());
+            expr.attrs.push(
+                parse_quote_spanned! { lit.span() => #[allow(clippy::unusual_byte_groupings)] },
+            );
+        }
+    }
+}
+
 fn literal_to_gpu(value: impl ToTokens) -> Expr {
     parse_quote_spanned! { value.span() => ::ragna::Cpu::to_gpu(#value) }
 }
@@ -63,9 +78,10 @@ fn assign_to_gpu(expr: ExprAssign, module: &mut GpuModule) -> Expr {
     parse_quote_spanned! { span => #(#attrs)* (::ragna::assign(#left, #right)) }
 }
 
-fn unary_to_gpu(expr: ExprUnary, module: &mut GpuModule) -> Expr {
-    if matches!(*expr.expr, Expr::Lit(_)) {
+fn unary_to_gpu(mut expr: ExprUnary, module: &mut GpuModule) -> Expr {
+    if let Expr::Lit(lit) = &mut *expr.expr {
         // to avoid out of range error with -2_147_483_648_i32 value
+        transform_literal(lit);
         literal_to_gpu(expr)
     } else {
         fold::fold_expr_unary(module, expr).into()
@@ -232,13 +248,13 @@ fn for_loop_to_gpu(expr: ExprForLoop, module: &mut GpuModule) -> Stmt {
             span =>
             {
                 let __iterable = &(#iterable);
-                let __index = 0_u32;
+                let __index = 0u;
                 let __len = ::ragna::Iterable::len(__iterable);
                 #(#attrs)*
                 while __index < __len {
                     let #value = &__iterable[__index];
                     #body;
-                    __index += 1_u32;
+                    __index += 1u;
                 }
             };
         }),
@@ -246,14 +262,14 @@ fn for_loop_to_gpu(expr: ExprForLoop, module: &mut GpuModule) -> Stmt {
             span =>
             {
                 let __iterable = &(#iterable);
-                let __index = 0_u32;
+                let __index = 0u;
                 let __len = ::ragna::Iterable::len(__iterable);
                 #(#attrs)*
                 while __index < __len {
                     let #index = __index;
                     let #value = &__iterable[__index];
                     #body;
-                    __index += 1_u32;
+                    __index += 1u;
                 }
             };
         }),

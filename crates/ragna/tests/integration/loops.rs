@@ -15,8 +15,8 @@ mod gpu {
     use ragna::{I32, U32};
 
     pub(super) static WHILE_RESULT: I32 = 0;
-    pub(super) static FOR_RESULT: U32 = 0_u32;
-    pub(super) static FOR_ENUMERATED_RESULT: U32 = 0_u32;
+    pub(super) static FOR_RESULT: U32 = 0u;
+    pub(super) static FOR_ENUMERATED_RESULT: U32 = 0u;
     pub(super) static BREAK_RESULT: I32 = 0;
     pub(super) static CONTINUE_RESULT: I32 = 0;
 
@@ -31,10 +31,10 @@ mod gpu {
 
     #[compute]
     fn run_for() {
-        for i in 3_u32..6_u32 {
+        for i in 3u..6u {
             *FOR_RESULT += *i;
         }
-        let range = &(3_u32..6_u32);
+        let range = &(3u..6u);
         for i in *range {
             *FOR_RESULT += *i;
         }
@@ -42,7 +42,7 @@ mod gpu {
 
     #[compute]
     fn run_for_enumerated() {
-        for (index, value) in 3_u32..6_u32 {
+        for (index, value) in 3u..6u {
             *FOR_ENUMERATED_RESULT += index;
             *FOR_ENUMERATED_RESULT += *value;
         }
