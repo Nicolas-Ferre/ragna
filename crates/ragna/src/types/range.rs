@@ -1,4 +1,4 @@
-use crate::{Cpu, Gpu, GpuContext, GpuTypeDetails, GpuValue, Iterable, U32};
+use crate::{Bool, Cpu, Gpu, GpuContext, GpuTypeDetails, GpuValue, GreaterThan, Iterable, U32};
 use std::any::TypeId;
 use std::ops;
 use std::ops::Index;
@@ -78,13 +78,24 @@ impl Index<U32> for Range<U32> {
 
     fn index(&self, index: U32) -> &Self::Output {
         GpuContext::run_current(|ctx| ctx.register_var(self.item));
-        crate::assign(self.item, self.start + index % (self.end - self.start));
+        crate::assign(self.item, self.start + index);
         &self.item
     }
 }
 
 impl Iterable for Range<U32> {
     fn len(&self) -> U32 {
-        self.end - self.start
+        select(
+            0_u32.to_gpu(),
+            self.end - self.start,
+            GreaterThan::apply(self.end, self.start),
+        )
     }
+}
+
+fn select(f: U32, t: U32, cond: Bool) -> U32 {
+    crate::call_fn(
+        "select",
+        vec![f.value().into(), t.value().into(), cond.value().into()],
+    )
 }
