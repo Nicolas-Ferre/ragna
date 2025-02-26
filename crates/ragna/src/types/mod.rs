@@ -1,8 +1,9 @@
-use crate::context;
 use crate::context::GpuContext;
 use crate::operations::{ConstantAssignVarOperation, Field, Glob, Operation, Value, Var};
+use crate::{context, Bool, Equal, U32};
 use std::any::TypeId;
 use std::default::Default;
+use std::ops::Index;
 
 pub(crate) mod primitive;
 pub(crate) mod range;
@@ -150,5 +151,16 @@ impl GpuTypeDetails {
         } else {
             self.field_types.iter().map(Self::size).sum()
         }
+    }
+}
+
+/// A trait implemented for GPU types on which it is possible to iterate (e.g. using a `for` loop).
+pub trait Iterable: Index<U32> {
+    /// The number of items contained in the iterable.
+    fn len(&self) -> U32;
+
+    /// Whether the iterable contains no item.
+    fn is_empty(&self) -> Bool {
+        <U32 as Equal<U32>>::apply(self.len(), 0_u32.to_gpu())
     }
 }
