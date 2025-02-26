@@ -6,7 +6,7 @@ use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{
     fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprBreak, ExprCall,
-    ExprContinue, ExprForLoop, ExprIf, ExprRange, ExprUnary, ExprWhile, RangeLimits, Stmt,
+    ExprContinue, ExprForLoop, ExprIf, ExprRange, ExprUnary, ExprWhile, Pat, RangeLimits, Stmt,
 };
 
 macro_rules! transform_binary_expr {
@@ -225,23 +225,56 @@ fn for_loop_to_gpu(expr: ExprForLoop, module: &mut GpuModule) -> Stmt {
     }
     let span = expr.span();
     let attrs = expr.attrs;
-    let pat = expr.pat;
     let iterable = expr.expr;
     let body = expr.body;
-    module.fold_stmt(parse_quote_spanned! {
-        span =>
-        {
-            let __iterable = &(#iterable);
-            let __index = 0_u32;
-            let __len = ::ragna::Iterable::len(__iterable);
-            #(#attrs)*
-            while __index < __len {
-                let #pat = &__iterable[__index];
-                #body;
-                __index += 1_u32;
-            }
-        };
-    })
+    match for_loop_mode(*expr.pat) {
+        ForLoopMode::Value(value) => module.fold_stmt(parse_quote_spanned! {
+            span =>
+            {
+                let __iterable = &(#iterable);
+                let __index = 0_u32;
+                let __len = ::ragna::Iterable::len(__iterable);
+                #(#attrs)*
+                while __index < __len {
+                    let #value = &__iterable[__index];
+                    #body;
+                    __index += 1_u32;
+                }
+            };
+        }),
+        ForLoopMode::Enumerated(index, value) => module.fold_stmt(parse_quote_spanned! {
+            span =>
+            {
+                let __iterable = &(#iterable);
+                let __index = 0_u32;
+                let __len = ::ragna::Iterable::len(__iterable);
+                #(#attrs)*
+                while __index < __len {
+                    let #index = __index;
+                    let #value = &__iterable[__index];
+                    #body;
+                    __index += 1_u32;
+                }
+            };
+        }),
+    }
+}
+
+fn for_loop_mode(pat: Pat) -> ForLoopMode {
+    if let Pat::Tuple(pat) = pat {
+        if pat.elems.len() == 2 {
+            ForLoopMode::Enumerated(pat.elems[0].clone(), pat.elems[1].clone())
+        } else {
+            ForLoopMode::Value(Pat::Tuple(pat))
+        }
+    } else {
+        ForLoopMode::Value(pat)
+    }
+}
+
+enum ForLoopMode {
+    Value(Pat),
+    Enumerated(Pat, Pat),
 }
 
 fn break_to_gpu(expr: ExprBreak, module: &mut GpuModule) -> ExprCall {
