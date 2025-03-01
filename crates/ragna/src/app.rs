@@ -64,7 +64,14 @@ impl App {
             self.glob_defaults
                 .push(Box::new(move || default_value().value().into()));
             self.globs.push(glob);
-            self.add_type(T::details());
+            let lock = GpuContext::lock_current();
+            GpuContext::run_current(GpuContext::register_type::<T>);
+            let mut ctx = GpuContext::unlock_current(lock);
+            for type_ in mem::take(&mut ctx.types) {
+                self.add_type(type_);
+            }
+        } else {
+            panic!("variable should be global to be registered");
         }
         self
     }

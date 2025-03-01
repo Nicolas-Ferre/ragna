@@ -8,6 +8,9 @@ use std::ops::Index;
 pub(crate) mod primitive;
 pub(crate) mod range;
 
+const MAX_NESTED_FIELDS: usize = 15;
+const MAX_ITEM_ACCESS: usize = 50; // per shader
+
 /// A trait implemented for Rust types that have a corresponding CPU type.
 pub trait Cpu: Sized {
     /// The GPU type.
@@ -51,13 +54,14 @@ pub trait Gpu: 'static + Copy {
     fn from_value(value: GpuValue<Self>) -> Self;
 }
 
+// size of this type should be as small as possible to avoid stack overflow (e.g. with nested arrays)
 #[doc(hidden)]
 #[derive(Debug, Clone, Copy)]
 pub enum GpuValue<T> {
-    Glob(&'static str, u64, fn() -> T),
-    Var(u64),
-    GlobField(&'static str, u64, FieldIndexes),
-    VarField(u64, FieldIndexes),
+    Glob(&'static str, u32, fn() -> T),
+    Var(u32),
+    GlobField(&'static str, u32, FieldPath),
+    VarField(u32, FieldPath),
 }
 
 impl<T> GpuValue<T> {
@@ -65,14 +69,14 @@ impl<T> GpuValue<T> {
         Self::Var(context::next_var_id())
     }
 
-    fn field<U>(self, index: usize) -> GpuValue<U> {
+    fn field<U>(self, position: usize) -> GpuValue<U> {
         match self {
-            Self::Glob(module, id, _) => GpuValue::GlobField(module, id, FieldIndexes::new(index)),
-            Self::Var(id) => GpuValue::VarField(id, FieldIndexes::new(index)),
+            Self::Glob(module, id, _) => GpuValue::GlobField(module, id, FieldPath::new(position)),
+            Self::Var(id) => GpuValue::VarField(id, FieldPath::new(position)),
             Self::GlobField(module, id, field) => {
-                GpuValue::GlobField(module, id, field.with_added_field(index))
+                GpuValue::GlobField(module, id, field.new_nested(position))
             }
-            Self::VarField(id, fields) => GpuValue::VarField(id, fields.with_added_field(index)),
+            Self::VarField(id, field) => GpuValue::VarField(id, field.new_nested(position)),
         }
     }
 }
@@ -87,21 +91,27 @@ impl<T: 'static> From<GpuValue<T>> for Value {
                 type_id,
             }),
             GpuValue::Var(id) => Self::Var(Var { id, type_id }),
-            GpuValue::GlobField(module, id, fields) => Self::Field(Field {
+            GpuValue::GlobField(module, id, field) => Self::Field(Field {
                 source: Box::new(Self::Glob(Glob {
                     module,
                     id,
                     type_id: TypeId::of::<()>(),
                 })),
-                indexes: fields.indexes[0..fields.level_count].to_vec(),
+                positions: field.positions[0..field.level_count as usize]
+                    .iter()
+                    .map(|&position| position as usize)
+                    .collect(),
                 type_id,
             }),
-            GpuValue::VarField(id, fields) => Self::Field(Field {
+            GpuValue::VarField(id, field) => Self::Field(Field {
                 source: Box::new(Self::Var(Var {
                     id,
                     type_id: TypeId::of::<()>(),
                 })),
-                indexes: fields.indexes[0..fields.level_count].to_vec(),
+                positions: field.positions[0..field.level_count as usize]
+                    .iter()
+                    .map(|&position| position as usize)
+                    .collect(),
                 type_id,
             }),
         }
@@ -109,25 +119,29 @@ impl<T: 'static> From<GpuValue<T>> for Value {
 }
 
 #[doc(hidden)]
-#[derive(Debug, Clone, Copy)]
-pub struct FieldIndexes {
-    level_count: usize,
-    indexes: [usize; 25],
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct FieldPath {
+    level_count: u8,
+    positions: [u8; MAX_NESTED_FIELDS],
 }
 
-impl FieldIndexes {
-    fn new(index: usize) -> Self {
-        let mut indexes = <[usize; 25]>::default();
-        indexes[0] = index;
+impl FieldPath {
+    fn new(position: usize) -> Self {
+        let mut positions = <[u8; MAX_NESTED_FIELDS]>::default();
+        positions[0] = u8::try_from(position).expect("too many fields in struct");
         Self {
             level_count: 1,
-            indexes,
+            positions,
         }
     }
 
-    fn with_added_field(mut self, index: usize) -> Self {
-        assert_ne!(self.level_count, 25, "struct recursion limit reached");
-        self.indexes[self.level_count] = index;
+    fn new_nested(mut self, position: usize) -> Self {
+        assert_ne!(
+            self.level_count as usize, MAX_NESTED_FIELDS,
+            "struct recursion limit reached"
+        );
+        self.positions[self.level_count as usize] =
+            u8::try_from(position).expect("too many fields in struct");
         self.level_count += 1;
         self
     }
@@ -162,5 +176,31 @@ pub trait Iterable: Index<U32> {
     /// Whether the iterable contains no item.
     fn is_empty(&self) -> Bool {
         <U32 as Equal<U32>>::apply(self.len(), 0_u32.to_gpu())
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct IndexItems<T>([T; MAX_ITEM_ACCESS]);
+
+impl<T: Gpu> Default for IndexItems<T> {
+    fn default() -> Self {
+        let mut items = [T::unregistered(); MAX_ITEM_ACCESS];
+        for item in &mut items {
+            *item = T::unregistered();
+        }
+        Self(items)
+    }
+}
+
+impl<T: Gpu> IndexItems<T> {
+    fn next(&self, expr: T) -> &T {
+        let item = GpuContext::run_current(|ctx| {
+            let inner_index = ctx.next_index(self.0[0]);
+            assert_ne!(inner_index, MAX_ITEM_ACCESS, "index call limit reached");
+            ctx.register_var(self.0[inner_index]);
+            &self.0[inner_index]
+        });
+        crate::assign(*item, expr);
+        item
     }
 }

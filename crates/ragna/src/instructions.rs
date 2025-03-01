@@ -5,7 +5,7 @@ use crate::operations::{
 use crate::{context, Bool, Gpu, GpuValue};
 
 #[doc(hidden)]
-pub fn create_glob<T: Gpu>(module: &'static str, id: u64, default_value: fn() -> T) -> T {
+pub fn create_glob<T: Gpu>(module: &'static str, id: u32, default_value: fn() -> T) -> T {
     T::from_value(GpuValue::Glob(module, id, default_value))
 }
 

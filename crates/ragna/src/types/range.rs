@@ -1,4 +1,4 @@
-use crate::{Bool, Cpu, Gpu, GpuContext, GpuTypeDetails, GpuValue, GreaterThan, Iterable, U32};
+use crate::{Bool, Cpu, Gpu, GpuTypeDetails, GpuValue, GreaterThan, IndexItems, Iterable, U32};
 use std::any::TypeId;
 use std::ops;
 use std::ops::Index;
@@ -11,7 +11,7 @@ pub struct Range<T: Gpu> {
     /// The last value excluded.
     pub end: T,
     value: GpuValue<Self>,
-    item: T,
+    items: IndexItems<T>,
 }
 
 impl<T: Gpu> Range<T> {
@@ -45,7 +45,7 @@ impl<T: Gpu> Gpu for Range<T> {
             start: T::unregistered(),
             end: T::unregistered(),
             value: GpuValue::unregistered_var(),
-            item: T::unregistered(),
+            items: IndexItems::default(),
         }
     }
 
@@ -54,7 +54,7 @@ impl<T: Gpu> Gpu for Range<T> {
             start: T::from_value(value.field(0)),
             end: T::from_value(value.field(1)),
             value,
-            item: T::unregistered(),
+            items: IndexItems::default(),
         }
     }
 }
@@ -77,9 +77,7 @@ impl Index<U32> for Range<U32> {
     type Output = U32;
 
     fn index(&self, index: U32) -> &Self::Output {
-        GpuContext::run_current(|ctx| ctx.register_var(self.item));
-        crate::assign(self.item, self.start + index);
-        &self.item
+        self.items.next(self.start + index)
     }
 }
 

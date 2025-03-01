@@ -172,7 +172,7 @@ fn value_code(value: &Value, globs: &[Glob]) -> String {
         Value::Field(field) => {
             let source = value_code(&field.source, globs);
             let fields = field
-                .indexes
+                .positions
                 .iter()
                 .map(|index| field_name(*index))
                 .join(".");
@@ -192,7 +192,7 @@ fn glob_index(glob: &Glob, globs: &[Glob]) -> usize {
         .expect("internal error: glob not found")
 }
 
-fn var_name(id: u64) -> String {
+fn var_name(id: u32) -> String {
     format!("v{id}")
 }
 
