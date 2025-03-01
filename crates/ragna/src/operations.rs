@@ -2,7 +2,7 @@ use crate::types::GpuTypeDetails;
 use derive_where::derive_where;
 use std::any::TypeId;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 #[allow(private_interfaces)]
 pub enum Value {
     Glob(Glob),
@@ -21,24 +21,28 @@ impl Value {
 }
 
 #[derive(Debug, Clone)]
-#[derive_where(PartialEq, Eq)]
+#[derive_where(PartialEq, Eq, Hash)]
 pub(crate) struct Glob {
     pub(crate) module: &'static str,
-    pub(crate) id: u64,
+    pub(crate) id: u32,
     #[derive_where(skip)]
     pub(crate) type_id: TypeId,
 }
 
 #[derive(Debug, Clone, Copy)]
+#[derive_where(PartialEq, Eq, Hash)]
 pub(crate) struct Var {
-    pub(crate) id: u64,
+    pub(crate) id: u32,
+    #[derive_where(skip)]
     pub(crate) type_id: TypeId,
 }
 
 #[derive(Debug)]
+#[derive_where(PartialEq, Eq, Hash)]
 pub(crate) struct Field {
     pub(crate) source: Box<Value>,
-    pub(crate) indexes: Vec<usize>,
+    pub(crate) positions: Vec<usize>,
+    #[derive_where(skip)]
     pub(crate) type_id: TypeId,
 }
 
@@ -60,7 +64,7 @@ pub(crate) enum Operation {
 
 #[derive(Debug)]
 pub(crate) struct DeclareVarOperation {
-    pub(crate) id: u64,
+    pub(crate) id: u32,
     pub(crate) type_: GpuTypeDetails,
 }
 

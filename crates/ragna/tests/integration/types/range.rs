@@ -14,6 +14,7 @@ pub fn use_ranges() {
     assert_eq!(app.read(*gpu::LEN_NEGATIVE), Some(0));
     assert_eq!(app.read(*gpu::IS_EMPTY_TRUE), Some(true));
     assert_eq!(app.read(*gpu::IS_EMPTY_FALSE), Some(false));
+    assert_eq!(app.read(*gpu::MULTIPLE_INDEX_ACCESS), Some(3));
 }
 
 #[ragna::gpu]
@@ -29,9 +30,10 @@ mod gpu {
     pub(super) static LEN_NEGATIVE: U32 = 42u;
     pub(super) static IS_EMPTY_TRUE: Bool = false;
     pub(super) static IS_EMPTY_FALSE: Bool = true;
+    pub(super) static MULTIPLE_INDEX_ACCESS: U32 = 0u;
 
     #[compute]
-    fn run() {
+    fn run_methods() {
         let range = 3u..6u;
         *START = range.start;
         *END = range.end;
@@ -42,5 +44,13 @@ mod gpu {
         *LEN_NEGATIVE = (6u..3u).len();
         *IS_EMPTY_TRUE = (3u..3u).is_empty();
         *IS_EMPTY_FALSE = range.is_empty();
+    }
+
+    #[compute]
+    fn run_access_to_multiple_indexes() {
+        let range = 3u..6u;
+        let first = &range[0u];
+        let _second = &range[1u];
+        *MULTIPLE_INDEX_ACCESS = *first;
     }
 }

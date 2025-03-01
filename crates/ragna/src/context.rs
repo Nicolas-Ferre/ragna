@@ -1,13 +1,13 @@
 use crate::app::CURRENT_CTX;
-use crate::operations::{DeclareVarOperation, Operation};
+use crate::operations::{DeclareVarOperation, Operation, Value};
 use crate::{Gpu, GpuTypeDetails, GpuValue};
-use fxhash::FxHashSet;
+use fxhash::{FxHashMap, FxHashSet};
 use std::mem;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{LockResult, Mutex, MutexGuard};
 
-pub(crate) fn next_var_id() -> u64 {
-    static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+pub(crate) fn next_var_id() -> u32 {
+    static NEXT_ID: AtomicU32 = AtomicU32::new(0);
     NEXT_ID.fetch_add(1, Ordering::Relaxed)
 }
 
@@ -17,7 +17,8 @@ pub(crate) fn next_var_id() -> u64 {
 pub struct GpuContext {
     pub(crate) operations: Vec<Operation>,
     pub(crate) types: Vec<GpuTypeDetails>,
-    pub registered_var_ids: FxHashSet<u64>,
+    registered_var_ids: FxHashSet<u32>,
+    next_indexes: FxHashMap<Value, usize>,
 }
 
 impl GpuContext {
@@ -44,6 +45,14 @@ impl GpuContext {
         } else {
             unreachable!("internal error: register non-variable value")
         }
+    }
+
+    pub(crate) fn next_index<T: Gpu>(&mut self, value: T) -> usize {
+        *self
+            .next_indexes
+            .entry(value.value().into())
+            .and_modify(|i| *i += 1)
+            .or_insert(0)
     }
 
     pub(crate) fn run_current<O>(f: impl FnOnce(&mut Self) -> O) -> O {
