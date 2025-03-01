@@ -70,6 +70,8 @@ impl App {
             for type_ in mem::take(&mut ctx.types) {
                 self.add_type(type_);
             }
+        } else {
+            unreachable!("variable should be global to be registered");
         }
         self
     }

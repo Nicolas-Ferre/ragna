@@ -9,7 +9,7 @@ pub(crate) mod primitive;
 pub(crate) mod range;
 
 const MAX_NESTED_FIELDS: usize = 15;
-const MAX_ITEM_ACCESS: usize = 50;
+const MAX_ITEM_ACCESS: usize = 50; // per shader
 
 /// A trait implemented for Rust types that have a corresponding CPU type.
 pub trait Cpu: Sized {
@@ -128,7 +128,7 @@ pub struct FieldPath {
 impl FieldPath {
     fn new(position: usize) -> Self {
         let mut positions = <[u8; MAX_NESTED_FIELDS]>::default();
-        positions[0] = u8::try_from(position).expect("too many field in struct");
+        positions[0] = u8::try_from(position).expect("too many fields in struct");
         Self {
             level_count: 1,
             positions,
@@ -141,7 +141,7 @@ impl FieldPath {
             "struct recursion limit reached"
         );
         self.positions[self.level_count as usize] =
-            u8::try_from(position).expect("too many field in struct");
+            u8::try_from(position).expect("too many fields in struct");
         self.level_count += 1;
         self
     }
@@ -196,10 +196,7 @@ impl<T: Gpu> IndexItems<T> {
     fn next(&self, expr: T) -> &T {
         let item = GpuContext::run_current(|ctx| {
             let inner_index = ctx.next_index(self.0[0]);
-            assert_ne!(
-                inner_index, MAX_ITEM_ACCESS,
-                "index call limit reached for same value"
-            );
+            assert_ne!(inner_index, MAX_ITEM_ACCESS, "index call limit reached");
             ctx.register_var(self.0[inner_index]);
             &self.0[inner_index]
         });
