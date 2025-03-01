@@ -71,7 +71,7 @@ impl App {
                 self.add_type(type_);
             }
         } else {
-            unreachable!("variable should be global to be registered");
+            panic!("variable should be global to be registered");
         }
         self
     }
