@@ -42,6 +42,7 @@ pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
         #[allow(
             clippy::let_and_return,
             clippy::double_parens,
+            clippy::unusual_byte_groupings,
         )]
         #modified_module
         #(#errors)*

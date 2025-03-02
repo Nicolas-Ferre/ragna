@@ -5,7 +5,7 @@ use std::mem;
 use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{
-    fold, parse_quote_spanned, BinOp, Expr, ExprAssign, ExprBinary, ExprBreak, ExprCall,
+    fold, parse_quote_spanned, BinOp, Expr, ExprArray, ExprAssign, ExprBinary, ExprBreak, ExprCall,
     ExprContinue, ExprForLoop, ExprIf, ExprLit, ExprRange, ExprUnary, ExprWhile, Lit, LitInt, Pat,
     RangeLimits, Stmt,
 };
@@ -37,6 +37,7 @@ pub(crate) fn expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
         Expr::Break(expr) => break_to_gpu(expr, module).into(),
         Expr::Continue(expr) => continue_to_gpu(expr, module).into(),
         Expr::Range(expr) => range_to_gpu(expr, module),
+        Expr::Array(expr) => array_to_gpu(expr, module),
         expr @ (Expr::Path(_)
         | Expr::Paren(_)
         | Expr::Call(_)
@@ -59,15 +60,12 @@ fn transform_literal(expr: &mut ExprLit) {
     if let Lit::Int(lit) = &mut expr.lit {
         if lit.suffix() == "u" {
             *lit = LitInt::new(&format!("{lit}32"), lit.span());
-            expr.attrs.push(
-                parse_quote_spanned! { lit.span() => #[allow(clippy::unusual_byte_groupings)] },
-            );
         }
     }
 }
 
 fn literal_to_gpu(value: impl ToTokens) -> Expr {
-    parse_quote_spanned! { value.span() => ::ragna::Cpu::to_gpu(#value) }
+    parse_quote_spanned! { value.span() => ::ragna::Cpu::to_gpu(&#value) }
 }
 
 fn assign_to_gpu(expr: ExprAssign, module: &mut GpuModule) -> Expr {
@@ -357,4 +355,11 @@ fn range_to_gpu(expr: ExprRange, module: &mut GpuModule) -> Expr {
             .push(syn::Error::new(token.span(), "unsupported range type"));
     }
     parse_quote_spanned! { span => #(#attrs)* ::ragna::Range::new(#start, #end) }
+}
+
+fn array_to_gpu(mut expr: ExprArray, module: &mut GpuModule) -> Expr {
+    for elem in &mut expr.elems {
+        *elem = module.fold_expr(elem.clone());
+    }
+    parse_quote_spanned! { expr.span() => ::ragna::Array::new(#expr) }
 }

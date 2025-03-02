@@ -53,6 +53,7 @@ pub(crate) enum Operation {
     ConstantAssignVar(ConstantAssignVarOperation),
     Unary(UnaryOperation),
     Binary(BinaryOperation),
+    Index(IndexOperation),
     FnCall(FnCallOperation),
     IfBlock(IfOperation),
     ElseBlock,
@@ -93,6 +94,13 @@ pub(crate) struct BinaryOperation {
     pub(crate) left_value: Value,
     pub(crate) right_value: Value,
     pub(crate) operator: &'static str,
+}
+
+#[derive(Debug)]
+pub(crate) struct IndexOperation {
+    pub(crate) var: Value,
+    pub(crate) array: Value,
+    pub(crate) index: Value,
 }
 
 #[derive(Debug)]

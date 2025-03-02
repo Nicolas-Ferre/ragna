@@ -16,6 +16,7 @@ macro_rules! native_gpu_type {
                 GpuTypeDetails {
                     type_id: TypeId::of::<Self>(),
                     name: Some($wgsl_name),
+                    array_generics: None,
                     size: Some(4),
                     field_types: vec![],
                 }
@@ -50,8 +51,8 @@ impl Cpu for i32 {
         Self::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
     }
 
-    fn to_wgsl(self) -> String {
-        ToString::to_string(&self)
+    fn to_wgsl(&self) -> String {
+        ToString::to_string(self)
     }
 }
 
@@ -62,8 +63,8 @@ impl Cpu for u32 {
         Self::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
     }
 
-    fn to_wgsl(self) -> String {
-        ToString::to_string(&self)
+    fn to_wgsl(&self) -> String {
+        ToString::to_string(self)
     }
 }
 
@@ -74,8 +75,8 @@ impl Cpu for f32 {
         Self::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
     }
 
-    fn to_wgsl(self) -> String {
-        let value = ToString::to_string(&self);
+    fn to_wgsl(&self) -> String {
+        let value = ToString::to_string(self);
         if value.contains('.') {
             value
         } else {
@@ -91,8 +92,8 @@ impl Cpu for bool {
         u32::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) != 0
     }
 
-    fn to_wgsl(self) -> String {
-        ToString::to_string(&u32::from(self))
+    fn to_wgsl(&self) -> String {
+        ToString::to_string(&u32::from(*self))
     }
 }
 

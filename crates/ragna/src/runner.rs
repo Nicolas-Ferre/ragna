@@ -57,11 +57,7 @@ impl Runner {
             if let Some(position) = app.globs.iter().position(|other_glob| other_glob == glob) {
                 let tmp_buffer = self.device.create_buffer(&BufferDescriptor {
                     label: Some("modor_texture_buffer"),
-                    size: app
-                        .globs
-                        .iter()
-                        .map(|glob| app.types[&glob.type_id].1.size())
-                        .sum(),
+                    size: app.types[&glob.type_id].1.size(),
                     usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
                     mapped_at_creation: false,
                 });
@@ -74,8 +70,7 @@ impl Runner {
                     buffer,
                     app.globs
                         .iter()
-                        .rev()
-                        .skip(app.globs.len() - position)
+                        .take(position)
                         .map(|glob| app.types[&glob.type_id].1.size())
                         .sum(),
                     &tmp_buffer,
