@@ -13,6 +13,7 @@ pub use app::*;
 pub use context::*;
 pub use instructions::*;
 pub use operators::*;
+pub use types::array::*;
 pub use types::primitive::*;
 pub use types::range::*;
 pub use types::*;

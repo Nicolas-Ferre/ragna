@@ -5,6 +5,7 @@ use std::any::TypeId;
 use std::default::Default;
 use std::ops::Index;
 
+pub(crate) mod array;
 pub(crate) mod primitive;
 pub(crate) mod range;
 
@@ -20,10 +21,10 @@ pub trait Cpu: Sized {
     fn from_gpu(bytes: &[u8]) -> Self;
 
     #[doc(hidden)]
-    fn to_wgsl(self) -> String;
+    fn to_wgsl(&self) -> String;
 
     /// Converts a value to a GPU value.
-    fn to_gpu(self) -> Self::Gpu {
+    fn to_gpu(&self) -> Self::Gpu {
         let var = crate::create_uninit_var::<Self::Gpu>();
         GpuContext::run_current(|ctx| {
             ctx.operations
@@ -153,6 +154,8 @@ pub struct GpuTypeDetails {
     pub(crate) type_id: TypeId,
     // specified only if the name shouldn't be generated
     pub(crate) name: Option<&'static str>,
+    // specified only for array type
+    pub(crate) array_generics: Option<(Box<GpuTypeDetails>, usize)>,
     // specified only for native types
     pub(crate) size: Option<u64>,
     pub(crate) field_types: Vec<Self>,

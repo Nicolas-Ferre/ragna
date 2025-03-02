@@ -15,7 +15,7 @@ pub struct Range<T: Gpu> {
 }
 
 impl<T: Gpu> Range<T> {
-    /// Creates a new range
+    /// Creates a new range.
     pub fn new(start: T, end: T) -> Self {
         let var = crate::create_uninit_var::<Self>();
         crate::assign(var.start, start);
@@ -31,6 +31,7 @@ impl<T: Gpu> Gpu for Range<T> {
         GpuTypeDetails {
             type_id: TypeId::of::<Self>(),
             name: None,
+            array_generics: None,
             size: None,
             field_types: vec![T::details(), T::details()],
         }
@@ -68,7 +69,7 @@ impl<T: Cpu> Cpu for ops::Range<T> {
         T::from_gpu(&bytes[..size])..T::from_gpu(&bytes[size..])
     }
 
-    fn to_wgsl(self) -> String {
+    fn to_wgsl(&self) -> String {
         format!("<name>({}, {})", self.start.to_wgsl(), self.end.to_wgsl())
     }
 }

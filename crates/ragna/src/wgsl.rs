@@ -114,7 +114,15 @@ fn operation_code(
             let var_name = value_code(&op.var, globs);
             let left_value = function_arg(&op.left_value, globs);
             let right_value = function_arg(&op.right_value, globs);
-            let operation = format!("{} {} {}", left_value, op.operator, right_value);
+            let operation = format!("{left_value} {} {right_value}", op.operator);
+            let expr = returned_value(&op.var, operation, types);
+            format!("    {var_name} = {expr};")
+        }
+        Operation::Index(op) => {
+            let var_name = value_code(&op.var, globs);
+            let array = function_arg(&op.array, globs);
+            let index = function_arg(&op.index, globs);
+            let operation = format!("{array}[{index}]");
             let expr = returned_value(&op.var, operation, types);
             format!("    {var_name} = {expr};")
         }
@@ -198,10 +206,16 @@ fn var_name(id: u32) -> String {
 
 fn type_name(type_id: TypeId, types: &FxHashMap<TypeId, (usize, GpuTypeDetails)>) -> String {
     let (id, details) = &types[&type_id];
-    if let Some(name) = details.name {
+    let name = if let Some(name) = details.name {
         name.into()
     } else {
         format!("T{id}")
+    };
+    if let Some((item_type, length)) = &details.array_generics {
+        let item_type_name = type_name(item_type.type_id, types);
+        format!("{name}<{item_type_name}, {length}>")
+    } else {
+        name
     }
 }
 
