@@ -1,8 +1,8 @@
 use crate::context::GpuContext;
-use crate::operations::{AssignVarOperation, Glob, Operation, Value};
+use crate::operations::{AssignVarOperation, GlobVar, Operation, Value};
 use crate::runner::Runner;
 use crate::types::GpuTypeDetails;
-use crate::{wgsl, Cpu, Gpu, GpuValue};
+use crate::{wgsl, Cpu, Glob, Gpu, GpuValue};
 use derive_where::derive_where;
 use fxhash::FxHashMap;
 use std::any::TypeId;
@@ -16,7 +16,7 @@ pub(crate) static CURRENT_CTX: Mutex<Option<GpuContext>> = Mutex::new(None);
 #[derive_where(Debug)]
 pub struct App {
     pub(crate) contexts: Vec<GpuContext>,
-    pub(crate) globs: Vec<Glob>,
+    pub(crate) globs: Vec<GlobVar>,
     #[derive_where(skip)]
     pub(crate) glob_defaults: Vec<Box<dyn Fn() -> Value>>,
     pub(crate) types: FxHashMap<TypeId, (usize, GpuTypeDetails)>,
@@ -57,8 +57,8 @@ impl App {
     }
 
     #[doc(hidden)]
-    pub fn with_glob<T: Gpu>(mut self, glob: T) -> Self {
-        if let (GpuValue::Glob(_, _, default_value), Value::Glob(glob)) =
+    pub fn with_glob<T: Gpu>(mut self, glob: &Glob<T>) -> Self {
+        if let (GpuValue::Glob(_, default_value), Value::Glob(glob)) =
             (glob.value(), glob.value().into())
         {
             self.glob_defaults

@@ -5,7 +5,7 @@ use std::any::TypeId;
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[allow(private_interfaces)]
 pub enum Value {
-    Glob(Glob),
+    Glob(GlobVar),
     Var(Var),
     Field(Field),
 }
@@ -22,9 +22,8 @@ impl Value {
 
 #[derive(Debug, Clone)]
 #[derive_where(PartialEq, Eq, Hash)]
-pub(crate) struct Glob {
-    pub(crate) module: &'static str,
-    pub(crate) id: u32,
+pub(crate) struct GlobVar {
+    pub(crate) id: &'static str,
     #[derive_where(skip)]
     pub(crate) type_id: TypeId,
 }

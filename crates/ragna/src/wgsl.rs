@@ -1,5 +1,5 @@
 use crate::context::GpuContext;
-use crate::operations::{Glob, Operation, Value};
+use crate::operations::{GlobVar, Operation, Value};
 use crate::types::GpuTypeDetails;
 use crate::Bool;
 use fxhash::FxHashMap;
@@ -12,7 +12,7 @@ const STRUCT_NAME_PLACEHOLDER: &str = "<name>";
 
 pub(crate) fn header_code(
     types: &FxHashMap<TypeId, (usize, GpuTypeDetails)>,
-    globs: &[Glob],
+    globs: &[GlobVar],
 ) -> String {
     if globs.is_empty() {
         String::new()
@@ -41,7 +41,7 @@ pub(crate) fn header_code(
 pub(crate) fn compute_shader_code(
     ctx: &GpuContext,
     types: &FxHashMap<TypeId, (usize, GpuTypeDetails)>,
-    globs: &[Glob],
+    globs: &[GlobVar],
 ) -> String {
     format!(
         "@compute @workgroup_size(1, 1, 1)\nfn main() {{\n{}\n{}\n}}",
@@ -84,7 +84,7 @@ fn struct_(
 fn operation_code(
     operation: &Operation,
     types: &FxHashMap<TypeId, (usize, GpuTypeDetails)>,
-    globs: &[Glob],
+    globs: &[GlobVar],
 ) -> String {
     match operation {
         Operation::DeclareVar(op) => {
@@ -151,7 +151,7 @@ fn operation_code(
     }
 }
 
-fn function_arg(value: &Value, globs: &[Glob]) -> String {
+fn function_arg(value: &Value, globs: &[GlobVar]) -> String {
     if value.value_type_id() == TypeId::of::<Bool>() {
         format!("bool({})", value_code(value, globs))
     } else {
@@ -173,7 +173,7 @@ fn returned_value(
     }
 }
 
-fn value_code(value: &Value, globs: &[Glob]) -> String {
+fn value_code(value: &Value, globs: &[GlobVar]) -> String {
     match value {
         Value::Glob(glob) => format!("{}.{}", BUFFER_NAME, glob_name(glob, globs)),
         Value::Var(var) => var_name(var.id),
@@ -189,11 +189,11 @@ fn value_code(value: &Value, globs: &[Glob]) -> String {
     }
 }
 
-fn glob_name(glob: &Glob, globs: &[Glob]) -> String {
+fn glob_name(glob: &GlobVar, globs: &[GlobVar]) -> String {
     format!("g{}", glob_index(glob, globs))
 }
 
-fn glob_index(glob: &Glob, globs: &[Glob]) -> usize {
+fn glob_index(glob: &GlobVar, globs: &[GlobVar]) -> usize {
     globs
         .iter()
         .position(|g| g == glob)

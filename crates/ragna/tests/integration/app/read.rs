@@ -21,7 +21,7 @@ pub fn read_unused_glob() {
 #[test]
 pub fn read_not_registered_glob() {
     let app = App::default().with_module(gpu::register).run(1);
-    let glob = ragna::create_glob("", 0, || 0.to_gpu());
+    let glob = ragna::create_glob(&"", || 0.to_gpu());
     assert_eq!(app.read(glob), None);
 }
 

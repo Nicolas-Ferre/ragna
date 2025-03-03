@@ -1,6 +1,7 @@
 use crate::context::GpuContext;
-use crate::operations::{ConstantAssignVarOperation, Field, Glob, Operation, Value, Var};
+use crate::operations::{ConstantAssignVarOperation, Field, GlobVar, Operation, Value, Var};
 use crate::{context, Bool, Equal, U32};
+use bitfield_struct::bitfield;
 use std::any::TypeId;
 use std::default::Default;
 use std::ops::Index;
@@ -55,13 +56,17 @@ pub trait Gpu: 'static + Copy {
     fn from_value(value: GpuValue<Self>) -> Self;
 }
 
+// TODO: remove default glob closure from GpuValue (move in Glob type)
+// TODO: commit
+// TODO: replace GpuValue by Ref
+
 // size of this type should be as small as possible to avoid stack overflow (e.g. with nested arrays)
 #[doc(hidden)]
 #[derive(Debug, Clone, Copy)]
 pub enum GpuValue<T> {
-    Glob(&'static str, u32, fn() -> T),
+    Glob(&'static &'static str, fn() -> T),
     Var(u32),
-    GlobField(&'static str, u32, FieldPath),
+    GlobField(&'static &'static str, FieldPath),
     VarField(u32, FieldPath),
 }
 
@@ -72,11 +77,9 @@ impl<T> GpuValue<T> {
 
     fn field<U>(self, position: usize) -> GpuValue<U> {
         match self {
-            Self::Glob(module, id, _) => GpuValue::GlobField(module, id, FieldPath::new(position)),
+            Self::Glob(id, _) => GpuValue::GlobField(id, FieldPath::new(position)),
             Self::Var(id) => GpuValue::VarField(id, FieldPath::new(position)),
-            Self::GlobField(module, id, field) => {
-                GpuValue::GlobField(module, id, field.new_nested(position))
-            }
+            Self::GlobField(id, field) => GpuValue::GlobField(id, field.new_nested(position)),
             Self::VarField(id, field) => GpuValue::VarField(id, field.new_nested(position)),
         }
     }
@@ -86,15 +89,10 @@ impl<T: 'static> From<GpuValue<T>> for Value {
     fn from(value: GpuValue<T>) -> Self {
         let type_id = TypeId::of::<T>();
         match value {
-            GpuValue::Glob(module, id, _) => Self::Glob(Glob {
-                module,
-                id,
-                type_id,
-            }),
+            GpuValue::Glob(id, _) => Self::Glob(GlobVar { id, type_id }),
             GpuValue::Var(id) => Self::Var(Var { id, type_id }),
-            GpuValue::GlobField(module, id, field) => Self::Field(Field {
-                source: Box::new(Self::Glob(Glob {
-                    module,
+            GpuValue::GlobField(id, field) => Self::Field(Field {
+                source: Box::new(Self::Glob(GlobVar {
                     id,
                     type_id: TypeId::of::<()>(),
                 })),
