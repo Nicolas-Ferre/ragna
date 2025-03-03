@@ -4,6 +4,7 @@ use crate::{context, Bool, Equal, U32};
 use bitfield_struct::bitfield;
 use std::any::TypeId;
 use std::default::Default;
+use std::marker::PhantomData;
 use std::ops::Index;
 
 pub(crate) mod array;
@@ -56,15 +57,13 @@ pub trait Gpu: 'static + Copy {
     fn from_value(value: GpuValue<Self>) -> Self;
 }
 
-// TODO: remove default glob closure from GpuValue (move in Glob type)
-// TODO: commit
 // TODO: replace GpuValue by Ref
 
 // size of this type should be as small as possible to avoid stack overflow (e.g. with nested arrays)
 #[doc(hidden)]
 #[derive(Debug, Clone, Copy)]
 pub enum GpuValue<T> {
-    Glob(&'static &'static str, fn() -> T),
+    Glob(&'static &'static str, PhantomData<T>),
     Var(u32),
     GlobField(&'static &'static str, FieldPath),
     VarField(u32, FieldPath),

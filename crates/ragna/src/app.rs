@@ -2,7 +2,7 @@ use crate::context::GpuContext;
 use crate::operations::{AssignVarOperation, GlobVar, Operation, Value};
 use crate::runner::Runner;
 use crate::types::GpuTypeDetails;
-use crate::{wgsl, Cpu, Glob, Gpu, GpuValue};
+use crate::{wgsl, Cpu, Glob, Gpu};
 use derive_where::derive_where;
 use fxhash::FxHashMap;
 use std::any::TypeId;
@@ -58,9 +58,7 @@ impl App {
 
     #[doc(hidden)]
     pub fn with_glob<T: Gpu>(mut self, glob: &Glob<T>) -> Self {
-        if let (GpuValue::Glob(_, default_value), Value::Glob(glob)) =
-            (glob.value(), glob.value().into())
-        {
+        if let (default_value, Value::Glob(glob)) = (glob.default_value, glob.value().into()) {
             self.glob_defaults
                 .push(Box::new(move || default_value().value().into()));
             self.globs.push(glob);

@@ -12,10 +12,10 @@ pub(crate) fn item_to_gpu(mut item: ItemStatic, module: &mut GpuModule) -> ItemS
     let statements = mem::take(&mut module.extracted_statements);
     item.ty = parse_quote_spanned! { ty.span() => ::ragna::Glob<#ty> };
     item.expr = parse_quote_spanned! {
-        expr.span() => ::ragna::Glob::new(|| ::ragna::create_glob(
-            &concat!(module_path!(), "::", stringify!(#ident)),
+        expr.span() => ::ragna::Glob::new(
+            || ::ragna::create_glob(&concat!(module_path!(), "::", stringify!(#ident))),
             ||{ #(#statements)* #expr }
-        ))
+        )
     };
     item
 }
