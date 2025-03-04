@@ -2,6 +2,7 @@ use crate::types::GpuTypeDetails;
 use derive_where::derive_where;
 use std::any::TypeId;
 
+// TODO: make it more generic
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[allow(private_interfaces)]
 pub enum Value {

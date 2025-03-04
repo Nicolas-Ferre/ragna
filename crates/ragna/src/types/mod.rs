@@ -57,91 +57,125 @@ pub trait Gpu: 'static + Copy {
     fn from_value(value: GpuValue<Self>) -> Self;
 }
 
-// TODO: replace GpuValue by Ref
-
 // size of this type should be as small as possible to avoid stack overflow (e.g. with nested arrays)
 #[doc(hidden)]
 #[derive(Debug, Clone, Copy)]
-pub enum GpuValue<T> {
-    Glob(&'static &'static str, PhantomData<T>),
-    Var(u32),
-    GlobField(&'static &'static str, FieldPath),
-    VarField(u32, FieldPath),
+pub struct GpuValue<T> {
+    pub(crate) root: GpuValueRoot,
+    pub(crate) extensions: [GpuValueExt; MAX_NESTED_FIELDS],
+    phantom: PhantomData<fn(T)>,
 }
 
 impl<T> GpuValue<T> {
-    pub(crate) fn unregistered_var() -> Self {
-        Self::Var(context::next_var_id())
-    }
-
-    fn field<U>(self, position: usize) -> GpuValue<U> {
-        match self {
-            Self::Glob(id, _) => GpuValue::GlobField(id, FieldPath::new(position)),
-            Self::Var(id) => GpuValue::VarField(id, FieldPath::new(position)),
-            Self::GlobField(id, field) => GpuValue::GlobField(id, field.new_nested(position)),
-            Self::VarField(id, field) => GpuValue::VarField(id, field.new_nested(position)),
+    pub fn glob(id: &'static &'static str) -> Self {
+        Self {
+            root: GpuValueRoot::Glob(id),
+            extensions: [GpuValueExt::new(); MAX_NESTED_FIELDS],
+            phantom: PhantomData,
         }
     }
+
+    pub fn var(id: u32) -> Self {
+        Self {
+            root: GpuValueRoot::Var(id),
+            extensions: [GpuValueExt::new(); MAX_NESTED_FIELDS],
+            phantom: PhantomData,
+        }
+    }
+
+    pub fn unregistered_var() -> Self {
+        Self {
+            root: GpuValueRoot::Var(context::next_var_id()),
+            extensions: [GpuValueExt::new(); MAX_NESTED_FIELDS],
+            phantom: PhantomData,
+        }
+    }
+
+    fn field<U>(mut self, position: usize) -> GpuValue<U> {
+        let next_field_id = self
+            .extensions
+            .iter()
+            .enumerate()
+            .find(|(_, ext)| ext.is_some())
+            .map_or(0, |(index, _)| index + 1);
+        let ext = self
+            .extensions
+            .get_mut(next_field_id)
+            .expect("struct recursion limit reached");
+        ext.set_id(position.try_into().expect("too many fields in struct"));
+        ext.set_is_field(true);
+        ext.set_is_some(true);
+        GpuValue {
+            root: self.root,
+            extensions: self.extensions,
+            phantom: PhantomData,
+        }
+    }
+
+    // TODO: add index()
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum GpuValueRoot {
+    Glob(&'static &'static str),
+    Var(u32),
+}
+
+#[bitfield(u8)]
+pub(crate) struct GpuValueExt {
+    // either field position in the struct
+    // or "local" ID (dedicated to array) of variable storing array index
+    #[bits(6)]
+    id: u8,
+    #[bits(1)]
+    is_field: bool,
+    #[bits(1)]
+    is_some: bool,
 }
 
 impl<T: 'static> From<GpuValue<T>> for Value {
     fn from(value: GpuValue<T>) -> Self {
         let type_id = TypeId::of::<T>();
-        match value {
-            GpuValue::Glob(id, _) => Self::Glob(GlobVar { id, type_id }),
-            GpuValue::Var(id) => Self::Var(Var { id, type_id }),
-            GpuValue::GlobField(id, field) => Self::Field(Field {
-                source: Box::new(Self::Glob(GlobVar {
-                    id,
-                    type_id: TypeId::of::<()>(),
-                })),
-                positions: field.positions[0..field.level_count as usize]
-                    .iter()
-                    .map(|&position| position as usize)
-                    .collect(),
-                type_id,
-            }),
-            GpuValue::VarField(id, field) => Self::Field(Field {
-                source: Box::new(Self::Var(Var {
-                    id,
-                    type_id: TypeId::of::<()>(),
-                })),
-                positions: field.positions[0..field.level_count as usize]
-                    .iter()
-                    .map(|&position| position as usize)
-                    .collect(),
-                type_id,
-            }),
+        match value.root {
+            GpuValueRoot::Glob(id) => {
+                if value.extensions[0].is_some() {
+                    Self::Field(Field {
+                        source: Box::new(Self::Glob(GlobVar {
+                            id,
+                            type_id: TypeId::of::<()>(),
+                        })),
+                        positions: value
+                            .extensions
+                            .iter()
+                            .take_while(|ext| ext.is_some())
+                            .map(|ext| ext.id() as usize)
+                            .collect(),
+                        type_id,
+                    })
+                } else {
+                    Self::Glob(GlobVar { id, type_id })
+                }
+            }
+            GpuValueRoot::Var(id) => {
+                if value.extensions[0].is_some() {
+                    Self::Field(Field {
+                        source: Box::new(Self::Var(Var {
+                            id,
+                            type_id: TypeId::of::<()>(),
+                        })),
+                        positions: value
+                            .extensions
+                            .iter()
+                            .take_while(|ext| ext.is_some())
+                            .map(|ext| ext.id() as usize)
+                            .collect(),
+                        type_id,
+                    })
+                } else {
+                    Self::Var(Var { id, type_id })
+                }
+            }
         }
-    }
-}
-
-#[doc(hidden)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct FieldPath {
-    level_count: u8,
-    positions: [u8; MAX_NESTED_FIELDS],
-}
-
-impl FieldPath {
-    fn new(position: usize) -> Self {
-        let mut positions = <[u8; MAX_NESTED_FIELDS]>::default();
-        positions[0] = u8::try_from(position).expect("too many fields in struct");
-        Self {
-            level_count: 1,
-            positions,
-        }
-    }
-
-    fn new_nested(mut self, position: usize) -> Self {
-        assert_ne!(
-            self.level_count as usize, MAX_NESTED_FIELDS,
-            "struct recursion limit reached"
-        );
-        self.positions[self.level_count as usize] =
-            u8::try_from(position).expect("too many fields in struct");
-        self.level_count += 1;
-        self
     }
 }
 

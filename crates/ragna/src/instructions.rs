@@ -3,11 +3,10 @@ use crate::operations::{
     AssignVarOperation, DeclareVarOperation, FnCallOperation, IfOperation, Operation, Value,
 };
 use crate::{context, Bool, Gpu, GpuValue};
-use std::marker::PhantomData;
 
 #[doc(hidden)]
 pub fn create_glob<T: Gpu>(id: &'static &'static str) -> T {
-    T::from_value(GpuValue::Glob(id, PhantomData))
+    T::from_value(GpuValue::glob(id))
 }
 
 #[doc(hidden)]
@@ -22,7 +21,7 @@ pub fn create_uninit_var<T: Gpu>() -> T {
             }));
         id
     });
-    T::from_value(GpuValue::Var(id))
+    T::from_value(GpuValue::var(id))
 }
 
 #[doc(hidden)]

@@ -1,6 +1,7 @@
 use crate::app::CURRENT_CTX;
 use crate::operations::{DeclareVarOperation, Operation, Value};
-use crate::{Gpu, GpuTypeDetails, GpuValue};
+use crate::types::GpuValueRoot;
+use crate::{Gpu, GpuTypeDetails};
 use fxhash::{FxHashMap, FxHashSet};
 use std::mem;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -34,7 +35,7 @@ impl GpuContext {
     }
 
     pub(crate) fn register_var<T: Gpu>(&mut self, value: T) {
-        if let GpuValue::Var(id) = value.value() {
+        if let GpuValueRoot::Var(id) = value.value().root {
             if self.registered_var_ids.insert(id) {
                 self.operations
                     .push(Operation::DeclareVar(DeclareVarOperation {
