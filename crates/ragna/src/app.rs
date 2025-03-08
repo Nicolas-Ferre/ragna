@@ -1,5 +1,5 @@
 use crate::context::GpuContext;
-use crate::operations::{AssignVarOperation, GlobVar, Operation, Value};
+use crate::operations::{AssignVarOperation, Operation, Value};
 use crate::runner::Runner;
 use crate::types::GpuTypeDetails;
 use crate::{wgsl, Cpu, Glob, Gpu};
@@ -16,7 +16,7 @@ pub(crate) static CURRENT_CTX: Mutex<Option<GpuContext>> = Mutex::new(None);
 #[derive_where(Debug)]
 pub struct App {
     pub(crate) contexts: Vec<GpuContext>,
-    pub(crate) globs: Vec<GlobVar>,
+    pub(crate) globs: Vec<Value>,
     #[derive_where(skip)]
     pub(crate) glob_defaults: Vec<Box<dyn Fn() -> Value>>,
     pub(crate) types: FxHashMap<TypeId, (usize, GpuTypeDetails)>,
@@ -58,18 +58,15 @@ impl App {
 
     #[doc(hidden)]
     pub fn with_glob<T: Gpu>(mut self, glob: &Glob<T>) -> Self {
-        if let (default_value, Value::Glob(glob)) = (glob.default_value, glob.value().into()) {
-            self.glob_defaults
-                .push(Box::new(move || default_value().value().into()));
-            self.globs.push(glob);
-            let lock = GpuContext::lock_current();
-            GpuContext::run_current(GpuContext::register_type::<T>);
-            let mut ctx = GpuContext::unlock_current(lock);
-            for type_ in mem::take(&mut ctx.types) {
-                self.add_type(type_);
-            }
-        } else {
-            panic!("variable should be global to be registered");
+        let default_value = glob.default_value;
+        self.glob_defaults
+            .push(Box::new(move || default_value().value().into()));
+        self.globs.push(glob.inner.value().into());
+        let lock = GpuContext::lock_current();
+        GpuContext::run_current(GpuContext::register_type::<T>);
+        let mut ctx = GpuContext::unlock_current(lock);
+        for type_ in mem::take(&mut ctx.types) {
+            self.add_type(type_);
         }
         self
     }
@@ -95,7 +92,7 @@ impl App {
             GpuContext::run_current(|ctx| {
                 ctx.operations
                     .push(Operation::AssignVar(AssignVarOperation {
-                        left_value: Value::Glob(glob.clone()),
+                        left_value: glob.clone(),
                         right_value,
                     }));
             });

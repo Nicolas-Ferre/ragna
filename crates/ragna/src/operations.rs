@@ -1,49 +1,26 @@
-use crate::types::GpuTypeDetails;
-use derive_where::derive_where;
+use crate::types::{GpuTypeDetails, GpuValueRoot};
 use std::any::TypeId;
 
-// TODO: make it more generic
-#[derive(Debug, PartialEq, Eq, Hash)]
-#[allow(private_interfaces)]
-pub enum Value {
-    Glob(GlobVar),
-    Var(Var),
-    Field(Field),
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Value {
+    pub(crate) type_id: TypeId,
+    pub(crate) root: GpuValueRoot,
+    pub(crate) extensions: Vec<ValueExt>,
 }
 
 impl Value {
-    pub(crate) fn value_type_id(&self) -> TypeId {
-        match self {
-            Self::Glob(value) => value.type_id,
-            Self::Var(value) => value.type_id,
-            Self::Field(value) => value.type_id,
-        }
+    pub(crate) fn root_value<'a>(&self, globs: &'a [Self]) -> &'a Self {
+        globs
+            .iter()
+            .find(|glob| glob.root == self.root)
+            .expect("internal error: root value should be a glob")
     }
 }
 
-#[derive(Debug, Clone)]
-#[derive_where(PartialEq, Eq, Hash)]
-pub(crate) struct GlobVar {
-    pub(crate) id: &'static str,
-    #[derive_where(skip)]
-    pub(crate) type_id: TypeId,
-}
-
-#[derive(Debug, Clone, Copy)]
-#[derive_where(PartialEq, Eq, Hash)]
-pub(crate) struct Var {
-    pub(crate) id: u32,
-    #[derive_where(skip)]
-    pub(crate) type_id: TypeId,
-}
-
-#[derive(Debug)]
-#[derive_where(PartialEq, Eq, Hash)]
-pub(crate) struct Field {
-    pub(crate) source: Box<Value>,
-    pub(crate) positions: Vec<usize>,
-    #[derive_where(skip)]
-    pub(crate) type_id: TypeId,
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) enum ValueExt {
+    FieldPosition(u8),
+    IndexVarId(u32),
 }
 
 #[derive(Debug)]

@@ -1,5 +1,5 @@
 use crate::context::GpuContext;
-use crate::operations::{ConstantAssignVarOperation, Field, GlobVar, Operation, Value, Var};
+use crate::operations::{ConstantAssignVarOperation, Operation, Value, ValueExt};
 use crate::{context, Bool, Equal, U32};
 use bitfield_struct::bitfield;
 use std::any::TypeId;
@@ -47,6 +47,7 @@ pub trait Gpu: 'static + Copy {
     #[doc(hidden)]
     fn details() -> GpuTypeDetails;
 
+    // TODO: return Value directly
     #[doc(hidden)]
     fn value(self) -> GpuValue<Self>;
 
@@ -115,7 +116,7 @@ impl<T> GpuValue<T> {
     // TODO: add index()
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum GpuValueRoot {
     Glob(&'static &'static str),
     Var(u32),
@@ -127,6 +128,7 @@ pub(crate) struct GpuValueExt {
     // or "local" ID (dedicated to array) of variable storing array index
     #[bits(6)]
     id: u8,
+    // `true` if this is a field, `false` if this is an indexing
     #[bits(1)]
     is_field: bool,
     #[bits(1)]
@@ -135,46 +137,21 @@ pub(crate) struct GpuValueExt {
 
 impl<T: 'static> From<GpuValue<T>> for Value {
     fn from(value: GpuValue<T>) -> Self {
-        let type_id = TypeId::of::<T>();
-        match value.root {
-            GpuValueRoot::Glob(id) => {
-                if value.extensions[0].is_some() {
-                    Self::Field(Field {
-                        source: Box::new(Self::Glob(GlobVar {
-                            id,
-                            type_id: TypeId::of::<()>(),
-                        })),
-                        positions: value
-                            .extensions
-                            .iter()
-                            .take_while(|ext| ext.is_some())
-                            .map(|ext| ext.id() as usize)
-                            .collect(),
-                        type_id,
-                    })
-                } else {
-                    Self::Glob(GlobVar { id, type_id })
-                }
-            }
-            GpuValueRoot::Var(id) => {
-                if value.extensions[0].is_some() {
-                    Self::Field(Field {
-                        source: Box::new(Self::Var(Var {
-                            id,
-                            type_id: TypeId::of::<()>(),
-                        })),
-                        positions: value
-                            .extensions
-                            .iter()
-                            .take_while(|ext| ext.is_some())
-                            .map(|ext| ext.id() as usize)
-                            .collect(),
-                        type_id,
-                    })
-                } else {
-                    Self::Var(Var { id, type_id })
-                }
-            }
+        Self {
+            type_id: TypeId::of::<T>(),
+            root: value.root,
+            extensions: value
+                .extensions
+                .iter()
+                .take_while(|ext| ext.is_some())
+                .map(|ext| {
+                    if ext.is_field() {
+                        ValueExt::FieldPosition(ext.id())
+                    } else {
+                        ValueExt::IndexVarId(todo!())
+                    }
+                })
+                .collect(),
         }
     }
 }
