@@ -220,6 +220,8 @@ struct ComputeShader {
 
 impl ComputeShader {
     fn new(code: String, device: &Device, bind_group_entry: Option<BindGroupEntry<'_>>) -> Self {
+        // println!("{code}");
+        // println!("=================");
         let module = device.create_shader_module(ShaderModuleDescriptor {
             label: Some("ragna:compute_shader:module"),
             source: wgpu::ShaderSource::Wgsl(code.into()),

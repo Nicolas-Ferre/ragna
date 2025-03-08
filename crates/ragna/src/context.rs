@@ -1,8 +1,8 @@
 use crate::app::CURRENT_CTX;
-use crate::operations::{DeclareVarOperation, Operation, Value};
-use crate::types::GpuValueRoot;
-use crate::{Gpu, GpuTypeDetails};
-use fxhash::{FxHashMap, FxHashSet};
+use crate::operations::{AssignVarOperation, DeclareVarOperation, Operation, Value};
+use crate::types::MAX_INDEX_CALLS_PER_SHADER;
+use crate::{Gpu, GpuTypeDetails, GpuValue, U32};
+use fxhash::FxHashMap;
 use std::mem;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{LockResult, Mutex, MutexGuard};
@@ -18,8 +18,8 @@ pub(crate) fn next_var_id() -> u32 {
 pub struct GpuContext {
     pub(crate) operations: Vec<Operation>,
     pub(crate) types: Vec<GpuTypeDetails>,
-    registered_var_ids: FxHashSet<u32>,
-    next_indexes: FxHashMap<Value, usize>,
+    pub(crate) indexes: FxHashMap<Value, Vec<U32>>,
+    pub(crate) next_index_ids: FxHashMap<Value, usize>,
 }
 
 impl GpuContext {
@@ -34,26 +34,40 @@ impl GpuContext {
         }
     }
 
-    pub(crate) fn register_var<T: Gpu>(&mut self, value: T) {
-        if let GpuValueRoot::Var(id) = value.value().root {
-            if self.registered_var_ids.insert(id) {
-                self.operations
-                    .push(Operation::DeclareVar(DeclareVarOperation {
-                        id,
-                        type_: T::details(),
-                    }));
-            }
-        } else {
-            unreachable!("internal error: register non-variable value")
-        }
+    pub(crate) fn index(&self, value: &Value, id: u8) -> U32 {
+        self.indexes[value][id as usize]
     }
 
-    pub(crate) fn next_index<T: Gpu>(&mut self, value: T) -> usize {
-        *self
-            .next_indexes
-            .entry(value.value().into())
-            .and_modify(|i| *i += 1)
-            .or_insert(0)
+    pub(crate) fn next_index_id(&mut self, parent_value: Value, index_value: U32) -> usize {
+        let id = *self
+            .next_index_ids
+            .entry(parent_value.clone())
+            .and_modify(|id| {
+                *id += 1;
+            })
+            .or_insert_with(|| {
+                let indexes = (0..MAX_INDEX_CALLS_PER_SHADER)
+                    .map(|_| U32::from_value(GpuValue::unregistered_var()))
+                    .collect();
+                self.indexes.insert(parent_value.clone(), indexes);
+                0
+            });
+        let index = self.indexes[&parent_value]
+            .get(id)
+            .expect("index call limit reached");
+        self.operations
+            .push(Operation::DeclareVar(DeclareVarOperation {
+                id: index.value().var_id(),
+                type_: U32::details(),
+            }));
+        let left_value = index.value().untyped_with_ctx(self);
+        let right_value = index_value.value().untyped_with_ctx(self);
+        self.operations
+            .push(Operation::AssignVar(AssignVarOperation {
+                left_value,
+                right_value,
+            }));
+        id
     }
 
     pub(crate) fn run_current<O>(f: impl FnOnce(&mut Self) -> O) -> O {

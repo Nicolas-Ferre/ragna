@@ -118,14 +118,6 @@ fn operation_code(
             let expr = returned_value(&op.var, operation, types);
             format!("    {var_name} = {expr};")
         }
-        Operation::Index(op) => {
-            let var_name = value_code(&op.var, globs);
-            let array = function_arg(&op.array, globs);
-            let index = function_arg(&op.index, globs);
-            let operation = format!("{array}[{index}]");
-            let expr = returned_value(&op.var, operation, types);
-            format!("    {var_name} = {expr};")
-        }
         Operation::FnCall(op) => {
             let var_name = value_code(&op.var, globs);
             let operation = format!(

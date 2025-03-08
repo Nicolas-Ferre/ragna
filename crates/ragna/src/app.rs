@@ -60,8 +60,8 @@ impl App {
     pub fn with_glob<T: Gpu>(mut self, glob: &Glob<T>) -> Self {
         let default_value = glob.default_value;
         self.glob_defaults
-            .push(Box::new(move || default_value().value().into()));
-        self.globs.push(glob.inner.value().into());
+            .push(Box::new(move || default_value().value().untyped()));
+        self.globs.push(glob.inner.value().untyped());
         let lock = GpuContext::lock_current();
         GpuContext::run_current(GpuContext::register_type::<T>);
         let mut ctx = GpuContext::unlock_current(lock);
@@ -76,7 +76,7 @@ impl App {
     /// If the passed value is not a global variable,
     pub fn read<T: Gpu>(&self, value: T) -> Option<T::Cpu> {
         self.runner.as_ref().and_then(|runner| {
-            let bytes = runner.read(self, &value.value().into());
+            let bytes = runner.read(self, &value.value().untyped());
             if bytes.is_empty() {
                 None
             } else {

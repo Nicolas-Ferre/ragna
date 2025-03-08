@@ -41,21 +41,12 @@ impl<T: Gpu> Gpu for Range<T> {
         self.value
     }
 
-    fn unregistered() -> Self {
-        Self {
-            start: T::unregistered(),
-            end: T::unregistered(),
-            value: GpuValue::unregistered_var(),
-            items: IndexItems::default(),
-        }
-    }
-
     fn from_value(value: GpuValue<Self>) -> Self {
         Self {
             start: T::from_value(value.field(0)),
             end: T::from_value(value.field(1)),
             value,
-            items: IndexItems::default(),
+            items: IndexItems::new(value),
         }
     }
 }
@@ -74,11 +65,12 @@ impl<T: Cpu> Cpu for ops::Range<T> {
     }
 }
 
+// TODO: remove Index from range
 impl Index<U32> for Range<U32> {
     type Output = U32;
 
     fn index(&self, index: U32) -> &Self::Output {
-        self.items.next(self.start + index)
+        self.items.next(*self, self.start + index)
     }
 }
 
@@ -95,6 +87,10 @@ impl Iterable for Range<U32> {
 fn select(f: U32, t: U32, cond: Bool) -> U32 {
     crate::call_fn(
         "select",
-        vec![f.value().into(), t.value().into(), cond.value().into()],
+        vec![
+            f.value().untyped(),
+            t.value().untyped(),
+            cond.value().untyped(),
+        ],
     )
 }
