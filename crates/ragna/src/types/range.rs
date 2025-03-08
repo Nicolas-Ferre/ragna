@@ -1,7 +1,6 @@
-use crate::{Bool, Cpu, Gpu, GpuTypeDetails, GpuValue, GreaterThan, IndexItems, Iterable, U32};
+use crate::{Bool, Cpu, Gpu, GpuTypeDetails, GpuValue, GreaterThan, Iterable, U32};
 use std::any::TypeId;
 use std::ops;
-use std::ops::Index;
 
 /// A GPU type to iterate on a range of values.
 #[derive(Clone, Copy)]
@@ -11,7 +10,6 @@ pub struct Range<T: Gpu> {
     /// The last value excluded.
     pub end: T,
     value: GpuValue<Self>,
-    items: IndexItems<T>,
 }
 
 impl<T: Gpu> Range<T> {
@@ -46,7 +44,6 @@ impl<T: Gpu> Gpu for Range<T> {
             start: T::from_value(value.field(0)),
             end: T::from_value(value.field(1)),
             value,
-            items: IndexItems::new(value),
         }
     }
 }
@@ -65,16 +62,13 @@ impl<T: Cpu> Cpu for ops::Range<T> {
     }
 }
 
-// TODO: remove Index from range
-impl Index<U32> for Range<U32> {
-    type Output = U32;
-
-    fn index(&self, index: U32) -> &Self::Output {
-        self.items.next(*self, self.start + index)
-    }
-}
-
 impl Iterable for Range<U32> {
+    type Item<'a> = U32;
+
+    fn next(&self, index: U32) -> Self::Item<'_> {
+        self.start + index
+    }
+
     fn len(&self) -> U32 {
         select(
             0_u32.to_gpu(),

@@ -7,7 +7,6 @@ use derive_where::derive_where;
 use std::any::TypeId;
 use std::default::Default;
 use std::marker::PhantomData;
-use std::ops::Index;
 
 pub(crate) mod array;
 pub(crate) mod primitive;
@@ -201,7 +200,15 @@ impl GpuTypeDetails {
 }
 
 /// A trait implemented for GPU types on which it is possible to iterate (e.g. using a `for` loop).
-pub trait Iterable: Index<U32> {
+pub trait Iterable {
+    /// The item type.
+    type Item<'a>
+    where
+        Self: 'a;
+
+    /// Returns the next item from the iteration index.
+    fn next(&self, index: U32) -> Self::Item<'_>;
+
     /// The number of items contained in the iterable.
     fn len(&self) -> U32;
 

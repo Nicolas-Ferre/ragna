@@ -9,7 +9,7 @@ pub fn use_arrays() {
     assert_eq!(app.read(*gpu::FROM_ITEMS), Some([1, 2, 3, 4]));
     assert_eq!(
         app.read(*gpu::NESTED),
-        Some([[1, 2], [3, 4], [5, 6], [7, 8]])
+        Some([[1, 2], [10, 11], [9, 6], [7, 8]])
     );
     assert_eq!(app.read(*gpu::LENGTH), Some(4));
     assert_eq!(app.read(*gpu::FIRST_ITEM), Some(1));
@@ -40,5 +40,7 @@ mod gpu {
         *SECOND_ITEM = FROM_ITEMS[1u];
         *OUT_OF_BOUND_ITEM = FROM_ITEMS[4u];
         *NESTED_ARRAY_ITEM = NESTED[1u][0u];
+        NESTED[2u][0u] = 9u;
+        NESTED[1u] = [10u, 11u];
     }
 }

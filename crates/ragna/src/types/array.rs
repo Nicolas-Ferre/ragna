@@ -78,6 +78,12 @@ impl<T: Gpu, const N: usize> Index<U32> for Array<T, N> {
 }
 
 impl<T: Gpu, const N: usize> Iterable for Array<T, N> {
+    type Item<'a> = &'a T;
+
+    fn next(&self, index: U32) -> Self::Item<'_> {
+        &self[index]
+    }
+
     #[allow(clippy::cast_possible_truncation)]
     fn len(&self) -> U32 {
         (N as u32).to_gpu()

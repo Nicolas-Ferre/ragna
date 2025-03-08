@@ -55,6 +55,7 @@ mod gpu {
     }
 
     fn conditional_return() -> I32 {
+        if 0 < 3 {} // ensure this is correctly transformed
         if 0 < 3 {
             1
         } else {

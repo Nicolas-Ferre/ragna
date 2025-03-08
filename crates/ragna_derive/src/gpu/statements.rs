@@ -1,4 +1,6 @@
 use crate::gpu::GpuModule;
+use proc_macro2::TokenTree;
+use quote::ToTokens;
 use std::mem;
 use syn::fold::Fold;
 use syn::spanned::Spanned;
@@ -22,31 +24,29 @@ pub(crate) fn block_to_gpu(mut block: Block, module: &mut GpuModule) -> Block {
 fn statement_to_gpu(stmt: Stmt, module: &mut GpuModule) -> Stmt {
     match stmt {
         Stmt::Local(local) => Stmt::Local(local_to_gpu(local, module)),
-        Stmt::Expr(expr, semi) => Stmt::Expr(
-            if semi.is_none() {
-                returned_expr_to_gpu(expr, module)
+        Stmt::Expr(expr, semi) => {
+            let expr = module.fold_expr(expr);
+            let expr_trees = expr.to_token_stream().into_iter().collect::<Vec<_>>();
+            let has_semi = if let TokenTree::Punct(punc) = &expr_trees[expr_trees.len() - 1] {
+                punc.as_char() == ';'
             } else {
-                module.fold_expr(expr)
-            },
-            semi,
-        ),
+                false
+            };
+            Stmt::Expr(
+                if !has_semi && semi.is_none() && module.is_current_fn_returning_copy() {
+                    parse_quote_spanned! { expr.span() => ::ragna::create_var(#expr) }
+                } else {
+                    expr
+                },
+                semi,
+            )
+        }
         stmt => {
             module
                 .errors
                 .push(syn::Error::new(stmt.span(), "unsupported item"));
             stmt
         }
-    }
-}
-
-fn returned_expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
-    if module.is_current_fn_returning_copy() {
-        let expr = module.fold_expr(expr);
-        parse_quote_spanned! {
-            expr.span() => ::ragna::create_var(#expr)
-        }
-    } else {
-        module.fold_expr(expr)
     }
 }
 

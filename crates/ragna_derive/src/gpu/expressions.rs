@@ -71,7 +71,7 @@ fn literal_to_gpu(value: impl ToTokens) -> Expr {
 fn assign_to_gpu(expr: ExprAssign, module: &mut GpuModule) -> Expr {
     let span = expr.span();
     let attrs = &expr.attrs;
-    let left = &expr.left;
+    let left = module.fold_expr(*expr.left);
     let right = module.fold_expr(*expr.right);
     parse_quote_spanned! { span => #(#attrs)* (::ragna::assign(#left, #right)) }
 }
@@ -250,7 +250,7 @@ fn for_loop_to_gpu(expr: ExprForLoop, module: &mut GpuModule) -> Stmt {
                 let __len = ::ragna::Iterable::len(__iterable);
                 #(#attrs)*
                 while __index < __len {
-                    let #value = &__iterable[__index];
+                    let #value = ::ragna::Iterable::next(__iterable, __index);
                     #body;
                     __index += 1u;
                 }
@@ -265,7 +265,7 @@ fn for_loop_to_gpu(expr: ExprForLoop, module: &mut GpuModule) -> Stmt {
                 #(#attrs)*
                 while __index < __len {
                     let #index = __index;
-                    let #value = &__iterable[__index];
+                    let #value = ::ragna::Iterable::next(__iterable, __index);
                     #body;
                     __index += 1u;
                 }

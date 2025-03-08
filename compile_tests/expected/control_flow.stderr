@@ -52,7 +52,7 @@ error[E0308]: mismatched types
 14 |         for (a, b, c) in 0u..1u {}
    |         --- ^^^^^^^^^ expected `U32`, found `(_, _, _)`
    |         |
-   |         this expression has type `&U32`
+   |         this expression has type `U32`
    |
    = note: expected struct `U32`
                found tuple `(_, _, _)`
