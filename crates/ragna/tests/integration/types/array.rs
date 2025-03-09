@@ -7,6 +7,7 @@ pub fn use_arrays() {
     let app = App::default().with_module(gpu::register).run(1);
     assert_eq!(app.read(*gpu::FROM_CONSTANT), Some([1, 2, 3, 4]));
     assert_eq!(app.read(*gpu::FROM_ITEMS), Some([1, 2, 3, 4]));
+    assert_eq!(app.read(*gpu::FROM_REPEATED), Some([42, 42, 42, 42]));
     assert_eq!(
         app.read(*gpu::NESTED),
         Some([[1, 2], [10, 11], [9, 6], [7, 8]])
@@ -34,6 +35,7 @@ mod gpu {
 
     pub(super) static FROM_CONSTANT: Array<U32, 4> = CONSTANT.to_gpu();
     pub(super) static FROM_ITEMS: Array<U32, 4> = [1u, 2u, 3u, 4u];
+    pub(super) static FROM_REPEATED: Array<U32, 4> = [42u; 4];
     pub(super) static NESTED: Array<Array<U32, 2>, 4> = [[1u, 2u], [3u, 4u], [5u, 6u], [7u, 8u]];
     pub(super) static LENGTH: U32 = 0u;
     pub(super) static FIRST_ITEM: U32 = 0u;

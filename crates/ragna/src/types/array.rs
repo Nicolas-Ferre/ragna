@@ -1,5 +1,5 @@
 use crate::types::IndexItems;
-use crate::{Cpu, Gpu, GpuTypeDetails, GpuValue, Iterable, U32};
+use crate::{Cpu, Gpu, GpuTypeDetails, GpuValue, GreaterThan, Iterable, U32};
 use itertools::Itertools;
 use std::any::TypeId;
 use std::ops::Index;
@@ -21,6 +21,22 @@ impl<T: Gpu, const N: usize> Array<T, N> {
                 .map(|item| item.value().untyped())
                 .collect(),
         )
+    }
+
+    /// Creates a new array from a repeated item.
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn repeated(item: T) -> Self {
+        let array = crate::create_uninit_var::<Self>();
+        let index = 0_u32.to_gpu();
+        crate::loop_block();
+        crate::if_block(GreaterThan::apply((N as u32).to_gpu(), index));
+        crate::assign(array[index], item);
+        crate::assign(index, index + 1_u32.to_gpu());
+        crate::else_block();
+        crate::break_();
+        crate::end_block();
+        crate::end_block();
+        array
     }
 }
 
