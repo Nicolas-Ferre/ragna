@@ -84,7 +84,7 @@ impl<T: Gpu> GpuValue<T> {
         }
     }
 
-    pub fn unregistered_var() -> Self {
+    pub(crate) fn unregistered_var() -> Self {
         Self {
             root: GpuValueRoot::Var(context::next_var_id()),
             extensions: [GpuValueExt::new(); MAX_NESTED_FIELDS],
@@ -221,6 +221,7 @@ impl<T: Gpu> IndexItems<T> {
 
     fn next<P: Gpu>(&self, parent: P, index: U32) -> &T {
         let parent_value = parent.value().untyped();
-        GpuContext::run_current(|ctx| &self.0[ctx.next_index_id(parent_value, index)])
+        let index_value = index.value().untyped();
+        GpuContext::run_current(|ctx| &self.0[ctx.next_index_id(parent_value, index_value)])
     }
 }

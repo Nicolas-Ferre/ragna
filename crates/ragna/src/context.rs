@@ -38,7 +38,7 @@ impl GpuContext {
         self.indexes[value][id as usize]
     }
 
-    pub(crate) fn next_index_id(&mut self, parent_value: Value, index_value: U32) -> usize {
+    pub(crate) fn next_index_id(&mut self, parent_value: Value, index_value: Value) -> usize {
         let id = *self
             .next_index_ids
             .entry(parent_value.clone())
@@ -63,7 +63,7 @@ impl GpuContext {
         self.operations
             .push(Operation::AssignVar(AssignVarOperation {
                 left_value: index.value().untyped(),
-                right_value: index_value.value().untyped(),
+                right_value: index_value,
             }));
         id
     }
