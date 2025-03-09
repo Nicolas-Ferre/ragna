@@ -60,12 +60,10 @@ impl GpuContext {
                 id: index.value().var_id(),
                 type_: U32::details(),
             }));
-        let left_value = index.value().untyped_with_ctx(self);
-        let right_value = index_value.value().untyped_with_ctx(self);
         self.operations
             .push(Operation::AssignVar(AssignVarOperation {
-                left_value,
-                right_value,
+                left_value: index.value().untyped(),
+                right_value: index_value.value().untyped(),
             }));
         id
     }

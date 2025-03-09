@@ -12,7 +12,7 @@ pub fn run_app_with_empty_module() {
 }
 
 #[test]
-pub fn run_app_with_no_used_glob() {
+pub fn run_app_with_not_used_glob() {
     let app = App::default().with_module(gpu::register).run(1);
     assert_eq!(app.read(*gpu::GLOB), Some(10));
 }

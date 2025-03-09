@@ -1,5 +1,4 @@
 [advisories]
-yanked = "deny"
 ignore = ["paste@1.0.15"]
 
 [bans]

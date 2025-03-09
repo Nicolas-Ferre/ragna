@@ -16,6 +16,14 @@ pub fn use_arrays() {
     assert_eq!(app.read(*gpu::SECOND_ITEM), Some(2));
     assert_eq!(app.read(*gpu::OUT_OF_BOUND_ITEM), Some(1));
     assert_eq!(app.read(*gpu::NESTED_ARRAY_ITEM), Some(3));
+    assert_eq!(
+        app.read(*gpu::ITER_SUM),
+        Some(1 + 2 + 10 + 11 + 9 + 6 + 7 + 8)
+    );
+    assert_eq!(
+        app.read(*gpu::ENUMERATED_ITER_SUM),
+        Some(1 + 2 + 10 + 11 + 9 + 6 + 7 + 8 + 4)
+    );
 }
 
 #[ragna::gpu]
@@ -32,6 +40,8 @@ mod gpu {
     pub(super) static SECOND_ITEM: U32 = 0u;
     pub(super) static OUT_OF_BOUND_ITEM: U32 = 0u;
     pub(super) static NESTED_ARRAY_ITEM: U32 = 0u;
+    pub(super) static ITER_SUM: U32 = 0u;
+    pub(super) static ENUMERATED_ITER_SUM: U32 = 0u;
 
     #[compute]
     fn run() {
@@ -42,5 +52,15 @@ mod gpu {
         *NESTED_ARRAY_ITEM = NESTED[1u][0u];
         NESTED[2u][0u] = 9u;
         NESTED[1u] = [10u, 11u];
+        for inner_array in *NESTED {
+            for inner_value in *inner_array {
+                *ITER_SUM += *inner_value;
+            }
+        }
+        for inner_array in *NESTED {
+            for (index, inner_value) in *inner_array {
+                *ENUMERATED_ITER_SUM += *inner_value + index;
+            }
+        }
     }
 }

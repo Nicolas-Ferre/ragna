@@ -110,14 +110,6 @@ impl<T: Gpu> GpuValue<T> {
 
     #[doc(hidden)]
     pub fn untyped(self) -> Value {
-        self.untyped_with_option_ctx(None)
-    }
-
-    pub(crate) fn untyped_with_ctx(self, ctx: &GpuContext) -> Value {
-        self.untyped_with_option_ctx(Some(ctx))
-    }
-
-    fn untyped_with_option_ctx(self, ctx: Option<&GpuContext>) -> Value {
         let mut value = Value {
             type_id: TypeId::of::<T>(),
             root: self.root,
@@ -129,8 +121,6 @@ impl<T: Gpu> GpuValue<T> {
             }
             let untyped_ext = if ext.is_field() {
                 ValueExt::FieldPosition(ext.id())
-            } else if let Some(ctx) = ctx {
-                ValueExt::IndexVarId(ctx.index(&value, ext.id()).value().var_id())
             } else {
                 ValueExt::IndexVarId(GpuContext::run_current(|ctx| {
                     ctx.index(&value, ext.id()).value().var_id()

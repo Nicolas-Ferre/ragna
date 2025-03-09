@@ -239,38 +239,46 @@ fn for_loop_to_gpu(expr: ExprForLoop, module: &mut GpuModule) -> Stmt {
     }
     let span = expr.span();
     let attrs = expr.attrs;
-    let iterable = expr.expr;
-    let body = expr.body;
+    let iterable = module.fold_expr(*expr.expr);
+    let body = module.fold_block(expr.body);
     match for_loop_mode(*expr.pat) {
-        ForLoopMode::Value(value) => module.fold_stmt(parse_quote_spanned! {
+        ForLoopMode::Value(value) => parse_quote_spanned! {
             span =>
+            #(#attrs)*
             {
                 let __iterable = &(#iterable);
-                let __index = 0u;
+                let __index = ::ragna::Cpu::to_gpu(&0_u32);
                 let __len = ::ragna::Iterable::len(__iterable);
-                #(#attrs)*
-                while __index < __len {
-                    let #value = ::ragna::Iterable::next(__iterable, __index);
-                    #body;
-                    __index += 1u;
-                }
+                ::ragna::loop_block();
+                ::ragna::if_block(::ragna::GreaterThan::apply(__len, __index));
+                let #value = ::ragna::Iterable::next(__iterable, __index);
+                #body;
+                ::ragna::assign(__index, __index + ::ragna::Cpu::to_gpu(&1_u32));
+                ::ragna::else_block();
+                ::ragna::break_();
+                ::ragna::end_block();
+                ::ragna::end_block();
             };
-        }),
-        ForLoopMode::Enumerated(index, value) => module.fold_stmt(parse_quote_spanned! {
+        },
+        ForLoopMode::Enumerated(index, value) => parse_quote_spanned! {
             span =>
+            #(#attrs)*
             {
                 let __iterable = &(#iterable);
-                let __index = 0u;
+                let __index = ::ragna::Cpu::to_gpu(&0_u32);
                 let __len = ::ragna::Iterable::len(__iterable);
-                #(#attrs)*
-                while __index < __len {
-                    let #index = __index;
-                    let #value = ::ragna::Iterable::next(__iterable, __index);
-                    #body;
-                    __index += 1u;
-                }
+                ::ragna::loop_block();
+                ::ragna::if_block(::ragna::GreaterThan::apply(__len, __index));
+                let #index = __index;
+                let #value = ::ragna::Iterable::next(__iterable, __index);
+                #body;
+                ::ragna::assign(__index, __index + ::ragna::Cpu::to_gpu(&1_u32));
+                ::ragna::else_block();
+                ::ragna::break_();
+                ::ragna::end_block();
+                ::ragna::end_block();
             };
-        }),
+        },
     }
 }
 
