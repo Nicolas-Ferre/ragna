@@ -1,6 +1,5 @@
-use crate::operations::{IndexOperation, Operation};
 use crate::types::IndexItems;
-use crate::{Cpu, Gpu, GpuContext, GpuTypeDetails, GpuValue, Iterable, U32};
+use crate::{Cpu, Gpu, GpuTypeDetails, GpuValue, Iterable, U32};
 use itertools::Itertools;
 use std::any::TypeId;
 use std::ops::Index;
@@ -17,7 +16,10 @@ impl<T: Gpu, const N: usize> Array<T, N> {
     pub fn new(items: [T; N]) -> Self {
         crate::call_fn(
             "array",
-            items.into_iter().map(|item| item.value().into()).collect(),
+            items
+                .into_iter()
+                .map(|item| item.value().untyped())
+                .collect(),
         )
     }
 }
@@ -40,19 +42,11 @@ impl<T: Gpu, const N: usize> Gpu for Array<T, N> {
         self.value
     }
 
-    fn unregistered() -> Self {
-        assert_ne!(N, 0, "arrays should not be empty");
-        Self {
-            value: GpuValue::unregistered_var(),
-            items: IndexItems::default(),
-        }
-    }
-
     fn from_value(value: GpuValue<Self>) -> Self {
         assert_ne!(N, 0, "arrays should not be empty");
         Self {
             value,
-            items: IndexItems::default(),
+            items: IndexItems::new(value),
         }
     }
 }
@@ -79,20 +73,17 @@ impl<T: Gpu, const N: usize> Index<U32> for Array<T, N> {
     type Output = T;
 
     fn index(&self, index: U32) -> &Self::Output {
-        let var = crate::create_uninit_var::<T>();
-        let index = index % self.len();
-        GpuContext::run_current(|ctx| {
-            ctx.operations.push(Operation::Index(IndexOperation {
-                var: var.value().into(),
-                array: self.value().into(),
-                index: index.value().into(),
-            }));
-        });
-        self.items.next(var)
+        self.items.next(*self, index % self.len())
     }
 }
 
 impl<T: Gpu, const N: usize> Iterable for Array<T, N> {
+    type Item<'a> = &'a T;
+
+    fn next(&self, index: U32) -> Self::Item<'_> {
+        &self[index]
+    }
+
     #[allow(clippy::cast_possible_truncation)]
     fn len(&self) -> U32 {
         (N as u32).to_gpu()

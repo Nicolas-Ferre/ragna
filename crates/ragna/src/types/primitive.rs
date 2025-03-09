@@ -26,12 +26,6 @@ macro_rules! native_gpu_type {
                 self.__value
             }
 
-            fn unregistered() -> Self {
-                Self {
-                    __value: GpuValue::unregistered_var(),
-                }
-            }
-
             fn from_value(value: GpuValue<Self>) -> Self {
                 Self { __value: value }
             }

@@ -53,11 +53,11 @@ impl Runner {
     }
 
     pub(crate) fn read(&self, app: &App, value: &Value) -> Vec<u8> {
-        if let (Value::Glob(glob), Some(buffer)) = (value, &self.program.buffer) {
-            if let Some(position) = app.globs.iter().position(|other_glob| other_glob == glob) {
+        if let Some(buffer) = &self.program.buffer {
+            if let Some(position) = app.globs.iter().position(|other_glob| other_glob == value) {
                 let tmp_buffer = self.device.create_buffer(&BufferDescriptor {
                     label: Some("modor_texture_buffer"),
-                    size: app.types[&glob.type_id].1.size(),
+                    size: app.types[&value.type_id].1.size(),
                     usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
                     mapped_at_creation: false,
                 });
@@ -75,7 +75,7 @@ impl Runner {
                         .sum(),
                     &tmp_buffer,
                     0,
-                    app.types[&glob.type_id].1.size(),
+                    app.types[&value.type_id].1.size(),
                 );
                 let submission_index = self.queue.submit(Some(encoder.finish()));
                 let slice = tmp_buffer.slice(..);

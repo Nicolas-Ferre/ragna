@@ -5,8 +5,9 @@ use crate::operations::{
 use crate::{context, Bool, Gpu, GpuValue};
 
 #[doc(hidden)]
-pub fn create_glob<T: Gpu>(module: &'static str, id: u32, default_value: fn() -> T) -> T {
-    T::from_value(GpuValue::Glob(module, id, default_value))
+#[allow(clippy::trivially_copy_pass_by_ref)]
+pub fn create_glob<T: Gpu>(id: &'static &'static str) -> T {
+    T::from_value(GpuValue::glob(id))
 }
 
 #[doc(hidden)]
@@ -21,7 +22,7 @@ pub fn create_uninit_var<T: Gpu>() -> T {
             }));
         id
     });
-    T::from_value(GpuValue::Var(id))
+    T::from_value(GpuValue::var(id))
 }
 
 #[doc(hidden)]
@@ -33,11 +34,13 @@ pub fn create_var<T: Gpu>(value: T) -> T {
 
 #[doc(hidden)]
 pub fn assign<T: Gpu>(variable: T, value: T) {
+    let left_value = variable.value().untyped();
+    let right_value = value.value().untyped();
     GpuContext::run_current(|ctx| {
         ctx.operations
             .push(Operation::AssignVar(AssignVarOperation {
-                left_value: variable.value().into(),
-                right_value: value.value().into(),
+                left_value,
+                right_value,
             }));
     });
 }
@@ -45,9 +48,10 @@ pub fn assign<T: Gpu>(variable: T, value: T) {
 #[doc(hidden)]
 pub fn call_fn<T: Gpu>(fn_name: &'static str, args: Vec<Value>) -> T {
     let var = create_uninit_var::<T>();
+    let var_value = var.value().untyped();
     GpuContext::run_current(|ctx| {
         ctx.operations.push(Operation::FnCall(FnCallOperation {
-            var: var.value().into(),
+            var: var_value,
             fn_name,
             args,
         }));
@@ -57,10 +61,10 @@ pub fn call_fn<T: Gpu>(fn_name: &'static str, args: Vec<Value>) -> T {
 
 #[doc(hidden)]
 pub fn if_block(condition: Bool) {
+    let condition = condition.value().untyped();
     GpuContext::run_current(|ctx| {
-        ctx.operations.push(Operation::IfBlock(IfOperation {
-            condition: condition.value().into(),
-        }));
+        ctx.operations
+            .push(Operation::IfBlock(IfOperation { condition }));
     });
 }
 

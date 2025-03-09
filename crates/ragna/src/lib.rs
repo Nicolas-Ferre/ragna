@@ -2,6 +2,7 @@
 
 mod app;
 mod context;
+mod glob;
 mod instructions;
 mod operations;
 mod operators;
@@ -11,6 +12,7 @@ mod wgsl;
 
 pub use app::*;
 pub use context::*;
+pub use glob::*;
 pub use instructions::*;
 pub use operators::*;
 pub use types::array::*;
@@ -20,5 +22,3 @@ pub use types::*;
 
 /// Transforms a Rust module to a GPU module.
 pub use ragna_derive::gpu;
-
-pub use once_cell::sync::Lazy as Glob;

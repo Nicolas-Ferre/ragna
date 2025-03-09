@@ -13,6 +13,8 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+array-init.workspace = true
+bitfield-struct.workspace = true
 derive-where.workspace = true
 futures.workspace = true
 fxhash.workspace = true

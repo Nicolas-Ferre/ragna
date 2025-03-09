@@ -1,4 +1,4 @@
-use ragna::{App, Cpu};
+use ragna::{App, Cpu, Glob};
 
 #[test]
 pub fn read_uninitialized() {
@@ -20,9 +20,15 @@ pub fn read_unused_glob() {
 
 #[test]
 pub fn read_not_registered_glob() {
+    let app = App::default().run(1);
+    assert_eq!(app.read(*gpu::UNUSED_GLOB), None);
+}
+
+#[test]
+pub fn read_not_registered_external_glob() {
+    let glob = Glob::new(|| ::ragna::create_glob(&""), || 0.to_gpu());
     let app = App::default().with_module(gpu::register).run(1);
-    let glob = ragna::create_glob("", 0, || 0.to_gpu());
-    assert_eq!(app.read(glob), None);
+    assert_eq!(app.read(*glob), None);
 }
 
 #[ragna::gpu]

@@ -13,7 +13,9 @@ rust-version = "1.84.1"
 [workspace.dependencies]
 android-activity = { version = "0.6", features = ["native-activity"] }
 android_logger = "0.14"
+array-init = "2.1"
 async-std = "1.12"
+bitfield-struct = "0.10"
 bytemuck = { version = "1.15", features = ["derive"] }
 cargo-run-wasm = "0.4"
 console_error_panic_hook = "0.1"

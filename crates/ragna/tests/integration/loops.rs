@@ -32,11 +32,11 @@ mod gpu {
     #[compute]
     fn run_for() {
         for i in 3u..6u {
-            *FOR_RESULT += *i;
+            *FOR_RESULT += i;
         }
         let range = &(3u..6u);
         for i in *range {
-            *FOR_RESULT += *i;
+            *FOR_RESULT += i;
         }
     }
 
@@ -44,7 +44,7 @@ mod gpu {
     fn run_for_enumerated() {
         for (index, value) in 3u..6u {
             *FOR_ENUMERATED_RESULT += index;
-            *FOR_ENUMERATED_RESULT += *value;
+            *FOR_ENUMERATED_RESULT += value;
         }
     }
 

@@ -1,16 +1,19 @@
 use crate::context::GpuContext;
-use crate::operations::{ConstantAssignVarOperation, Field, Glob, Operation, Value, Var};
+use crate::operations::{ConstantAssignVarOperation, Operation, Value, ValueExt};
 use crate::{context, Bool, Equal, U32};
+use array_init::array_init;
+use bitfield_struct::bitfield;
+use derive_where::derive_where;
 use std::any::TypeId;
 use std::default::Default;
-use std::ops::Index;
+use std::marker::PhantomData;
 
 pub(crate) mod array;
 pub(crate) mod primitive;
 pub(crate) mod range;
 
 const MAX_NESTED_FIELDS: usize = 15;
-const MAX_ITEM_ACCESS: usize = 50; // per shader
+pub(crate) const MAX_INDEX_CALLS_PER_SHADER: usize = 50;
 
 /// A trait implemented for Rust types that have a corresponding CPU type.
 pub trait Cpu: Sized {
@@ -26,10 +29,11 @@ pub trait Cpu: Sized {
     /// Converts a value to a GPU value.
     fn to_gpu(&self) -> Self::Gpu {
         let var = crate::create_uninit_var::<Self::Gpu>();
+        let left_value = var.value().untyped();
         GpuContext::run_current(|ctx| {
             ctx.operations
                 .push(Operation::ConstantAssignVar(ConstantAssignVarOperation {
-                    left_value: var.value().into(),
+                    left_value,
                     right_value: self.to_wgsl(),
                 }));
         });
@@ -49,103 +53,118 @@ pub trait Gpu: 'static + Copy {
     fn value(self) -> GpuValue<Self>;
 
     #[doc(hidden)]
-    fn unregistered() -> Self;
-
-    #[doc(hidden)]
     fn from_value(value: GpuValue<Self>) -> Self;
 }
 
 // size of this type should be as small as possible to avoid stack overflow (e.g. with nested arrays)
 #[doc(hidden)]
-#[derive(Debug, Clone, Copy)]
-pub enum GpuValue<T> {
-    Glob(&'static str, u32, fn() -> T),
-    Var(u32),
-    GlobField(&'static str, u32, FieldPath),
-    VarField(u32, FieldPath),
+#[derive(Clone, Copy)]
+#[derive_where(Debug)]
+pub struct GpuValue<T> {
+    pub(crate) root: GpuValueRoot,
+    pub(crate) extensions: [GpuValueExt; MAX_NESTED_FIELDS],
+    phantom: PhantomData<fn(T)>,
 }
 
-impl<T> GpuValue<T> {
-    pub(crate) fn unregistered_var() -> Self {
-        Self::Var(context::next_var_id())
-    }
-
-    fn field<U>(self, position: usize) -> GpuValue<U> {
-        match self {
-            Self::Glob(module, id, _) => GpuValue::GlobField(module, id, FieldPath::new(position)),
-            Self::Var(id) => GpuValue::VarField(id, FieldPath::new(position)),
-            Self::GlobField(module, id, field) => {
-                GpuValue::GlobField(module, id, field.new_nested(position))
-            }
-            Self::VarField(id, field) => GpuValue::VarField(id, field.new_nested(position)),
-        }
-    }
-}
-
-impl<T: 'static> From<GpuValue<T>> for Value {
-    fn from(value: GpuValue<T>) -> Self {
-        let type_id = TypeId::of::<T>();
-        match value {
-            GpuValue::Glob(module, id, _) => Self::Glob(Glob {
-                module,
-                id,
-                type_id,
-            }),
-            GpuValue::Var(id) => Self::Var(Var { id, type_id }),
-            GpuValue::GlobField(module, id, field) => Self::Field(Field {
-                source: Box::new(Self::Glob(Glob {
-                    module,
-                    id,
-                    type_id: TypeId::of::<()>(),
-                })),
-                positions: field.positions[0..field.level_count as usize]
-                    .iter()
-                    .map(|&position| position as usize)
-                    .collect(),
-                type_id,
-            }),
-            GpuValue::VarField(id, field) => Self::Field(Field {
-                source: Box::new(Self::Var(Var {
-                    id,
-                    type_id: TypeId::of::<()>(),
-                })),
-                positions: field.positions[0..field.level_count as usize]
-                    .iter()
-                    .map(|&position| position as usize)
-                    .collect(),
-                type_id,
-            }),
-        }
-    }
-}
-
-#[doc(hidden)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct FieldPath {
-    level_count: u8,
-    positions: [u8; MAX_NESTED_FIELDS],
-}
-
-impl FieldPath {
-    fn new(position: usize) -> Self {
-        let mut positions = <[u8; MAX_NESTED_FIELDS]>::default();
-        positions[0] = u8::try_from(position).expect("too many fields in struct");
+impl<T: Gpu> GpuValue<T> {
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    pub(crate) fn glob(id: &'static &'static str) -> Self {
         Self {
-            level_count: 1,
-            positions,
+            root: GpuValueRoot::Glob(id),
+            extensions: [GpuValueExt::new(); MAX_NESTED_FIELDS],
+            phantom: PhantomData,
         }
     }
 
-    fn new_nested(mut self, position: usize) -> Self {
-        assert_ne!(
-            self.level_count as usize, MAX_NESTED_FIELDS,
-            "struct recursion limit reached"
-        );
-        self.positions[self.level_count as usize] =
-            u8::try_from(position).expect("too many fields in struct");
-        self.level_count += 1;
-        self
+    pub(crate) fn var(id: u32) -> Self {
+        Self {
+            root: GpuValueRoot::Var(id),
+            extensions: [GpuValueExt::new(); MAX_NESTED_FIELDS],
+            phantom: PhantomData,
+        }
     }
+
+    pub(crate) fn unregistered_var() -> Self {
+        Self {
+            root: GpuValueRoot::Var(context::next_var_id()),
+            extensions: [GpuValueExt::new(); MAX_NESTED_FIELDS],
+            phantom: PhantomData,
+        }
+    }
+
+    pub(crate) fn field<U>(self, position: usize) -> GpuValue<U> {
+        let field_id = position.try_into().expect("too many fields in struct");
+        self.extended(true, field_id)
+    }
+
+    pub(crate) fn index<U>(self, index_id: u8) -> GpuValue<U> {
+        self.extended(false, index_id)
+    }
+
+    pub(crate) fn var_id(self) -> u32 {
+        match self.root {
+            GpuValueRoot::Glob(_) => unreachable!("internal error: value should be a local var"),
+            GpuValueRoot::Var(id) => id,
+        }
+    }
+
+    #[doc(hidden)]
+    pub fn untyped(self) -> Value {
+        let mut value = Value {
+            type_id: TypeId::of::<T>(),
+            root: self.root,
+            extensions: vec![],
+        };
+        for ext in self.extensions {
+            if !ext.is_some() {
+                break;
+            }
+            let untyped_ext = if ext.is_field() {
+                ValueExt::FieldPosition(ext.id())
+            } else {
+                ValueExt::IndexVarId(GpuContext::run_current(|ctx| {
+                    ctx.index(&value, ext.id()).value().var_id()
+                }))
+            };
+            value.extensions.push(untyped_ext);
+        }
+        value
+    }
+
+    fn extended<U>(mut self, is_field: bool, id: u8) -> GpuValue<U> {
+        let ext = self
+            .extensions
+            .iter_mut()
+            .find(|ext| !ext.is_some())
+            .expect("struct recursion limit reached");
+        ext.set_id(id);
+        ext.set_is_field(is_field);
+        ext.set_is_some(true);
+        GpuValue {
+            root: self.root,
+            extensions: self.extensions,
+            phantom: PhantomData,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum GpuValueRoot {
+    Glob(&'static &'static str),
+    Var(u32),
+}
+
+#[bitfield(u8)]
+pub(crate) struct GpuValueExt {
+    // either field position in the struct
+    // or "local" ID (dedicated to array) of variable storing array index
+    #[bits(6)]
+    id: u8,
+    // `true` if this is a field, `false` if this is an indexing
+    #[bits(1)]
+    is_field: bool,
+    #[bits(1)]
+    is_some: bool,
 }
 
 #[doc(hidden)]
@@ -172,7 +191,15 @@ impl GpuTypeDetails {
 }
 
 /// A trait implemented for GPU types on which it is possible to iterate (e.g. using a `for` loop).
-pub trait Iterable: Index<U32> {
+pub trait Iterable {
+    /// The item type.
+    type Item<'a>
+    where
+        Self: 'a;
+
+    /// Returns the next item from the iteration index.
+    fn next(&self, index: U32) -> Self::Item<'_>;
+
     /// The number of items contained in the iterable.
     fn len(&self) -> U32;
 
@@ -183,27 +210,18 @@ pub trait Iterable: Index<U32> {
 }
 
 #[derive(Clone, Copy)]
-pub(crate) struct IndexItems<T>([T; MAX_ITEM_ACCESS]);
-
-impl<T: Gpu> Default for IndexItems<T> {
-    fn default() -> Self {
-        let mut items = [T::unregistered(); MAX_ITEM_ACCESS];
-        for item in &mut items {
-            *item = T::unregistered();
-        }
-        Self(items)
-    }
-}
+pub(crate) struct IndexItems<T>([T; MAX_INDEX_CALLS_PER_SHADER]);
 
 impl<T: Gpu> IndexItems<T> {
-    fn next(&self, expr: T) -> &T {
-        let item = GpuContext::run_current(|ctx| {
-            let inner_index = ctx.next_index(self.0[0]);
-            assert_ne!(inner_index, MAX_ITEM_ACCESS, "index call limit reached");
-            ctx.register_var(self.0[inner_index]);
-            &self.0[inner_index]
-        });
-        crate::assign(*item, expr);
-        item
+    fn new<P: Gpu>(parent: GpuValue<P>) -> Self {
+        Self(array_init::<_, _, MAX_INDEX_CALLS_PER_SHADER>(|i| {
+            T::from_value(parent.index(i.try_into().expect("internal error: out of bound index")))
+        }))
+    }
+
+    fn next<P: Gpu>(&self, parent: P, index: U32) -> &T {
+        let parent_value = parent.value().untyped();
+        let index_value = index.value().untyped();
+        GpuContext::run_current(|ctx| &self.0[ctx.next_index_id(parent_value, index_value)])
     }
 }

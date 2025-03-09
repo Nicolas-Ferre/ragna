@@ -53,7 +53,7 @@ fn fn_to_gpu(mut item: ForeignItemFn, module: &mut GpuModule) {
         vis: item.vis,
         sig: item.sig,
         block: parse_quote_spanned! { span => {
-            ::ragna::call_fn(#fn_name, vec![#(::ragna::Gpu::value(#param_idents).into()),*])
+            ::ragna::call_fn(#fn_name, vec![#(::ragna::Gpu::value(#param_idents).untyped()),*])
         }},
     }));
 }

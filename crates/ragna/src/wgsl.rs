@@ -1,6 +1,6 @@
 use crate::context::GpuContext;
-use crate::operations::{Glob, Operation, Value};
-use crate::types::GpuTypeDetails;
+use crate::operations::{Operation, Value, ValueExt};
+use crate::types::{GpuTypeDetails, GpuValueRoot};
 use crate::Bool;
 use fxhash::FxHashMap;
 use itertools::Itertools;
@@ -12,7 +12,7 @@ const STRUCT_NAME_PLACEHOLDER: &str = "<name>";
 
 pub(crate) fn header_code(
     types: &FxHashMap<TypeId, (usize, GpuTypeDetails)>,
-    globs: &[Glob],
+    globs: &[Value],
 ) -> String {
     if globs.is_empty() {
         String::new()
@@ -41,7 +41,7 @@ pub(crate) fn header_code(
 pub(crate) fn compute_shader_code(
     ctx: &GpuContext,
     types: &FxHashMap<TypeId, (usize, GpuTypeDetails)>,
-    globs: &[Glob],
+    globs: &[Value],
 ) -> String {
     format!(
         "@compute @workgroup_size(1, 1, 1)\nfn main() {{\n{}\n{}\n}}",
@@ -84,7 +84,7 @@ fn struct_(
 fn operation_code(
     operation: &Operation,
     types: &FxHashMap<TypeId, (usize, GpuTypeDetails)>,
-    globs: &[Glob],
+    globs: &[Value],
 ) -> String {
     match operation {
         Operation::DeclareVar(op) => {
@@ -99,7 +99,7 @@ fn operation_code(
         }
         Operation::ConstantAssignVar(op) => {
             let var_name = value_code(&op.left_value, globs);
-            let type_name = type_name(op.left_value.value_type_id(), types);
+            let type_name = type_name(op.left_value.type_id, types);
             let value = op.right_value.replace(STRUCT_NAME_PLACEHOLDER, &type_name);
             format!("    {var_name} = {value};")
         }
@@ -115,14 +115,6 @@ fn operation_code(
             let left_value = function_arg(&op.left_value, globs);
             let right_value = function_arg(&op.right_value, globs);
             let operation = format!("{left_value} {} {right_value}", op.operator);
-            let expr = returned_value(&op.var, operation, types);
-            format!("    {var_name} = {expr};")
-        }
-        Operation::Index(op) => {
-            let var_name = value_code(&op.var, globs);
-            let array = function_arg(&op.array, globs);
-            let index = function_arg(&op.index, globs);
-            let operation = format!("{array}[{index}]");
             let expr = returned_value(&op.var, operation, types);
             format!("    {var_name} = {expr};")
         }
@@ -151,8 +143,8 @@ fn operation_code(
     }
 }
 
-fn function_arg(value: &Value, globs: &[Glob]) -> String {
-    if value.value_type_id() == TypeId::of::<Bool>() {
+fn function_arg(value: &Value, globs: &[Value]) -> String {
+    if value.type_id == TypeId::of::<Bool>() {
         format!("bool({})", value_code(value, globs))
     } else {
         value_code(value, globs)
@@ -165,7 +157,7 @@ fn returned_value(
     types: &FxHashMap<TypeId, (usize, GpuTypeDetails)>,
 ) -> String {
     let bool_type_id = TypeId::of::<Bool>();
-    if value.value_type_id() == bool_type_id {
+    if value.type_id == bool_type_id {
         let bool_gpu_type = type_name(bool_type_id, types);
         format!("{bool_gpu_type}({expr})")
     } else {
@@ -173,27 +165,30 @@ fn returned_value(
     }
 }
 
-fn value_code(value: &Value, globs: &[Glob]) -> String {
-    match value {
-        Value::Glob(glob) => format!("{}.{}", BUFFER_NAME, glob_name(glob, globs)),
-        Value::Var(var) => var_name(var.id),
-        Value::Field(field) => {
-            let source = value_code(&field.source, globs);
-            let fields = field
-                .positions
-                .iter()
-                .map(|index| field_name(*index))
-                .join(".");
-            format!("{source}.{fields}")
+fn value_code(value: &Value, globs: &[Value]) -> String {
+    let root = match value.root {
+        GpuValueRoot::Glob(_) => {
+            let glob_name = glob_name(value.root_value(globs), globs);
+            format!("{BUFFER_NAME}.{glob_name}")
         }
-    }
+        GpuValueRoot::Var(id) => var_name(id),
+    };
+    let extensions = value
+        .extensions
+        .iter()
+        .map(|ext| match ext {
+            ValueExt::FieldPosition(pos) => format!(".{}", field_name(*pos as usize)),
+            ValueExt::IndexVarId(id) => format!("[{}]", var_name(*id)),
+        })
+        .join("");
+    format!("{root}{extensions}")
 }
 
-fn glob_name(glob: &Glob, globs: &[Glob]) -> String {
+fn glob_name(glob: &Value, globs: &[Value]) -> String {
     format!("g{}", glob_index(glob, globs))
 }
 
-fn glob_index(glob: &Glob, globs: &[Glob]) -> usize {
+fn glob_index(glob: &Value, globs: &[Value]) -> usize {
     globs
         .iter()
         .position(|g| g == glob)

@@ -1,7 +1,6 @@
-use crate::{Bool, Cpu, Gpu, GpuTypeDetails, GpuValue, GreaterThan, IndexItems, Iterable, U32};
+use crate::{Bool, Cpu, Gpu, GpuTypeDetails, GpuValue, GreaterThan, Iterable, U32};
 use std::any::TypeId;
 use std::ops;
-use std::ops::Index;
 
 /// A GPU type to iterate on a range of values.
 #[derive(Clone, Copy)]
@@ -11,7 +10,6 @@ pub struct Range<T: Gpu> {
     /// The last value excluded.
     pub end: T,
     value: GpuValue<Self>,
-    items: IndexItems<T>,
 }
 
 impl<T: Gpu> Range<T> {
@@ -41,21 +39,11 @@ impl<T: Gpu> Gpu for Range<T> {
         self.value
     }
 
-    fn unregistered() -> Self {
-        Self {
-            start: T::unregistered(),
-            end: T::unregistered(),
-            value: GpuValue::unregistered_var(),
-            items: IndexItems::default(),
-        }
-    }
-
     fn from_value(value: GpuValue<Self>) -> Self {
         Self {
             start: T::from_value(value.field(0)),
             end: T::from_value(value.field(1)),
             value,
-            items: IndexItems::default(),
         }
     }
 }
@@ -74,15 +62,13 @@ impl<T: Cpu> Cpu for ops::Range<T> {
     }
 }
 
-impl Index<U32> for Range<U32> {
-    type Output = U32;
-
-    fn index(&self, index: U32) -> &Self::Output {
-        self.items.next(self.start + index)
-    }
-}
-
 impl Iterable for Range<U32> {
+    type Item<'a> = U32;
+
+    fn next(&self, index: U32) -> Self::Item<'_> {
+        self.start + index
+    }
+
     fn len(&self) -> U32 {
         select(
             0_u32.to_gpu(),
@@ -95,6 +81,10 @@ impl Iterable for Range<U32> {
 fn select(f: U32, t: U32, cond: Bool) -> U32 {
     crate::call_fn(
         "select",
-        vec![f.value().into(), t.value().into(), cond.value().into()],
+        vec![
+            f.value().untyped(),
+            t.value().untyped(),
+            cond.value().untyped(),
+        ],
     )
 }
