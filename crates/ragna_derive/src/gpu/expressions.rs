@@ -6,8 +6,8 @@ use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{
     fold, parse_quote_spanned, BinOp, Expr, ExprArray, ExprAssign, ExprBinary, ExprBreak, ExprCall,
-    ExprContinue, ExprForLoop, ExprIf, ExprLit, ExprRange, ExprUnary, ExprWhile, Lit, LitInt, Pat,
-    RangeLimits, Stmt,
+    ExprContinue, ExprForLoop, ExprIf, ExprLit, ExprRange, ExprRepeat, ExprUnary, ExprWhile, Lit,
+    LitInt, Pat, RangeLimits, Stmt,
 };
 
 macro_rules! transform_binary_expr {
@@ -38,6 +38,7 @@ pub(crate) fn expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
         Expr::Continue(expr) => continue_to_gpu(expr, module).into(),
         Expr::Range(expr) => range_to_gpu(expr, module),
         Expr::Array(expr) => array_to_gpu(expr, module),
+        Expr::Repeat(expr) => repeat_to_gpu(expr, module),
         expr @ (Expr::Path(_)
         | Expr::Paren(_)
         | Expr::Call(_)
@@ -370,4 +371,12 @@ fn array_to_gpu(mut expr: ExprArray, module: &mut GpuModule) -> Expr {
         *elem = module.fold_expr(elem.clone());
     }
     parse_quote_spanned! { expr.span() => ::ragna::Array::new(#expr) }
+}
+
+fn repeat_to_gpu(expr: ExprRepeat, module: &mut GpuModule) -> Expr {
+    let span = expr.span();
+    let attrs = expr.attrs;
+    let item = module.fold_expr(*expr.expr);
+    let len = expr.len;
+    parse_quote_spanned! { span => #(#attrs)* ::ragna::Array::<_, #len>::repeated(#item) }
 }
