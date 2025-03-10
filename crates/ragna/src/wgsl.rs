@@ -178,6 +178,7 @@ fn value_code(value: &Value, globs: &[Value]) -> String {
         .iter()
         .map(|ext| match ext {
             ValueExt::FieldPosition(pos) => format!(".{}", field_name(*pos as usize)),
+            ValueExt::FieldName(name) => format!(".{name}"),
             ValueExt::IndexVarId(id) => format!("[{}]", var_name(*id)),
         })
         .join("");

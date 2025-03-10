@@ -49,7 +49,10 @@ impl<T: Gpu, const N: usize> Gpu for Array<T, N> {
             type_id: TypeId::of::<Self>(),
             name: Some("array"),
             array_generics: Some((item_details.clone().into(), N)),
-            size: Some(item_details.size() * N as u64),
+            size: Some(
+                N as u64 * GpuTypeDetails::round_up(item_details.alignment(), item_details.size()),
+            ),
+            alignment: Some(item_details.alignment()),
             field_types: vec![item_details],
         }
     }

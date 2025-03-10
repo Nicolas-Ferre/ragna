@@ -31,6 +31,7 @@ impl<T: Gpu> Gpu for Range<T> {
             name: None,
             array_generics: None,
             size: None,
+            alignment: None,
             field_types: vec![T::details(), T::details()],
         }
     }

@@ -18,6 +18,7 @@ pub use operators::*;
 pub use types::array::*;
 pub use types::primitive::*;
 pub use types::range::*;
+pub use types::vectors::*;
 pub use types::*;
 
 /// Transforms a Rust module to a GPU module.

@@ -4,6 +4,7 @@ use crate::{context, Bool, Equal, U32};
 use array_init::array_init;
 use bitfield_struct::bitfield;
 use derive_where::derive_where;
+use fxhash::FxHashMap;
 use std::any::TypeId;
 use std::default::Default;
 use std::marker::PhantomData;
@@ -11,6 +12,7 @@ use std::marker::PhantomData;
 pub(crate) mod array;
 pub(crate) mod primitive;
 pub(crate) mod range;
+pub(crate) mod vectors;
 
 const MAX_NESTED_FIELDS: usize = 15;
 pub(crate) const MAX_INDEX_CALLS_PER_SHADER: usize = 50;
@@ -94,11 +96,16 @@ impl<T: Gpu> GpuValue<T> {
 
     pub(crate) fn field<U>(self, position: usize) -> GpuValue<U> {
         let field_id = position.try_into().expect("too many fields in struct");
-        self.extended(true, field_id)
+        self.extended(GpuValueExtKind::Field, field_id)
+    }
+
+    pub(crate) fn vec_field<U>(self, position: usize) -> GpuValue<U> {
+        let field_id = position.try_into().expect("too many fields in struct");
+        self.extended(GpuValueExtKind::VecField, field_id)
     }
 
     pub(crate) fn index<U>(self, index_id: u8) -> GpuValue<U> {
-        self.extended(false, index_id)
+        self.extended(GpuValueExtKind::Indexing, index_id)
     }
 
     pub(crate) fn var_id(self) -> u32 {
@@ -116,30 +123,32 @@ impl<T: Gpu> GpuValue<T> {
             extensions: vec![],
         };
         for ext in self.extensions {
-            if !ext.is_some() {
-                break;
-            }
-            let untyped_ext = if ext.is_field() {
-                ValueExt::FieldPosition(ext.id())
-            } else {
-                ValueExt::IndexVarId(GpuContext::run_current(|ctx| {
+            let untyped_ext = match ext.kind() {
+                GpuValueExtKind::None => break,
+                GpuValueExtKind::Field => ValueExt::FieldPosition(ext.id()),
+                GpuValueExtKind::VecField => ValueExt::FieldName(match ext.id() {
+                    0 => "x",
+                    1 => "y",
+                    2 => "z",
+                    _ => "w",
+                }),
+                GpuValueExtKind::Indexing => ValueExt::IndexVarId(GpuContext::run_current(|ctx| {
                     ctx.index(&value, ext.id()).value().var_id()
-                }))
+                })),
             };
             value.extensions.push(untyped_ext);
         }
         value
     }
 
-    fn extended<U>(mut self, is_field: bool, id: u8) -> GpuValue<U> {
+    fn extended<U>(mut self, kind: GpuValueExtKind, id: u8) -> GpuValue<U> {
         let ext = self
             .extensions
             .iter_mut()
-            .find(|ext| !ext.is_some())
+            .find(|ext| ext.kind() == GpuValueExtKind::None)
             .expect("struct recursion limit reached");
         ext.set_id(id);
-        ext.set_is_field(is_field);
-        ext.set_is_some(true);
+        ext.set_kind(kind);
         GpuValue {
             root: self.root,
             extensions: self.extensions,
@@ -161,10 +170,32 @@ pub(crate) struct GpuValueExt {
     #[bits(6)]
     id: u8,
     // `true` if this is a field, `false` if this is an indexing
-    #[bits(1)]
-    is_field: bool,
-    #[bits(1)]
-    is_some: bool,
+    #[bits(2)]
+    kind: GpuValueExtKind,
+}
+
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum GpuValueExtKind {
+    None = 0,
+    Field = 1,
+    VecField = 2,
+    Indexing = 3,
+}
+
+impl GpuValueExtKind {
+    const fn into_bits(self) -> u8 {
+        self as _
+    }
+
+    const fn from_bits(value: u8) -> Self {
+        match value {
+            0 => Self::None,
+            1 => Self::Field,
+            2 => Self::VecField,
+            _ => Self::Indexing,
+        }
+    }
 }
 
 #[doc(hidden)]
@@ -177,15 +208,64 @@ pub struct GpuTypeDetails {
     pub(crate) array_generics: Option<(Box<GpuTypeDetails>, usize)>,
     // specified only for native types
     pub(crate) size: Option<u64>,
+    // specified only for native types
+    pub(crate) alignment: Option<u64>,
     pub(crate) field_types: Vec<Self>,
 }
 
 impl GpuTypeDetails {
+    pub(crate) fn from_fields(fields: &[Value], types: &FxHashMap<TypeId, (usize, Self)>) -> Self {
+        Self {
+            type_id: TypeId::of::<()>(),
+            name: None,
+            array_generics: None,
+            size: None,
+            alignment: None,
+            field_types: fields
+                .iter()
+                .map(|field| types[&field.type_id].1.clone())
+                .collect(),
+        }
+    }
+
     pub(crate) fn size(&self) -> u64 {
         if let Some(size) = self.size {
             size
         } else {
-            self.field_types.iter().map(Self::size).sum()
+            Self::round_up(
+                self.alignment(),
+                self.field_offset(self.field_types.len() - 1)
+                    + self.field_types[self.field_types.len() - 1].size(),
+            )
+        }
+    }
+
+    pub(crate) fn alignment(&self) -> u64 {
+        if let Some(alignment) = self.alignment {
+            alignment
+        } else {
+            self.field_types
+                .iter()
+                .map(Self::alignment)
+                .max()
+                .expect("internal error: struct without field")
+        }
+    }
+
+    pub(crate) fn round_up(k: u64, n: u64) -> u64 {
+        n.div_ceil(k) * k
+    }
+
+    pub(crate) fn field_offset(&self, field_index: usize) -> u64 {
+        if field_index == 0 {
+            0
+        } else {
+            let current_field = &self.field_types[field_index];
+            let previous_field = &self.field_types[field_index - 1];
+            Self::round_up(
+                current_field.alignment(),
+                self.field_offset(field_index - 1) + previous_field.size(),
+            )
         }
     }
 }

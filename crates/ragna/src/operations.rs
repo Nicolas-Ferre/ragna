@@ -23,6 +23,7 @@ impl Value {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum ValueExt {
     FieldPosition(u8),
+    FieldName(&'static str),
     IndexVarId(u32),
 }
 
