@@ -18,6 +18,7 @@ macro_rules! native_gpu_type {
                     name: Some($wgsl_name),
                     array_generics: None,
                     size: Some(4),
+                    alignment: Some(4),
                     field_types: vec![],
                 }
             }

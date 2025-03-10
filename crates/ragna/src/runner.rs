@@ -1,5 +1,5 @@
 use crate::operations::Value;
-use crate::App;
+use crate::{App, GpuTypeDetails};
 use futures::executor;
 use std::time::{Duration, Instant};
 use wgpu::{
@@ -55,27 +55,25 @@ impl Runner {
     pub(crate) fn read(&self, app: &App, value: &Value) -> Vec<u8> {
         if let Some(buffer) = &self.program.buffer {
             if let Some(position) = app.globs.iter().position(|other_glob| other_glob == value) {
+                let buffer_type_details = GpuTypeDetails::from_fields(&app.globs, &app.types);
+                let value_size = app.types[&value.type_id].1.size();
                 let tmp_buffer = self.device.create_buffer(&BufferDescriptor {
-                    label: Some("modor_texture_buffer"),
-                    size: app.types[&value.type_id].1.size(),
+                    label: Some("ragna:texture_buffer"),
+                    size: value_size,
                     usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
                     mapped_at_creation: false,
                 });
                 let mut encoder = self
                     .device
                     .create_command_encoder(&CommandEncoderDescriptor {
-                        label: Some("shad:buffer_retrieval"),
+                        label: Some("ragna:buffer_retrieval"),
                     });
                 encoder.copy_buffer_to_buffer(
                     buffer,
-                    app.globs
-                        .iter()
-                        .take(position)
-                        .map(|glob| app.types[&glob.type_id].1.size())
-                        .sum(),
+                    buffer_type_details.field_offset(position),
                     &tmp_buffer,
                     0,
-                    app.types[&value.type_id].1.size(),
+                    value_size,
                 );
                 let submission_index = self.queue.submit(Some(encoder.finish()));
                 let slice = tmp_buffer.slice(..);
@@ -176,18 +174,12 @@ impl Program {
         if app.globs.is_empty() {
             None
         } else {
-            Some(
-                device.create_buffer(&BufferDescriptor {
-                    label: Some("ragna:buffer"),
-                    size: app
-                        .globs
-                        .iter()
-                        .map(|glob| app.types[&glob.type_id].1.size())
-                        .sum(),
-                    usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC,
-                    mapped_at_creation: false,
-                }),
-            )
+            Some(device.create_buffer(&BufferDescriptor {
+                label: Some("ragna:buffer"),
+                size: GpuTypeDetails::from_fields(&app.globs, &app.types).size(),
+                usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC,
+                mapped_at_creation: false,
+            }))
         }
     }
 
