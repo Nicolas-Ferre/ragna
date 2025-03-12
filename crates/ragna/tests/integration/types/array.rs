@@ -12,6 +12,7 @@ pub fn use_arrays() {
         app.read(*gpu::NESTED),
         Some([[1, 2], [10, 11], [9, 6], [7, 8]])
     );
+    assert_eq!(app.read(*gpu::DEEP), Some([[[[[10]]]]]));
     assert_eq!(app.read(*gpu::LENGTH), Some(4));
     assert_eq!(app.read(*gpu::FIRST_ITEM), Some(1));
     assert_eq!(app.read(*gpu::SECOND_ITEM), Some(2));
@@ -37,6 +38,8 @@ mod gpu {
     pub(super) static FROM_ITEMS: Array<U32, 4> = [1u, 2u, 3u, 4u];
     pub(super) static FROM_REPEATED: Array<U32, 4> = [42u; 4];
     pub(super) static NESTED: Array<Array<U32, 2>, 4> = [[1u, 2u], [3u, 4u], [5u, 6u], [7u, 8u]];
+    #[allow(clippy::type_complexity)]
+    pub(super) static DEEP: Array<Array<Array<Array<Array<U32, 1>, 1>, 1>, 1>, 1> = [[[[[0u]]]]];
     pub(super) static LENGTH: U32 = 0u;
     pub(super) static FIRST_ITEM: U32 = 0u;
     pub(super) static SECOND_ITEM: U32 = 0u;
@@ -54,6 +57,7 @@ mod gpu {
         *NESTED_ARRAY_ITEM = NESTED[1u][0u];
         NESTED[2u][0u] = 9u;
         NESTED[1u] = [10u, 11u];
+        DEEP[0u][0u][0u][0u][0u] = 10u;
         for inner_array in *NESTED {
             for inner_value in *inner_array {
                 *ITER_SUM += *inner_value;

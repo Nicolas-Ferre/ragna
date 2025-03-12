@@ -1,33 +1,8 @@
-use crate::types::{GpuTypeDetails, GpuValueRoot};
-use derive_where::derive_where;
-use std::any::TypeId;
-
-#[derive(Debug, Clone)]
-#[derive_where(PartialEq, Eq, Hash)]
-pub struct Value {
-    #[derive_where(skip)]
-    pub(crate) type_id: TypeId,
-    pub(crate) root: GpuValueRoot,
-    pub(crate) extensions: Vec<ValueExt>,
-}
-
-impl Value {
-    pub(crate) fn root_value<'a>(&self, globs: &'a [Self]) -> &'a Self {
-        globs
-            .iter()
-            .find(|glob| glob.root == self.root)
-            .expect("internal error: root value should be a glob")
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) enum ValueExt {
-    FieldPosition(u8),
-    FieldName(&'static str),
-    IndexVarId(u32),
-}
+use crate::types::GpuTypeDetails;
+use crate::GpuValue;
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum Operation {
     DeclareVar(DeclareVarOperation),
     AssignVar(AssignVarOperation),
@@ -51,39 +26,39 @@ pub(crate) struct DeclareVarOperation {
 
 #[derive(Debug)]
 pub(crate) struct AssignVarOperation {
-    pub(crate) left_value: Value,
-    pub(crate) right_value: Value,
+    pub(crate) left_value: GpuValue,
+    pub(crate) right_value: GpuValue,
 }
 
 #[derive(Debug)]
 pub(crate) struct ConstantAssignVarOperation {
-    pub(crate) left_value: Value,
+    pub(crate) left_value: GpuValue,
     pub(crate) right_value: String,
 }
 
 #[derive(Debug)]
 pub(crate) struct UnaryOperation {
-    pub(crate) var: Value,
-    pub(crate) value: Value,
+    pub(crate) var: GpuValue,
+    pub(crate) value: GpuValue,
     pub(crate) operator: &'static str,
 }
 
 #[derive(Debug)]
 pub(crate) struct BinaryOperation {
-    pub(crate) var: Value,
-    pub(crate) left_value: Value,
-    pub(crate) right_value: Value,
+    pub(crate) var: GpuValue,
+    pub(crate) left_value: GpuValue,
+    pub(crate) right_value: GpuValue,
     pub(crate) operator: &'static str,
 }
 
 #[derive(Debug)]
 pub(crate) struct FnCallOperation {
-    pub(crate) var: Value,
+    pub(crate) var: GpuValue,
     pub(crate) fn_name: &'static str,
-    pub(crate) args: Vec<Value>,
+    pub(crate) args: Vec<GpuValue>,
 }
 
 #[derive(Debug)]
 pub(crate) struct IfOperation {
-    pub(crate) condition: Value,
+    pub(crate) condition: GpuValue,
 }

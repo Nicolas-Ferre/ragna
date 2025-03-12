@@ -9,7 +9,7 @@ pub struct Range<T: Gpu> {
     pub start: T,
     /// The last value excluded.
     pub end: T,
-    value: GpuValue<Self>,
+    value: GpuValue,
 }
 
 impl<T: Gpu> Range<T> {
@@ -36,14 +36,14 @@ impl<T: Gpu> Gpu for Range<T> {
         }
     }
 
-    fn value(self) -> GpuValue<Self> {
+    fn value(self) -> GpuValue {
         self.value
     }
 
-    fn from_value(value: GpuValue<Self>) -> Self {
+    fn from_value(value: GpuValue) -> Self {
         Self {
-            start: T::from_value(value.field(0)),
-            end: T::from_value(value.field(1)),
+            start: T::from_value(value.field::<T>(0)),
+            end: T::from_value(value.field::<T>(1)),
             value,
         }
     }
@@ -80,12 +80,5 @@ impl Iterable for Range<U32> {
 }
 
 fn select(f: U32, t: U32, cond: Bool) -> U32 {
-    crate::call_fn(
-        "select",
-        vec![
-            f.value().untyped(),
-            t.value().untyped(),
-            cond.value().untyped(),
-        ],
-    )
+    crate::call_fn("select", vec![f.value(), t.value(), cond.value()])
 }

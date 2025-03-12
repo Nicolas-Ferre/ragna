@@ -1,26 +1,20 @@
-use crate::types::IndexItems;
-use crate::{Cpu, Gpu, GpuTypeDetails, GpuValue, GreaterThan, Iterable, U32};
+use crate::{context, Cpu, Gpu, GpuTypeDetails, GpuValue, GreaterThan, Iterable, U32};
 use itertools::Itertools;
 use std::any::TypeId;
+use std::marker::PhantomData;
 use std::ops::Index;
 
 /// A GPU array.
 #[derive(Clone, Copy)]
 pub struct Array<T, const N: usize> {
-    value: GpuValue<Self>,
-    items: IndexItems<T>,
+    value: GpuValue,
+    phantom: PhantomData<fn(T)>,
 }
 
 impl<T: Gpu, const N: usize> Array<T, N> {
     /// Creates a new array.
     pub fn new(items: [T; N]) -> Self {
-        crate::call_fn(
-            "array",
-            items
-                .into_iter()
-                .map(|item| item.value().untyped())
-                .collect(),
-        )
+        crate::call_fn("array", items.into_iter().map(Gpu::value).collect())
     }
 
     /// Creates a new array from a repeated item.
@@ -57,15 +51,15 @@ impl<T: Gpu, const N: usize> Gpu for Array<T, N> {
         }
     }
 
-    fn value(self) -> GpuValue<Self> {
+    fn value(self) -> GpuValue {
         self.value
     }
 
-    fn from_value(value: GpuValue<Self>) -> Self {
+    fn from_value(value: GpuValue) -> Self {
         assert_ne!(N, 0, "arrays should not be empty");
         Self {
             value,
-            items: IndexItems::new(value),
+            phantom: PhantomData,
         }
     }
 }
@@ -92,7 +86,10 @@ impl<T: Gpu, const N: usize> Index<U32> for Array<T, N> {
     type Output = T;
 
     fn index(&self, index: U32) -> &Self::Output {
-        self.items.next(*self, index % self.len())
+        let transformed_index = index % self.len();
+        context::next_static_value(T::from_value(
+            self.value().index::<T>(transformed_index.value().var_id()),
+        ))
     }
 }
 

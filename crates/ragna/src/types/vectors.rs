@@ -58,7 +58,7 @@ macro_rules! simd_type {
                 )]
                 pub $field_ident: $gpu_item_name,
             )+
-            value: GpuValue<Self>,
+            value: GpuValue,
         }
 
         impl $gpu_name {
@@ -84,13 +84,15 @@ macro_rules! simd_type {
                 }
             }
 
-            fn value(self) -> GpuValue<Self> {
+            fn value(self) -> GpuValue {
                 self.value
             }
 
-            fn from_value(value: GpuValue<Self>) -> Self {
+            fn from_value(value: GpuValue) -> Self {
                 Self {
-                    $($field_ident: $gpu_item_name::from_value(value.vec_field($field_index)),)+
+                    $($field_ident: $gpu_item_name::from_value(
+                        value.vec_field::<$gpu_item_name>($field_index)
+                    ),)+
                     value,
                 }
             }

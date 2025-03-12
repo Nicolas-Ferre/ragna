@@ -1,8 +1,8 @@
 use crate::context::GpuContext;
-use crate::operations::{AssignVarOperation, Operation, Value};
+use crate::operations::{AssignVarOperation, Operation};
 use crate::runner::Runner;
 use crate::types::GpuTypeDetails;
-use crate::{wgsl, Cpu, Glob, Gpu};
+use crate::{wgsl, Cpu, Glob, Gpu, GpuValue};
 use derive_where::derive_where;
 use fxhash::FxHashMap;
 use std::any::TypeId;
@@ -16,9 +16,9 @@ pub(crate) static CURRENT_CTX: Mutex<Option<GpuContext>> = Mutex::new(None);
 #[derive_where(Debug)]
 pub struct App {
     pub(crate) contexts: Vec<GpuContext>,
-    pub(crate) globs: Vec<Value>,
+    pub(crate) globs: Vec<GpuValue>,
     #[derive_where(skip)]
-    pub(crate) glob_defaults: Vec<Box<dyn Fn() -> Value>>,
+    pub(crate) glob_defaults: Vec<Box<dyn Fn() -> GpuValue>>,
     pub(crate) types: FxHashMap<TypeId, (usize, GpuTypeDetails)>,
     pub(crate) runner: Option<Runner>,
 }
@@ -60,8 +60,8 @@ impl App {
     pub fn with_glob<T: Gpu>(mut self, glob: &Glob<T>) -> Self {
         let default_value = glob.default_value;
         self.glob_defaults
-            .push(Box::new(move || default_value().value().untyped()));
-        self.globs.push(glob.inner.value().untyped());
+            .push(Box::new(move || default_value().value()));
+        self.globs.push(glob.inner.value());
         let lock = GpuContext::lock_current();
         GpuContext::run_current(GpuContext::register_type::<T>);
         let mut ctx = GpuContext::unlock_current(lock);
@@ -76,7 +76,7 @@ impl App {
     /// If the passed value is not a global variable,
     pub fn read<T: Gpu>(&self, value: T) -> Option<T::Cpu> {
         self.runner.as_ref().and_then(|runner| {
-            let bytes = runner.read(self, &value.value().untyped());
+            let bytes = runner.read(self, &value.value());
             if bytes.is_empty() {
                 None
             } else {
@@ -92,7 +92,7 @@ impl App {
             GpuContext::run_current(|ctx| {
                 ctx.operations
                     .push(Operation::AssignVar(AssignVarOperation {
-                        left_value: glob.clone(),
+                        left_value: *glob,
                         right_value,
                     }));
             });
