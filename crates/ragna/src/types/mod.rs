@@ -64,6 +64,7 @@ pub struct GpuValue {
 }
 
 impl GpuValue {
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     pub(crate) fn glob<T: Gpu>(id: &'static &'static str) -> Self {
         Self {
             type_id: TypeId::of::<T>(),
