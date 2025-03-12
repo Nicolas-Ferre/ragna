@@ -5,6 +5,7 @@ use crate::operations::{
 use crate::{context, Bool, Gpu, GpuValue};
 
 #[doc(hidden)]
+#[allow(clippy::trivially_copy_pass_by_ref)]
 pub fn create_glob<T: Gpu>(id: &'static &'static str) -> T {
     T::from_value(GpuValue::glob::<T>(id))
 }
