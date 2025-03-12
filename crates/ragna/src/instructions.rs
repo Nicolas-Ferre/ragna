@@ -1,13 +1,12 @@
 use crate::context::GpuContext;
 use crate::operations::{
-    AssignVarOperation, DeclareVarOperation, FnCallOperation, IfOperation, Operation, Value,
+    AssignVarOperation, DeclareVarOperation, FnCallOperation, IfOperation, Operation,
 };
 use crate::{context, Bool, Gpu, GpuValue};
 
 #[doc(hidden)]
-#[allow(clippy::trivially_copy_pass_by_ref)]
 pub fn create_glob<T: Gpu>(id: &'static &'static str) -> T {
-    T::from_value(GpuValue::glob(id))
+    T::from_value(GpuValue::glob::<T>(id))
 }
 
 #[doc(hidden)]
@@ -22,7 +21,7 @@ pub fn create_uninit_var<T: Gpu>() -> T {
             }));
         id
     });
-    T::from_value(GpuValue::var(id))
+    T::from_value(GpuValue::var::<T>(id))
 }
 
 #[doc(hidden)]
@@ -34,24 +33,21 @@ pub fn create_var<T: Gpu>(value: T) -> T {
 
 #[doc(hidden)]
 pub fn assign<T: Gpu>(variable: T, value: T) {
-    let left_value = variable.value().untyped();
-    let right_value = value.value().untyped();
     GpuContext::run_current(|ctx| {
         ctx.operations
             .push(Operation::AssignVar(AssignVarOperation {
-                left_value,
-                right_value,
+                left_value: variable.value(),
+                right_value: value.value(),
             }));
     });
 }
 
 #[doc(hidden)]
-pub fn call_fn<T: Gpu>(fn_name: &'static str, args: Vec<Value>) -> T {
+pub fn call_fn<T: Gpu>(fn_name: &'static str, args: Vec<GpuValue>) -> T {
     let var = create_uninit_var::<T>();
-    let var_value = var.value().untyped();
     GpuContext::run_current(|ctx| {
         ctx.operations.push(Operation::FnCall(FnCallOperation {
-            var: var_value,
+            var: var.value(),
             fn_name,
             args,
         }));
@@ -61,10 +57,10 @@ pub fn call_fn<T: Gpu>(fn_name: &'static str, args: Vec<Value>) -> T {
 
 #[doc(hidden)]
 pub fn if_block(condition: Bool) {
-    let condition = condition.value().untyped();
     GpuContext::run_current(|ctx| {
-        ctx.operations
-            .push(Operation::IfBlock(IfOperation { condition }));
+        ctx.operations.push(Operation::IfBlock(IfOperation {
+            condition: condition.value(),
+        }));
     });
 }
 

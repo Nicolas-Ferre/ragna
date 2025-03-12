@@ -6,7 +6,7 @@ macro_rules! native_gpu_type {
         #[doc = concat!("The `", stringify!($cpu_name), "` type on GPU side.")]
         #[derive(Copy, Clone, Debug)]
         pub struct $name {
-            __value: GpuValue<Self>,
+            __value: GpuValue,
         }
 
         impl Gpu for $name {
@@ -23,11 +23,11 @@ macro_rules! native_gpu_type {
                 }
             }
 
-            fn value(self) -> GpuValue<Self> {
+            fn value(self) -> GpuValue {
                 self.__value
             }
 
-            fn from_value(value: GpuValue<Self>) -> Self {
+            fn from_value(value: GpuValue) -> Self {
                 Self { __value: value }
             }
         }

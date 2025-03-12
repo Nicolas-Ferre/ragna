@@ -1,5 +1,4 @@
-use crate::operations::Value;
-use crate::{App, GpuTypeDetails};
+use crate::{App, GpuTypeDetails, GpuValue};
 use futures::executor;
 use std::time::{Duration, Instant};
 use wgpu::{
@@ -52,7 +51,7 @@ impl Runner {
         self.last_delta
     }
 
-    pub(crate) fn read(&self, app: &App, value: &Value) -> Vec<u8> {
+    pub(crate) fn read(&self, app: &App, value: &GpuValue) -> Vec<u8> {
         if let Some(buffer) = &self.program.buffer {
             if let Some(position) = app.globs.iter().position(|other_glob| other_glob == value) {
                 let buffer_type_details = GpuTypeDetails::from_fields(&app.globs, &app.types);

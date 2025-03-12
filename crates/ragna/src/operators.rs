@@ -7,12 +7,10 @@ use std::ops::{Add, Div, Mul, Neg, Not, Rem, Sub};
 
 pub(crate) fn apply_unary_op<I: Gpu, O: Gpu>(input: I, operator: &'static str) -> O {
     let var = crate::create_uninit_var::<O>();
-    let var_value = var.value().untyped();
-    let value = input.value().untyped();
     GpuContext::run_current(|ctx| {
         ctx.operations.push(Operation::Unary(UnaryOperation {
-            var: var_value,
-            value,
+            var: var.value(),
+            value: input.value(),
             operator,
         }));
     });
@@ -25,14 +23,11 @@ pub(crate) fn apply_binary_op<L: Gpu, R: Gpu, O: Gpu>(
     operator: &'static str,
 ) -> O {
     let var = crate::create_uninit_var::<O>();
-    let var_value = var.value().untyped();
-    let left_value = left.value().untyped();
-    let right_value = right.value().untyped();
     GpuContext::run_current(|ctx| {
         ctx.operations.push(Operation::Binary(BinaryOperation {
-            var: var_value,
-            left_value,
-            right_value,
+            var: var.value(),
+            left_value: left.value(),
+            right_value: right.value(),
             operator,
         }));
     });
