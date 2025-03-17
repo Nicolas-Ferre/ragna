@@ -1,4 +1,6 @@
-use crate::{Bool, Cpu, Gpu, GpuTypeDetails, GpuValue, GreaterThan, Iterable, U32};
+use crate::{
+    Bool, Cpu, Gpu, GpuTypeDetails, GpuValue, GreaterThan, Iterable, Wgsl, WgslConstructor, U32,
+};
 use std::any::TypeId;
 use std::ops;
 
@@ -54,12 +56,15 @@ impl<T: Cpu> Cpu for ops::Range<T> {
 
     #[allow(clippy::cast_possible_truncation)]
     fn from_gpu(bytes: &[u8]) -> Self {
-        let size = <T as Cpu>::Gpu::details().size() as usize;
-        T::from_gpu(&bytes[..size])..T::from_gpu(&bytes[size..])
+        let end_offset = Self::Gpu::details().field_offset(1) as usize;
+        T::from_gpu(&bytes[..end_offset])..T::from_gpu(&bytes[end_offset..])
     }
 
-    fn to_wgsl(&self) -> String {
-        format!("<name>({}, {})", self.start.to_wgsl(), self.end.to_wgsl())
+    fn to_wgsl(&self) -> Wgsl {
+        Wgsl::Constructor(WgslConstructor {
+            type_id: TypeId::of::<Self::Gpu>(),
+            args: vec![self.start.to_wgsl(), self.end.to_wgsl()],
+        })
     }
 }
 

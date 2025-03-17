@@ -1,4 +1,4 @@
-use crate::{operators, Cpu, Gpu, GpuTypeDetails, GpuValue};
+use crate::{operators, Cpu, Gpu, GpuTypeDetails, GpuValue, Wgsl};
 use std::any::TypeId;
 
 macro_rules! native_gpu_type {
@@ -46,8 +46,8 @@ impl Cpu for i32 {
         Self::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
     }
 
-    fn to_wgsl(&self) -> String {
-        ToString::to_string(self)
+    fn to_wgsl(&self) -> Wgsl {
+        Wgsl::Value(self.to_string())
     }
 }
 
@@ -58,8 +58,8 @@ impl Cpu for u32 {
         Self::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
     }
 
-    fn to_wgsl(&self) -> String {
-        ToString::to_string(self)
+    fn to_wgsl(&self) -> Wgsl {
+        Wgsl::Value(self.to_string())
     }
 }
 
@@ -70,13 +70,13 @@ impl Cpu for f32 {
         Self::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
     }
 
-    fn to_wgsl(&self) -> String {
-        let value = ToString::to_string(self);
-        if value.contains('.') {
+    fn to_wgsl(&self) -> Wgsl {
+        let value = self.to_string();
+        Wgsl::Value(if value.contains('.') {
             value
         } else {
             format!("{value}.")
-        }
+        })
     }
 }
 
@@ -87,8 +87,8 @@ impl Cpu for bool {
         u32::from_ne_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]) != 0
     }
 
-    fn to_wgsl(&self) -> String {
-        ToString::to_string(&u32::from(*self))
+    fn to_wgsl(&self) -> Wgsl {
+        Wgsl::Value(u32::from(*self).to_string())
     }
 }
 

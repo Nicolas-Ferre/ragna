@@ -1,14 +1,13 @@
 use crate::context::GpuContext;
 use crate::operations::Operation;
 use crate::types::{GpuTypeDetails, GpuValueExt, GpuValueRoot};
-use crate::{Bool, GpuValue};
+use crate::{Bool, GpuValue, Wgsl};
 use fxhash::FxHashMap;
 use itertools::Itertools;
 use std::any::TypeId;
 
 const BUFFER_NAME: &str = "buf";
 const BUFFER_TYPE_NAME: &str = "Buf";
-const STRUCT_NAME_PLACEHOLDER: &str = "<name>";
 
 pub(crate) fn header_code(
     types: &FxHashMap<TypeId, (usize, GpuTypeDetails)>,
@@ -99,8 +98,7 @@ fn operation_code(
         }
         Operation::ConstantAssignVar(op) => {
             let var_name = value_code(&op.left_value, globs);
-            let type_name = type_name(op.left_value.type_id, types);
-            let value = op.right_value.replace(STRUCT_NAME_PLACEHOLDER, &type_name);
+            let value = wgsl_to_string(&op.right_value, types);
             format!("    {var_name} = {value};")
         }
         Operation::Unary(op) => {
@@ -226,4 +224,21 @@ fn type_name(type_id: TypeId, types: &FxHashMap<TypeId, (usize, GpuTypeDetails)>
 
 fn field_name(field_index: usize) -> String {
     format!("f{field_index}")
+}
+
+fn wgsl_to_string(wgsl: &Wgsl, types: &FxHashMap<TypeId, (usize, GpuTypeDetails)>) -> String {
+    match wgsl {
+        Wgsl::Value(value) => value.clone(),
+        Wgsl::Constructor(constructor) => {
+            format!(
+                "{}({})",
+                type_name(constructor.type_id, types),
+                constructor
+                    .args
+                    .iter()
+                    .map(|arg| wgsl_to_string(arg, types))
+                    .join(", ")
+            )
+        }
+    }
 }

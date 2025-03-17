@@ -1,5 +1,6 @@
-use crate::{context, Cpu, Gpu, GpuTypeDetails, GpuValue, GreaterThan, Iterable, U32};
-use itertools::Itertools;
+use crate::{
+    context, Cpu, Gpu, GpuTypeDetails, GpuValue, GreaterThan, Iterable, Wgsl, WgslConstructor, U32,
+};
 use std::any::TypeId;
 use std::marker::PhantomData;
 use std::ops::Index;
@@ -77,8 +78,11 @@ impl<T: Cpu, const N: usize> Cpu for [T; N] {
             .expect("internal error: invalid GPU array")
     }
 
-    fn to_wgsl(&self) -> String {
-        format!("<name>({})", self.iter().map(T::to_wgsl).join(", "))
+    fn to_wgsl(&self) -> Wgsl {
+        Wgsl::Constructor(WgslConstructor {
+            type_id: TypeId::of::<Self::Gpu>(),
+            args: self.iter().map(T::to_wgsl).collect(),
+        })
     }
 }
 
