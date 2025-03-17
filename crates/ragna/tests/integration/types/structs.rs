@@ -16,8 +16,8 @@ pub fn use_structs() {
 fn assert_struct_eq(actual: TestStructCpu<U32, 3>, expected: TestStructCpu<U32, 3>) {
     assert_eq!(actual.integer, expected.integer);
     assert_eq!(
-        gpu::custom_struct_vector(&actual),
-        gpu::custom_struct_vector(&expected)
+        gpu::test_struct_vector(&actual),
+        gpu::test_struct_vector(&expected)
     );
     assert_eq!(actual.float, expected.float);
     assert_eq!(actual.custom, expected.custom);
@@ -37,6 +37,21 @@ mod gpu {
         pub(super) array: Array<Bool, N>,
     }
 
+    #[allow(dead_code)]
+    struct StructWithOnlyPubFields {
+        pub field: I32,
+    }
+
+    #[allow(dead_code)]
+    struct StructWithOnlyRestrictedFields {
+        pub(crate) field: I32,
+    }
+
+    #[allow(dead_code)]
+    struct StructWithOnlyInheritedFields {
+        field: I32,
+    }
+
     pub(super) const fn test_struct_cpu(
         integer: i32,
         vector: u32x3,
@@ -53,7 +68,7 @@ mod gpu {
         }
     }
 
-    pub(super) const fn custom_struct_vector(struct_: &TestStructCpu<U32, 3>) -> u32x3 {
+    pub(super) const fn test_struct_vector(struct_: &TestStructCpu<U32, 3>) -> u32x3 {
         struct_.vector
     }
 
