@@ -5,4 +5,5 @@
 // mod operators;
 // mod ranges;
 // mod references;
+// mod structs;
 // mod unsupported_syntax;

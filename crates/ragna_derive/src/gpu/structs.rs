@@ -10,8 +10,8 @@ use syn::{
 pub(crate) fn item_to_gpu(mut item: ItemStruct, module: &mut GpuModule) -> TokenStream {
     let span = item.span();
     let cpu_struct = cpu_struct(&item);
-    let gpu_impl = gpu_impl(&item, &cpu_struct);
-    let cpu_impl = cpu_impl(&item, &cpu_struct);
+    let gpu_impl = gpu_impl(&item, &cpu_struct, module);
+    let cpu_impl = cpu_impl(&item, &cpu_struct, module);
     match &mut item.fields {
         Fields::Unit => {
             module
@@ -114,7 +114,7 @@ fn value_visibility(span: Span, fields: &FieldsNamed) -> Visibility {
     }
 }
 
-fn gpu_impl(gpu_struct: &ItemStruct, cpu_struct: &ItemStruct) -> ItemImpl {
+fn gpu_impl(gpu_struct: &ItemStruct, cpu_struct: &ItemStruct, module: &mut GpuModule) -> ItemImpl {
     let gpu_ident = &gpu_struct.ident;
     let cpu_ident = &cpu_struct.ident;
     let (impl_generics, type_generics, where_clause) = gpu_struct.generics.split_for_impl();
@@ -126,7 +126,12 @@ fn gpu_impl(gpu_struct: &ItemStruct, cpu_struct: &ItemStruct) -> ItemImpl {
         .enumerate()
         .map(|(index, field)| LitInt::new(&index.to_string(), field.span()));
     let generic_params = gpu_struct.generics.params.iter().map(|param| match param {
-        GenericParam::Lifetime(param) => &param.lifetime.ident,
+        GenericParam::Lifetime(param) => {
+            module
+                .errors
+                .push(syn::Error::new(param.span(), "unsupported lifetime"));
+            &param.lifetime.ident
+        }
         GenericParam::Type(param) => &param.ident,
         GenericParam::Const(param) => &param.ident,
     });
@@ -157,7 +162,7 @@ fn gpu_impl(gpu_struct: &ItemStruct, cpu_struct: &ItemStruct) -> ItemImpl {
     }
 }
 
-fn cpu_impl(gpu_struct: &ItemStruct, cpu_struct: &ItemStruct) -> ItemImpl {
+fn cpu_impl(gpu_struct: &ItemStruct, cpu_struct: &ItemStruct, module: &mut GpuModule) -> ItemImpl {
     let cpu_ident = &cpu_struct.ident;
     let gpu_ident = &gpu_struct.ident;
     let (impl_generics, type_generics, where_clause) = cpu_struct.generics.split_for_impl();
@@ -168,7 +173,12 @@ fn cpu_impl(gpu_struct: &ItemStruct, cpu_struct: &ItemStruct) -> ItemImpl {
         .collect();
     let field_types: Vec<_> = cpu_struct.fields.iter().map(|field| &field.ty).collect();
     let generic_params = cpu_struct.generics.params.iter().map(|param| match param {
-        GenericParam::Lifetime(param) => &param.lifetime.ident,
+        GenericParam::Lifetime(param) => {
+            module
+                .errors
+                .push(syn::Error::new(param.span(), "unsupported lifetime"));
+            &param.lifetime.ident
+        }
         GenericParam::Type(param) => &param.ident,
         GenericParam::Const(param) => &param.ident,
     });
