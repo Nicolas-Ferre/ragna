@@ -1,5 +1,5 @@
 use crate::types::GpuTypeDetails;
-use crate::GpuValue;
+use crate::{GpuValue, Wgsl};
 
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
@@ -33,7 +33,7 @@ pub(crate) struct AssignVarOperation {
 #[derive(Debug)]
 pub(crate) struct ConstantAssignVarOperation {
     pub(crate) left_value: GpuValue,
-    pub(crate) right_value: String,
+    pub(crate) right_value: Wgsl,
 }
 
 #[derive(Debug)]

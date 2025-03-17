@@ -21,7 +21,7 @@ pub trait Cpu: Sized {
     fn from_gpu(bytes: &[u8]) -> Self;
 
     #[doc(hidden)]
-    fn to_wgsl(&self) -> String;
+    fn to_wgsl(&self) -> Wgsl;
 
     /// Converts a value to a GPU value.
     fn to_gpu(&self) -> Self::Gpu {
@@ -54,6 +54,20 @@ pub trait Gpu: 'static + Sync + Send + Copy {
 }
 
 #[doc(hidden)]
+#[derive(Debug)]
+pub enum Wgsl {
+    Value(String),
+    Constructor(WgslConstructor),
+}
+
+#[doc(hidden)]
+#[derive(Debug)]
+pub struct WgslConstructor {
+    pub type_id: TypeId,
+    pub args: Vec<Wgsl>,
+}
+
+#[doc(hidden)]
 #[derive(Debug, Clone, Copy)]
 #[derive_where(PartialEq, Eq, Hash)]
 pub struct GpuValue {
@@ -64,6 +78,11 @@ pub struct GpuValue {
 }
 
 impl GpuValue {
+    #[doc(hidden)]
+    pub fn field<T: Gpu>(self, position: u16) -> Self {
+        self.extended::<T>(GpuValueExt::FieldPosition(position))
+    }
+
     #[allow(clippy::trivially_copy_pass_by_ref)]
     pub(crate) fn glob<T: Gpu>(id: &'static &'static str) -> Self {
         Self {
@@ -79,10 +98,6 @@ impl GpuValue {
             root: GpuValueRoot::Var(id),
             extensions: [GpuValueExt::None; MAX_NESTED_FIELDS],
         }
-    }
-
-    pub(crate) fn field<T: Gpu>(self, position: u16) -> Self {
-        self.extended::<T>(GpuValueExt::FieldPosition(position))
     }
 
     pub(crate) fn vec_field<T: Gpu>(self, position: u8) -> Self {
@@ -152,6 +167,33 @@ pub struct GpuTypeDetails {
 }
 
 impl GpuTypeDetails {
+    #[doc(hidden)]
+    pub fn new_struct<T: Gpu>(field_types: Vec<Self>) -> Self {
+        Self {
+            type_id: TypeId::of::<T>(),
+            name: None,
+            array_generics: None,
+            size: None,
+            alignment: None,
+            field_types,
+        }
+    }
+
+    #[doc(hidden)]
+    pub fn field_offset(&self, field_index: usize) -> u64 {
+        if field_index == 0 {
+            0
+        } else if let Some(current_field) = self.field_types.get(field_index) {
+            let previous_field = &self.field_types[field_index - 1];
+            Self::round_up(
+                current_field.alignment(),
+                self.field_offset(field_index - 1) + previous_field.size(),
+            )
+        } else {
+            self.size()
+        }
+    }
+
     pub(crate) fn from_fields(
         fields: &[GpuValue],
         types: &FxHashMap<TypeId, (usize, Self)>,
@@ -195,19 +237,6 @@ impl GpuTypeDetails {
 
     pub(crate) fn round_up(k: u64, n: u64) -> u64 {
         n.div_ceil(k) * k
-    }
-
-    pub(crate) fn field_offset(&self, field_index: usize) -> u64 {
-        if field_index == 0 {
-            0
-        } else {
-            let current_field = &self.field_types[field_index];
-            let previous_field = &self.field_types[field_index - 1];
-            Self::round_up(
-                current_field.alignment(),
-                self.field_offset(field_index - 1) + previous_field.size(),
-            )
-        }
     }
 }
 

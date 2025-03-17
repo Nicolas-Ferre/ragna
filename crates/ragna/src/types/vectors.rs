@@ -1,5 +1,4 @@
-use crate::{Cpu, Gpu, GpuTypeDetails, GpuValue, F32, I32, U32};
-use itertools::Itertools;
+use crate::{Cpu, Gpu, GpuTypeDetails, GpuValue, Wgsl, WgslConstructor, F32, I32, U32};
 use std::any::TypeId;
 
 macro_rules! simd_type {
@@ -127,9 +126,11 @@ macro_rules! simd_type {
                 }
             }
 
-            fn to_wgsl(&self) -> String {
-                let params = [$(self.$field_ident.to_wgsl()),+];
-                format!("<name>({})", params.into_iter().join(","))
+            fn to_wgsl(&self) -> Wgsl {
+                Wgsl::Constructor(WgslConstructor {
+                    type_id: TypeId::of::<Self::Gpu>(),
+                    args: vec![$(self.$field_ident.to_wgsl()),+],
+                })
             }
         }
     };
