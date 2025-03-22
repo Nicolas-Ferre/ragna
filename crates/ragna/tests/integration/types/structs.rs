@@ -10,6 +10,20 @@ pub fn use_structs() {
         app.read(*gpu::FROM_CPU).unwrap(),
         gpu::test_struct_cpu(1, u32x3 { x: 2, y: 3, z: 5 }, 5., 10, [false, true, false]),
     );
+    assert_struct_eq(
+        app.read(*gpu::FROM_GPU).unwrap(),
+        gpu::test_struct_cpu(
+            10,
+            u32x3 {
+                x: 20,
+                y: 30,
+                z: 40,
+            },
+            50.,
+            60,
+            [true, false, true],
+        ),
+    );
     assert_eq!(app.read(*gpu::FIELD_VALUE), Some(5.));
 }
 
@@ -81,6 +95,13 @@ mod gpu {
     };
 
     pub(super) static FROM_CPU: TestStruct<U32, 3> = CPU.to_gpu();
+    pub(super) static FROM_GPU: TestStruct<U32, 3> = TestStruct::<U32, 3> {
+        integer: 10,
+        vector: U32x3::new(20u, 30u, 40u),
+        float: 50.,
+        custom: 60u,
+        array: [true, false, true],
+    };
     pub(super) static FIELD_VALUE: F32 = 0.;
 
     #[compute]

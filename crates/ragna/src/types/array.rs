@@ -15,7 +15,7 @@ pub struct Array<T, const N: usize> {
 impl<T: Gpu, const N: usize> Array<T, N> {
     /// Creates a new array.
     pub fn new(items: [T; N]) -> Self {
-        crate::call_fn("array", items.into_iter().map(Gpu::value).collect())
+        crate::call_fn("array", items.into_iter().map(Gpu::value).collect(), false)
     }
 
     /// Creates a new array from a repeated item.
