@@ -44,13 +44,14 @@ pub fn assign<T: Gpu>(variable: T, value: T) {
 }
 
 #[doc(hidden)]
-pub fn call_fn<T: Gpu>(fn_name: &'static str, args: Vec<GpuValue>) -> T {
+pub fn call_fn<T: Gpu>(fn_name: &'static str, args: Vec<GpuValue>, is_supporting_bool: bool) -> T {
     let var = create_uninit_var::<T>();
     GpuContext::run_current(|ctx| {
         ctx.operations.push(Operation::FnCall(FnCallOperation {
             var: var.value(),
             fn_name,
             args,
+            is_supporting_bool,
         }));
     });
     var

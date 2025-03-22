@@ -56,6 +56,8 @@ pub(crate) struct FnCallOperation {
     pub(crate) var: GpuValue,
     pub(crate) fn_name: &'static str,
     pub(crate) args: Vec<GpuValue>,
+    // Whether the WGSL function accepts WGSL `bool` (i.e. boolean `u32` values should converted).
+    pub(crate) is_supporting_bool: bool,
 }
 
 #[derive(Debug)]

@@ -51,6 +51,11 @@ pub trait Gpu: 'static + Sync + Send + Copy {
 
     #[doc(hidden)]
     fn from_value(value: GpuValue) -> Self;
+
+    #[doc(hidden)]
+    fn configure_fields(self) -> Self {
+        self
+    }
 }
 
 #[doc(hidden)]

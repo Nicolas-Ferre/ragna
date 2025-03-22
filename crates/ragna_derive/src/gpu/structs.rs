@@ -118,13 +118,18 @@ fn gpu_impl(gpu_struct: &ItemStruct, cpu_struct: &ItemStruct, module: &mut GpuMo
     let gpu_ident = &gpu_struct.ident;
     let cpu_ident = &cpu_struct.ident;
     let (impl_generics, type_generics, where_clause) = gpu_struct.generics.split_for_impl();
-    let field_idents = gpu_struct.fields.iter().flat_map(|field| &field.ident);
+    let field_idents: Vec<_> = gpu_struct
+        .fields
+        .iter()
+        .flat_map(|field| &field.ident)
+        .collect();
     let field_types: Vec<_> = gpu_struct.fields.iter().map(|field| &field.ty).collect();
-    let field_index = gpu_struct
+    let field_indexes: Vec<_> = gpu_struct
         .fields
         .iter()
         .enumerate()
-        .map(|(index, field)| LitInt::new(&index.to_string(), field.span()));
+        .map(|(index, field)| LitInt::new(&index.to_string(), field.span()))
+        .collect();
     let generic_params = gpu_struct.generics.params.iter().map(|param| match param {
         GenericParam::Lifetime(param) => {
             module
@@ -153,10 +158,21 @@ fn gpu_impl(gpu_struct: &ItemStruct, cpu_struct: &ItemStruct, module: &mut GpuMo
             fn from_value(value: ::ragna::GpuValue) -> Self {
                 Self {
                     #(#field_idents: <#field_types as ::ragna::Gpu>::from_value(
-                        value.field::<#field_types>(#field_index)
+                        value.field::<#field_types>(#field_indexes)
                     ),)*
                     __value: value,
                 }
+            }
+
+            fn configure_fields(self) -> Self {
+                let configured = Self {
+                    #(#field_idents: <#field_types as ::ragna::Gpu>::from_value(
+                        self.__value.field::<#field_types>(#field_indexes)
+                    ),)*
+                    __value: self.__value,
+                };
+                #(::ragna::assign(configured.#field_idents, self.#field_idents);)*
+                configured
             }
         }
     }

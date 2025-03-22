@@ -85,5 +85,5 @@ impl Iterable for Range<U32> {
 }
 
 fn select(f: U32, t: U32, cond: Bool) -> U32 {
-    crate::call_fn("select", vec![f.value(), t.value(), cond.value()])
+    crate::call_fn("select", vec![f.value(), t.value(), cond.value()], true)
 }

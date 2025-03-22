@@ -6,8 +6,8 @@ use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{
     fold, parse_quote_spanned, BinOp, Expr, ExprArray, ExprAssign, ExprBinary, ExprBreak, ExprCall,
-    ExprContinue, ExprForLoop, ExprIf, ExprLit, ExprRange, ExprRepeat, ExprUnary, ExprWhile, Lit,
-    LitInt, Pat, RangeLimits, Stmt,
+    ExprContinue, ExprForLoop, ExprIf, ExprLit, ExprRange, ExprRepeat, ExprStruct, ExprUnary,
+    ExprWhile, Lit, LitInt, Pat, RangeLimits, Stmt,
 };
 
 macro_rules! transform_binary_expr {
@@ -39,6 +39,7 @@ pub(crate) fn expr_to_gpu(expr: Expr, module: &mut GpuModule) -> Expr {
         Expr::Range(expr) => range_to_gpu(expr, module),
         Expr::Array(expr) => array_to_gpu(expr, module),
         Expr::Repeat(expr) => repeat_to_gpu(expr, module),
+        Expr::Struct(expr) => struct_to_gpu(expr, module),
         expr @ (Expr::Path(_)
         | Expr::Paren(_)
         | Expr::Call(_)
@@ -379,4 +380,20 @@ fn repeat_to_gpu(expr: ExprRepeat, module: &mut GpuModule) -> Expr {
     let item = module.fold_expr(*expr.expr);
     let len = expr.len;
     parse_quote_spanned! { span => #(#attrs)* ::ragna::Array::<_, #len>::repeated(#item) }
+}
+
+fn struct_to_gpu(mut struct_: ExprStruct, module: &mut GpuModule) -> Expr {
+    struct_.fields = struct_
+        .fields
+        .into_iter()
+        .map(|field| module.fold_field_value(field))
+        .collect();
+    struct_.rest = struct_.rest.map(|rest| module.fold_expr(*rest).into());
+    let path = &struct_.path;
+    struct_.fields.push(parse_quote_spanned! {
+        struct_.span() => __value: ::ragna::create_uninit_var::<#path>().__value
+    });
+    parse_quote_spanned! {
+        struct_.span() => ::ragna::Gpu::configure_fields(#struct_)
+    }
 }

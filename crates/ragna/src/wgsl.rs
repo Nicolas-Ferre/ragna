@@ -103,30 +103,29 @@ fn operation_code(
         }
         Operation::Unary(op) => {
             let var_name = value_code(&op.var, globs);
-            let value = function_arg(&op.value, globs);
+            let value = function_arg(&op.value, globs, true);
             let operation = format!("{}{value}", op.operator);
-            let expr = returned_value(&op.var, operation, types);
+            let expr = returned_value(&op.var, operation, true, types);
             format!("    {var_name} = {expr};")
         }
         Operation::Binary(op) => {
             let var_name = value_code(&op.var, globs);
-            let left_value = function_arg(&op.left_value, globs);
-            let right_value = function_arg(&op.right_value, globs);
+            let left_value = function_arg(&op.left_value, globs, true);
+            let right_value = function_arg(&op.right_value, globs, true);
             let operation = format!("{left_value} {} {right_value}", op.operator);
-            let expr = returned_value(&op.var, operation, types);
+            let expr = returned_value(&op.var, operation, true, types);
             format!("    {var_name} = {expr};")
         }
         Operation::FnCall(op) => {
             let var_name = value_code(&op.var, globs);
-            let operation = format!(
-                "{}({})",
-                op.fn_name,
-                op.args
-                    .iter()
-                    .map(|value| function_arg(value, globs))
-                    .join(", ")
-            );
-            let expr = returned_value(&op.var, operation, types);
+            let fn_name = op.fn_name;
+            let args = op
+                .args
+                .iter()
+                .map(|value| function_arg(value, globs, op.is_supporting_bool))
+                .join(", ");
+            let operation = format!("{fn_name}({args})");
+            let expr = returned_value(&op.var, operation, op.is_supporting_bool, types);
             format!("    {var_name} = {expr};")
         }
         Operation::IfBlock(op) => {
@@ -141,8 +140,8 @@ fn operation_code(
     }
 }
 
-fn function_arg(value: &GpuValue, globs: &[GpuValue]) -> String {
-    if value.type_id == TypeId::of::<Bool>() {
+fn function_arg(value: &GpuValue, globs: &[GpuValue], is_supporting_bool: bool) -> String {
+    if value.type_id == TypeId::of::<Bool>() && is_supporting_bool {
         format!("bool({})", value_code(value, globs))
     } else {
         value_code(value, globs)
@@ -152,10 +151,11 @@ fn function_arg(value: &GpuValue, globs: &[GpuValue]) -> String {
 fn returned_value(
     value: &GpuValue,
     expr: String,
+    is_supporting_bool: bool,
     types: &FxHashMap<TypeId, (usize, GpuTypeDetails)>,
 ) -> String {
     let bool_type_id = TypeId::of::<Bool>();
-    if value.type_id == bool_type_id {
+    if value.type_id == bool_type_id && is_supporting_bool {
         let bool_gpu_type = type_name(bool_type_id, types);
         format!("{bool_gpu_type}({expr})")
     } else {
