@@ -11,7 +11,8 @@ pub(crate) fn item_to_gpu(mut item: ItemFn, module: &mut GpuModule) -> ItemFn {
         module.compute_fns.push(item.sig.ident.clone());
     }
     let span = item.span();
-    item.attrs = item.attrs
+    item.attrs = item
+        .attrs
         .into_iter()
         .filter(|attr| !attrs::is_compute(attr))
         .chain([parse_quote_spanned! { span => #[allow(unused_braces)] }])
