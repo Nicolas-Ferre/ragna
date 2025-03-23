@@ -31,12 +31,12 @@ fn check_abi(item: &ItemForeignMod, module: &mut GpuModule) {
     }
 }
 
-fn fn_to_gpu(mut item: ForeignItemFn, module: &mut GpuModule) {
+fn fn_to_gpu(item: ForeignItemFn, module: &mut GpuModule) {
     let param_idents = item
         .sig
         .inputs
         .iter()
-        .filter_map(|arg| fns::arg_ident(arg, module).cloned())
+        .filter_map(|arg| fns::arg_ident(arg, module))
         .collect::<Vec<_>>();
     let span = item.span();
     let fn_name = LitStr::new(&item.sig.ident.to_string(), item.sig.ident.span());
@@ -47,7 +47,6 @@ fn fn_to_gpu(mut item: ForeignItemFn, module: &mut GpuModule) {
         ));
         return;
     }
-    item.sig = fns::signature_to_gpu(item.sig, module);
     module.generated_items.push(Item::Fn(ItemFn {
         attrs: item.attrs,
         vis: item.vis,

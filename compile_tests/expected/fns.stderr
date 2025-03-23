@@ -1,19 +1,5 @@
 error: unsupported parameter
- --> compile_tests/src/fns.rs:7:23
+ --> compile_tests/src/fns.rs:7:32
   |
-7 |     fn func_with_self(self) {}
-  |                       ^^^^
-
-error: unsupported parameter
- --> compile_tests/src/fns.rs:9:32
-  |
-9 |     fn func_with_invalid_param((a, b): (F32, F32)) {}
+7 |     fn func_with_invalid_param((a, b): (F32, F32)) {}
   |                                ^^^^^^
-
-error: `self` parameter is only allowed in associated functions
- --> compile_tests/src/fns.rs:7:23
-  |
-7 |     fn func_with_self(self) {}
-  |                       ^^^^ not semantically valid as function parameter
-  |
-  = note: associated functions are those in `impl` or `trait` definitions
