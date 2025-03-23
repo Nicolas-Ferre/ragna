@@ -21,7 +21,7 @@ fn inner_item_to_gpu(item: TraitItem, module: &mut GpuModule) -> TraitItem {
             module
                 .errors
                 .push(syn::Error::new(item.span(), "unsupported item"));
-            item
+            fold::fold_trait_item(module, item)
         }
     }
 }
