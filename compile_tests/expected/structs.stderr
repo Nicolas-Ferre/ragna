@@ -28,6 +28,12 @@ error: unsupported item
 22 |         nothing!();
    |         ^^^^^^^
 
+error: unsupported item
+  --> compile_tests/src/structs.rs:28:9
+   |
+28 |         nothing!();
+   |         ^^^^^^^
+
 error[E0106]: missing lifetime specifier
   --> compile_tests/src/structs.rs:17:5
    |

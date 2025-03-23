@@ -21,4 +21,10 @@ mod gpu {
     impl WithLifetime<'_> {
         nothing!();
     }
+
+    trait MyTrait {}
+
+    impl MyTrait for WithLifetime<'_> {
+        nothing!();
+    }
 }
