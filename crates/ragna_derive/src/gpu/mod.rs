@@ -15,6 +15,7 @@ mod globs;
 mod impls;
 mod statements;
 mod structs;
+mod traits;
 mod vars;
 
 pub(crate) fn gpu(module: &ItemMod) -> TokenStream {
@@ -107,6 +108,7 @@ impl Fold for GpuModule {
             Item::Fn(item) => fns::item_to_gpu(item, self).into(),
             Item::Struct(item) => Item::Verbatim(structs::item_to_gpu(item, self)),
             Item::Impl(item) => impls::block_to_gpu(item, self).into(),
+            Item::Trait(item) => traits::item_to_gpu(item, self).into(),
             item @ (Item::Use(_) | Item::Const(_)) => item,
             item => {
                 self.errors
