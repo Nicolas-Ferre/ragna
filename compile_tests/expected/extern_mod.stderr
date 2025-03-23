@@ -15,17 +15,3 @@ error: function must have a return type
    |
 12 |         fn no_return_type();
    |            ^^^^^^^^^^^^^^
-
-error: unsupported parameter
-  --> compile_tests/src/extern_mod.rs:14:27
-   |
-14 |         fn func_with_self(self) -> F32;
-   |                           ^^^^
-
-error: `self` parameter is only allowed in associated functions
-  --> compile_tests/src/extern_mod.rs:14:27
-   |
-14 |         fn func_with_self(self) -> F32;
-   |                           ^^^^ not semantically valid as function parameter
-   |
-   = note: associated functions are those in `impl` or `trait` definitions

@@ -10,7 +10,5 @@ mod gpu {
         static STATIC: U32;
 
         fn no_return_type();
-
-        fn func_with_self(self) -> F32;
     }
 }

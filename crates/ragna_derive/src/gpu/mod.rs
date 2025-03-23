@@ -3,8 +3,8 @@ use quote::{quote, quote_spanned};
 use syn::fold::Fold;
 use syn::spanned::Spanned;
 use syn::{
-    fold, parse_quote, Block, Expr, ExprReference, Item, ItemMod, ReturnType, Signature, Stmt,
-    Type, TypeReference,
+    fold, parse_quote, Block, Expr, ExprReference, Item, ItemMod, Path, ReturnType, Signature,
+    Stmt, Type, TypeReference,
 };
 
 mod attrs;
@@ -12,6 +12,7 @@ mod expressions;
 mod fns;
 mod foreign;
 mod globs;
+mod impls;
 mod statements;
 mod structs;
 mod vars;
@@ -105,6 +106,7 @@ impl Fold for GpuModule {
             Item::ForeignMod(item) => foreign::mod_to_gpu(item, self),
             Item::Fn(item) => fns::item_to_gpu(item, self).into(),
             Item::Struct(item) => Item::Verbatim(structs::item_to_gpu(item, self)),
+            Item::Impl(item) => impls::block_to_gpu(item, self).into(),
             item @ (Item::Use(_) | Item::Const(_)) => item,
             item => {
                 self.errors
@@ -112,6 +114,10 @@ impl Fold for GpuModule {
                 fold::fold_item(self, item)
             }
         }
+    }
+
+    fn fold_path(&mut self, path: Path) -> Path {
+        path
     }
 
     fn fold_type_reference(&mut self, ty: TypeReference) -> TypeReference {
