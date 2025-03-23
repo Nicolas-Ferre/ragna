@@ -29,9 +29,9 @@ error: unsupported item
    |         ^^^^^^^
 
 error: unsupported item
-  --> compile_tests/src/structs.rs:28:9
+  --> compile_tests/src/structs.rs:26:9
    |
-28 |         nothing!();
+26 |         nothing!();
    |         ^^^^^^^
 
 error[E0106]: missing lifetime specifier
