@@ -1,6 +1,6 @@
 #![allow(clippy::lossy_float_literal)]
 
-use crate::types::structs::gpu::TestStructCpu;
+use crate::types::structs::gpu::{TestStruct, TestStructCpu};
 use ragna::{u32x3, App, U32};
 
 #[test]
@@ -27,6 +27,8 @@ pub fn use_structs() {
     assert_eq!(app.read(*gpu::FIELD_VALUE), Some(5.));
     assert_eq!(app.read(*gpu::VALUE_BEFORE_INCREMENT), Some(10));
     assert_eq!(app.read(*gpu::RETURNED_FIELD_VALUE), Some(50.));
+    assert_eq!(TestStruct::<U32, 3>::VALUE, 100);
+    assert_eq!(TestStruct::<U32, 3>::const_value(), 101);
 }
 
 fn assert_struct_eq(actual: TestStructCpu<U32, 3>, expected: TestStructCpu<U32, 3>) {
@@ -54,6 +56,8 @@ mod gpu {
     }
 
     impl<T: Gpu, const N: usize> TestStruct<T, N> {
+        pub(super) const VALUE: i32 = 100;
+
         fn increment_integer(&self) -> I32 {
             let old_value = self.integer;
             self.integer += 1;
@@ -69,6 +73,10 @@ mod gpu {
             self.float += 1.; // shouldn't have impact outside the function
             other += 1; // shouldn't have impact outside the function
             float
+        }
+
+        pub(super) const fn const_value() -> i32 {
+            101
         }
     }
 

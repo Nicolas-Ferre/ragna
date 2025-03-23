@@ -117,6 +117,7 @@ impl Fold for GpuModule {
     }
 
     fn fold_path(&mut self, path: Path) -> Path {
+        // paths must not be transformed (e.g. inner const generic values)
         path
     }
 

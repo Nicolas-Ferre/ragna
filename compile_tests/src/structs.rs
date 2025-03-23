@@ -1,5 +1,9 @@
 fn main() {}
 
+macro_rules! nothing {
+    () => {};
+}
+
 #[ragna::gpu]
 mod gpu {
     use ragna::U32;
@@ -12,5 +16,9 @@ mod gpu {
 
     struct WithLifetime<'a> {
         field: U32,
+    }
+
+    impl WithLifetime<'_> {
+        nothing!();
     }
 }

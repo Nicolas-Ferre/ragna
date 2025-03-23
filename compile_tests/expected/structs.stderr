@@ -1,81 +1,87 @@
 error: unsupported empty struct
- --> compile_tests/src/structs.rs:7:5
-  |
-7 |     struct Unit;
-  |     ^^^^^^
-
-error: unsupported empty struct
- --> compile_tests/src/structs.rs:9:5
-  |
-9 |     struct Empty {}
-  |     ^^^^^^
-
-error: unsupported tuple struct
   --> compile_tests/src/structs.rs:11:5
    |
-11 |     struct Tuple(U32);
+11 |     struct Unit;
+   |     ^^^^^^
+
+error: unsupported empty struct
+  --> compile_tests/src/structs.rs:13:5
+   |
+13 |     struct Empty {}
+   |     ^^^^^^
+
+error: unsupported tuple struct
+  --> compile_tests/src/structs.rs:15:5
+   |
+15 |     struct Tuple(U32);
    |     ^^^^^^
 
 error: unsupported lifetime
-  --> compile_tests/src/structs.rs:13:25
+  --> compile_tests/src/structs.rs:17:25
    |
-13 |     struct WithLifetime<'a> {
+17 |     struct WithLifetime<'a> {
    |                         ^^
 
-error[E0106]: missing lifetime specifier
-  --> compile_tests/src/structs.rs:13:5
+error: unsupported item
+  --> compile_tests/src/structs.rs:22:9
    |
-13 |     struct WithLifetime<'a> {
+22 |         nothing!();
+   |         ^^^^^^^
+
+error[E0106]: missing lifetime specifier
+  --> compile_tests/src/structs.rs:17:5
+   |
+17 |     struct WithLifetime<'a> {
    |     ^ expected named lifetime parameter
    |
 help: consider using the `'a` lifetime
    |
-13 |     s'a, truct WithLifetime<'a> {
+17 |     s'a, truct WithLifetime<'a> {
    |      +++
 
 error[E0412]: cannot find type `a` in this scope
-  --> compile_tests/src/structs.rs:13:25
+  --> compile_tests/src/structs.rs:17:25
    |
-13 |     struct WithLifetime<'a> {
+17 |     struct WithLifetime<'a> {
    |                         ^^ not found in this scope
 
 
 
 error[E0392]: lifetime parameter `'a` is never used
-  --> compile_tests/src/structs.rs:13:25
+  --> compile_tests/src/structs.rs:17:25
    |
-13 |     struct WithLifetime<'a> {
+17 |     struct WithLifetime<'a> {
    |                         ^^ unused lifetime parameter
    |
    = help: consider removing `'a`, referring to it in a field, or using a marker such as `PhantomData`
 
 error[E0107]: struct takes 0 generic arguments but 1 generic argument was supplied
-  --> compile_tests/src/structs.rs:13:12
+  --> compile_tests/src/structs.rs:17:12
    |
-13 |     struct WithLifetime<'a> {
+17 |     struct WithLifetime<'a> {
    |            ^^^^^^^^^^^^ -- help: remove the unnecessary generic argument
    |            |
    |            expected 0 generic arguments
    |
 
 error[E0478]: lifetime bound not satisfied
-  --> compile_tests/src/structs.rs:13:5
+  --> compile_tests/src/structs.rs:17:5
    |
-13 |     struct WithLifetime<'a> {
+17 |     struct WithLifetime<'a> {
    |     ^^^^^^
    |
 
 error[E0495]: cannot infer an appropriate lifetime for lifetime parameter `'a` due to conflicting requirements
-  --> compile_tests/src/structs.rs:13:12
+  --> compile_tests/src/structs.rs:17:12
    |
-13 |     struct WithLifetime<'a> {
+17 |     struct WithLifetime<'a> {
    |            ^^^^^^^^^^^^^^^^
    |
 
 error: lifetime may not live long enough
-  --> compile_tests/src/structs.rs:13:5
+  --> compile_tests/src/structs.rs:17:5
    |
-13 |     struct WithLifetime<'a> {
+17 |     struct WithLifetime<'a> {
    |     ^^^^^^              -- lifetime `'a` defined here
    |     |
    |     requires that `'a` must outlive `'static`
