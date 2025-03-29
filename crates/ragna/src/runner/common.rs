@@ -319,9 +319,11 @@ pub(crate) struct WindowSurface {
 impl WindowSurface {
     const DEFAULT_SIZE: (u32, u32) = (800, 600);
 
+    // coverage: off (window cannot be tested)
     fn create_surface_texture(&self) -> SurfaceTexture {
         self.surface
             .get_current_texture()
             .expect("internal error: cannot retrieve surface texture")
     }
+    // coverage: on
 }
