@@ -43,10 +43,12 @@ impl Program {
         }
     }
 
+    // coverage: off (window cannot be tested)
     #[allow(clippy::unused_self)]
     pub(crate) fn run_draw_step(&self, _pass: RenderPass<'_>) {
         // do nothing for the moment
     }
+    // coverage: on
 
     fn create_buffer(app: &App, device: &Device) -> Option<Buffer> {
         if app.globs.is_empty() {

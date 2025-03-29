@@ -48,6 +48,7 @@ impl Runner {
         }
     }
 
+    // coverage: off (window cannot be tested)
     pub(crate) fn new_window(app: &App, event_loop: &ActiveEventLoop) -> Self {
         let size = WindowSurface::DEFAULT_SIZE;
         let instance = Self::create_instance();
@@ -76,6 +77,7 @@ impl Runner {
             last_step_end: Instant::now(),
         }
     }
+    // coverage: on
 
     #[allow(clippy::print_stdout)]
     pub(crate) fn run_step(&mut self) {
@@ -89,12 +91,14 @@ impl Runner {
         let pass = Self::create_compute_pass(&mut encoder);
         self.program.run_update_step(pass);
         if let Some(surface) = &mut self.surface {
+            // coverage: off (window cannot be tested)
             let texture = surface.create_surface_texture();
             let view = Self::create_surface_view(&texture);
             let pass = Self::create_render_pass(&mut encoder, &view, &surface.depth_buffer);
             self.program.run_draw_step(pass);
             self.queue.submit(Some(encoder.finish()));
             texture.present();
+            // coverage: on
         } else {
             self.queue.submit(Some(encoder.finish()));
         }
@@ -149,6 +153,7 @@ impl Runner {
         }
     }
 
+    // coverage: off (window cannot be tested)
     pub(crate) fn refresh_surface(&mut self) {
         let surface = self.surface.as_mut().expect("uninit window");
         surface.surface = Self::create_surface(&self.instance, surface.window.clone());
@@ -173,6 +178,7 @@ impl Runner {
             surface.size,
         );
     }
+    // coverage: on
 
     fn create_instance() -> Instance {
         Instance::new(&wgpu::InstanceDescriptor {
@@ -203,6 +209,7 @@ impl Runner {
             .expect("error when retrieving graphic device")
     }
 
+    // coverage: off (window cannot be tested)
     fn create_window(event_loop: &ActiveEventLoop) -> Arc<Window> {
         let size = PhysicalSize::new(WindowSurface::DEFAULT_SIZE.0, WindowSurface::DEFAULT_SIZE.1);
         let window = event_loop
@@ -253,6 +260,7 @@ impl Runner {
             .texture
             .create_view(&TextureViewDescriptor::default())
     }
+    // coverage: on
 
     fn create_encoder(&self) -> CommandEncoder {
         self.device
@@ -268,7 +276,8 @@ impl Runner {
         })
     }
 
-    pub(crate) fn create_render_pass<'a>(
+    // coverage: off (window cannot be tested)
+    fn create_render_pass<'a>(
         encoder: &'a mut CommandEncoder,
         view: &'a TextureView,
         depth_buffer: &'a TextureView,
@@ -295,6 +304,7 @@ impl Runner {
             occlusion_query_set: None,
         })
     }
+    // coverage: on
 }
 
 #[derive(Debug)]

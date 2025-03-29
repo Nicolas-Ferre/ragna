@@ -31,10 +31,12 @@ impl App {
         TestApp { app: self, runner }
     }
 
+    // coverage: off (window cannot be tested)
     /// Configure the application to run with a window.
     pub fn window(self) -> WindowApp {
         WindowApp { app: self }
     }
+    // coverage: on
 
     /// Registers a GPU module.
     pub fn with_module(mut self, f: impl FnOnce(Self) -> Self) -> Self {
@@ -107,6 +109,8 @@ impl App {
     }
 }
 
+// coverage: off (window cannot be tested)
+
 /// An application run with a window.
 #[derive(Debug)]
 pub struct WindowApp {
@@ -124,6 +128,8 @@ impl WindowApp {
             .expect("event loop failed");
     }
 }
+
+// coverage: on
 
 /// An application for testing purpose.
 #[derive(Debug)]

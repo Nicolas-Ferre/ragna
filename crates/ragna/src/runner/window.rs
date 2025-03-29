@@ -6,6 +6,8 @@ use winit::event::WindowEvent;
 use winit::event_loop::ActiveEventLoop;
 use winit::window::WindowId;
 
+// coverage: off (window cannot be tested)
+
 #[derive(Debug)]
 pub(crate) struct WindowRunner {
     app: App,
