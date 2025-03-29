@@ -98,8 +98,8 @@ impl Runner {
             self.program.run_draw_step(pass);
             self.queue.submit(Some(encoder.finish()));
             texture.present();
-            // coverage: on
         } else {
+            // coverage: on
             self.queue.submit(Some(encoder.finish()));
         }
         let end = Instant::now();
@@ -157,8 +157,6 @@ impl Runner {
     pub(crate) fn refresh_surface(&mut self) {
         let surface = self.surface.as_mut().expect("uninit window");
         surface.surface = Self::create_surface(&self.instance, surface.window.clone());
-        self.adapter = Self::create_adapter(&self.instance, Some(&surface.surface));
-        (self.device, self.queue) = Self::create_device(&self.adapter);
         surface.surface_config = Self::create_surface_config(
             &self.adapter,
             &self.device,
@@ -201,7 +199,7 @@ impl Runner {
     fn create_device(adapter: &Adapter) -> (Device, Queue) {
         let device_descriptor = DeviceDescriptor {
             label: None,
-            required_features: Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
+            required_features: Features::default(),
             required_limits: Limits::default(),
             memory_hints: MemoryHints::Performance,
         };

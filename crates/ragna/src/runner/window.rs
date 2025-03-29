@@ -12,7 +12,6 @@ use winit::window::WindowId;
 pub(crate) struct WindowRunner {
     app: App,
     runner: Option<Runner>,
-    is_suspended: bool,
 }
 
 impl ApplicationHandler for WindowRunner {
@@ -42,19 +41,11 @@ impl ApplicationHandler for WindowRunner {
             }
         }
     }
-
-    fn suspended(&mut self, _event_loop: &ActiveEventLoop) {
-        self.is_suspended = true;
-    }
 }
 
 impl WindowRunner {
     pub(crate) fn new(app: App) -> Self {
-        Self {
-            app,
-            runner: None,
-            is_suspended: false,
-        }
+        Self { app, runner: None }
     }
 
     fn refresh_surface(&mut self, event_loop: &ActiveEventLoop) {
@@ -66,7 +57,6 @@ impl WindowRunner {
     }
 
     fn update(&mut self) {
-        self.is_suspended = false;
         if let Some(runner) = &mut self.runner {
             runner.run_step();
         }

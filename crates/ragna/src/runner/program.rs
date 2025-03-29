@@ -14,7 +14,7 @@ pub(crate) struct Program {
 impl Program {
     pub(crate) fn new(app: &App, device: &Device) -> Self {
         let buffer = Self::create_buffer(app, device);
-        let bind_group_entry = Self::create_bing_group_entry(buffer.as_ref());
+        let bind_group_entry = Self::create_bind_group_entry(buffer.as_ref());
         Self {
             init_shader: ComputeShader::new(
                 app.wgsl_init_shader(),
@@ -63,7 +63,7 @@ impl Program {
         }
     }
 
-    fn create_bing_group_entry(buffer: Option<&Buffer>) -> Option<BindGroupEntry<'_>> {
+    fn create_bind_group_entry(buffer: Option<&Buffer>) -> Option<BindGroupEntry<'_>> {
         buffer.map(|buffer| BindGroupEntry {
             binding: 0,
             resource: buffer.as_entire_binding(),
