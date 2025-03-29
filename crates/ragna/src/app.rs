@@ -1,6 +1,7 @@
 use crate::context::GpuContext;
 use crate::operations::{AssignVarOperation, Operation};
-use crate::runner::Runner;
+use crate::runner::common::Runner;
+use crate::runner::window::WindowRunner;
 use crate::types::GpuTypeDetails;
 use crate::{wgsl, Cpu, Glob, Gpu, GpuValue};
 use derive_where::derive_where;
@@ -8,6 +9,7 @@ use fxhash::FxHashMap;
 use std::any::TypeId;
 use std::mem;
 use std::sync::Mutex;
+use winit::event_loop::EventLoop;
 
 pub(crate) static CURRENT_CTX: Mutex<Option<GpuContext>> = Mutex::new(None);
 
@@ -20,23 +22,18 @@ pub struct App {
     #[derive_where(skip)]
     pub(crate) glob_defaults: Vec<Box<dyn Fn() -> GpuValue>>,
     pub(crate) types: FxHashMap<TypeId, (usize, GpuTypeDetails)>,
-    pub(crate) runner: Option<Runner>,
 }
 
 impl App {
-    /// Runs the application during `update_count` steps.
-    #[allow(clippy::print_stdout)]
-    pub fn run(mut self, update_count: u64) -> Self {
-        let runner = if let Some(runner) = &mut self.runner {
-            runner
-        } else {
-            self.runner.insert(Runner::new(&self))
-        };
-        for _ in 0..update_count {
-            runner.run_step();
-            println!("Step duration: {}µs", runner.delta().as_micros());
-        }
-        self
+    /// Configure the application for testing.
+    pub fn testing(self) -> TestApp {
+        let runner = Runner::new(&self);
+        TestApp { app: self, runner }
+    }
+
+    /// Configure the application to run with a window.
+    pub fn window(self) -> WindowApp {
+        WindowApp { app: self }
     }
 
     /// Registers a GPU module.
@@ -69,20 +66,6 @@ impl App {
             self.add_type(type_);
         }
         self
-    }
-
-    /// Reads a value stored on GPU side.
-    ///
-    /// If the passed value is not a global variable,
-    pub fn read<T: Gpu>(&self, value: T) -> Option<T::Cpu> {
-        self.runner.as_ref().and_then(|runner| {
-            let bytes = runner.read(self, &value.value());
-            if bytes.is_empty() {
-                None
-            } else {
-                Some(Cpu::from_gpu(&bytes))
-            }
-        })
     }
 
     pub(crate) fn wgsl_init_shader(&self) -> String {
@@ -121,5 +104,52 @@ impl App {
         self.types
             .entry(type_.type_id)
             .or_insert((type_count, type_));
+    }
+}
+
+/// An application run with a window.
+#[derive(Debug)]
+pub struct WindowApp {
+    app: App,
+}
+
+impl WindowApp {
+    /// Runs the application with a window.
+    pub fn run(self) {
+        let event_loop = EventLoop::builder()
+            .build()
+            .expect("event loop initialization failed");
+        event_loop
+            .run_app(&mut WindowRunner::new(self.app))
+            .expect("event loop failed");
+    }
+}
+
+/// An application for testing purpose.
+#[derive(Debug)]
+pub struct TestApp {
+    app: App,
+    runner: Runner,
+}
+
+impl TestApp {
+    /// Reads a value stored on GPU side.
+    ///
+    /// If the passed value is not a global variable,
+    pub fn read<T: Gpu>(&self, value: T) -> Option<T::Cpu> {
+        let bytes = self.runner.read(&self.app, &value.value());
+        if bytes.is_empty() {
+            None
+        } else {
+            Some(Cpu::from_gpu(&bytes))
+        }
+    }
+
+    /// Runs the application during `update_count` steps.
+    pub fn run(mut self, update_count: u64) -> Self {
+        for _ in 0..update_count {
+            self.runner.run_step();
+        }
+        self
     }
 }

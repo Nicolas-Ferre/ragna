@@ -5,7 +5,7 @@ use ragna::{u32x3, App, U32};
 
 #[test]
 pub fn use_structs() {
-    let app = App::default().with_module(gpu::register).run(1);
+    let app = App::default().with_module(gpu::register).testing().run(1);
     assert_struct_eq(
         app.read(*gpu::FROM_CPU).unwrap(),
         gpu::test_struct_cpu(1, u32x3 { x: 2, y: 3, z: 5 }, 5., 10, [false, true, false]),

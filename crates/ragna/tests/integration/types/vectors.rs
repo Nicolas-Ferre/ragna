@@ -4,7 +4,7 @@ use ragna::{i32x2, i32x3, i32x4, App};
 
 #[test]
 pub fn use_vectors() {
-    let app = App::default().with_module(gpu::register).run(1);
+    let app = App::default().with_module(gpu::register).testing().run(1);
     assert_eq!(app.read(*gpu::NUM_FROM_CPU), Some(i32x2 { x: 2, y: 3 }));
     assert_eq!(app.read(*gpu::NUM_FROM_GPU), Some(i32x2 { x: 2, y: 3 }));
     assert_eq!(app.read(*gpu::VEC_X3), Some(i32x3 { x: 2, y: 3, z: 4 }));

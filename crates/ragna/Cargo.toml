@@ -19,6 +19,7 @@ fxhash.workspace = true
 itertools.workspace = true
 once_cell.workspace = true
 wgpu.workspace = true
+winit.workspace = true
 ragna_derive.workspace = true
 
 [lints]
