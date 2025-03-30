@@ -4,7 +4,10 @@ use ragna::App;
 
 #[test]
 pub fn use_unary_operator() {
-    let app = App::default().with_module(gpu::register).texture().run(1);
+    let app = App::default()
+        .with_module(gpu::register)
+        .texture((1, 1))
+        .run(1);
     assert_eq!(app.read(*gpu::I32_NEG_VALUE), Some(-10));
     assert_eq!(app.read(*gpu::I32_DOUBLE_NEG_VALUE), Some(10));
     assert_eq!(app.read(*gpu::F32_NEG_VALUE), Some(-20.));
@@ -14,7 +17,10 @@ pub fn use_unary_operator() {
 
 #[test]
 pub fn use_binary_operator() {
-    let app = App::default().with_module(gpu::register).texture().run(1);
+    let app = App::default()
+        .with_module(gpu::register)
+        .texture((1, 1))
+        .run(1);
     assert_eq!(app.read(*gpu::ADD_VALUE), Some(3));
     assert_eq!(app.read(*gpu::SUB_VALUE), Some(-1));
     assert_eq!(app.read(*gpu::MUL_VALUE), Some(8));
@@ -41,7 +47,10 @@ pub fn use_binary_operator() {
 
 #[test]
 pub fn use_operator_assign() {
-    let app = App::default().with_module(gpu::register).texture().run(1);
+    let app = App::default()
+        .with_module(gpu::register)
+        .texture((1, 1))
+        .run(1);
     assert_eq!(app.read(*gpu::ADD_ASSIGN_VALUE), Some(15));
     assert_eq!(app.read(*gpu::SUB_ASSIGN_VALUE), Some(5));
     assert_eq!(app.read(*gpu::MUL_ASSIGN_VALUE), Some(50));

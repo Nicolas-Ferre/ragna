@@ -4,7 +4,10 @@ use ragna::App;
 
 #[test]
 pub fn use_ranges() {
-    let app = App::default().with_module(gpu::register).texture().run(1);
+    let app = App::default()
+        .with_module(gpu::register)
+        .texture((1, 1))
+        .run(1);
     assert_eq!(app.read(*gpu::START), Some(3));
     assert_eq!(app.read(*gpu::END), Some(6));
     assert_eq!(app.read(*gpu::FIRST_ITEM), Some(3));

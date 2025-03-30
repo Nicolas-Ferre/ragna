@@ -4,7 +4,10 @@ use ragna::App;
 
 #[test]
 pub fn use_structs() {
-    let app = App::default().with_module(gpu::register).texture().run(1);
+    let app = App::default()
+        .with_module(gpu::register)
+        .texture((1, 1))
+        .run(1);
     assert_eq!(app.read(*gpu::CONSTANT), Some(3..5));
     assert_eq!(app.read(*gpu::STRUCT_VAL), Some(1..10));
     assert_eq!(app.read(*gpu::NESTED_STRUCT_VAL), Some((1..5)..(3..4)));

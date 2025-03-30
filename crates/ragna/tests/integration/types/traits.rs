@@ -2,7 +2,10 @@ use ragna::App;
 
 #[test]
 pub fn use_structs() {
-    let app = App::default().with_module(gpu::register).texture().run(1);
+    let app = App::default()
+        .with_module(gpu::register)
+        .texture((1, 1))
+        .run(1);
     assert_eq!(app.read(*gpu::ADD_RESULT).unwrap().inner, 7);
 }
 

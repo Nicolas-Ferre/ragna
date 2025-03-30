@@ -30,20 +30,25 @@ pub(crate) struct Runner {
     last_step_end: Instant,
 }
 
+// TODO: check window size to ensure there is no crash
+
 impl Runner {
-    pub(crate) fn new_texture(app: &App) -> Self {
-        let size = Target::DEFAULT_SIZE;
+    pub(crate) fn new_texture(app: &App, size: (u32, u32)) -> Self {
+        let target = TargetConfig {
+            size: (size.0.max(1), size.1.max(1)),
+            ..Default::default()
+        };
         let instance = Self::create_instance();
         let adapter = Self::create_adapter(&instance, None);
         let (device, queue) = Self::create_device(&adapter);
-        let texture = Self::create_target_texture(&device, size);
+        let texture = Self::create_target_texture(&device, target.size);
         let view = texture.create_view(&TextureViewDescriptor::default());
-        let depth_buffer = Self::create_depth_buffer(&device, size);
+        let depth_buffer = Self::create_depth_buffer(&device, target.size);
         let program = Program::new(app, &device);
         Self {
             target: Target {
                 inner: TargetSpecialized::Texture(TextureTarget { texture, view }),
-                size,
+                config: target,
                 depth_buffer,
             },
             instance,
@@ -58,15 +63,22 @@ impl Runner {
     }
 
     // coverage: off (window cannot be tested)
-    pub(crate) fn new_window(app: &App, event_loop: &ActiveEventLoop) -> Self {
-        let size = Target::DEFAULT_SIZE;
+    pub(crate) fn new_window(
+        app: &App,
+        event_loop: &ActiveEventLoop,
+        background_color: Color,
+    ) -> Self {
+        let target = TargetConfig {
+            background_color,
+            ..Default::default()
+        };
         let instance = Self::create_instance();
-        let window = Self::create_window(event_loop);
+        let window = Self::create_window(event_loop, target.size);
         let surface = Self::create_surface(&instance, window.clone());
         let adapter = Self::create_adapter(&instance, Some(&surface));
         let (device, queue) = Self::create_device(&adapter);
-        let surface_config = Self::create_surface_config(&adapter, &device, &surface, size);
-        let depth_buffer = Self::create_depth_buffer(&device, size);
+        let surface_config = Self::create_surface_config(&adapter, &device, &surface, target.size);
+        let depth_buffer = Self::create_depth_buffer(&device, target.size);
         let program = Program::new(app, &device);
         Self {
             target: Target {
@@ -75,7 +87,7 @@ impl Runner {
                     surface,
                     surface_config,
                 }),
-                size,
+                config: target,
                 depth_buffer,
             },
             instance,
@@ -106,15 +118,24 @@ impl Runner {
             TargetSpecialized::Window(target) => {
                 let texture = target.create_surface_texture();
                 let view = Self::create_surface_view(&texture);
-                let pass = Self::create_render_pass(&mut encoder, &view, &self.target.depth_buffer);
+                let pass = Self::create_render_pass(
+                    &mut encoder,
+                    &view,
+                    &self.target.depth_buffer,
+                    self.target.config.background_color,
+                );
                 self.program.run_draw_step(pass);
                 self.queue.submit(Some(encoder.finish()));
                 texture.present();
             }
             // coverage: on
             TargetSpecialized::Texture(target) => {
-                let pass =
-                    Self::create_render_pass(&mut encoder, &target.view, &self.target.depth_buffer);
+                let pass = Self::create_render_pass(
+                    &mut encoder,
+                    &target.view,
+                    &self.target.depth_buffer,
+                    self.target.config.background_color,
+                );
                 self.program.run_draw_step(pass);
                 self.queue.submit(Some(encoder.finish()));
             }
@@ -173,11 +194,12 @@ impl Runner {
     pub(crate) fn read_target(&self) -> Vec<u8> {
         match &self.target.inner {
             TargetSpecialized::Texture(target) => {
-                let padded_bytes_per_row = Self::calculate_padded_row_bytes(self.target.size.0);
-                let padded_row_bytes = Self::calculate_padded_row_bytes(self.target.size.0);
+                let size = self.target.config.size;
+                let padded_bytes_per_row = Self::calculate_padded_row_bytes(size.0);
+                let padded_row_bytes = Self::calculate_padded_row_bytes(size.0);
                 let tmp_buffer = self.device.create_buffer(&BufferDescriptor {
                     label: Some("ragna:texture_buffer"),
-                    size: (padded_bytes_per_row * self.target.size.1).into(),
+                    size: (padded_bytes_per_row * size.1).into(),
                     usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
                     mapped_at_creation: false,
                 });
@@ -197,8 +219,8 @@ impl Runner {
                         },
                     },
                     Extent3d {
-                        width: self.target.size.0,
-                        height: self.target.size.1,
+                        width: size.0,
+                        height: size.1,
                         depth_or_array_layers: 1,
                     },
                 );
@@ -208,8 +230,8 @@ impl Runner {
                 self.device
                     .poll(wgpu::Maintain::WaitForSubmissionIndex(submission_index));
                 let view = slice.get_mapped_range();
-                let padded_row_bytes = Self::calculate_padded_row_bytes(self.target.size.0);
-                let unpadded_row_bytes = Self::calculate_unpadded_row_bytes(self.target.size.0);
+                let padded_row_bytes = Self::calculate_padded_row_bytes(size.0);
+                let unpadded_row_bytes = Self::calculate_unpadded_row_bytes(size.0);
                 let content = view
                     .chunks(padded_row_bytes as usize)
                     .flat_map(|a| &a[..unpadded_row_bytes as usize])
@@ -234,7 +256,7 @@ impl Runner {
                     &self.adapter,
                     &self.device,
                     &target.surface,
-                    self.target.size,
+                    self.target.config.size,
                 );
             }
             TargetSpecialized::Texture(_) => {
@@ -246,14 +268,14 @@ impl Runner {
     pub(crate) fn update_surface_size(&mut self, size: PhysicalSize<u32>) {
         match &mut self.target.inner {
             TargetSpecialized::Window(target) => {
-                self.target.size = (size.width, size.height);
+                self.target.config.size = (size.width, size.height);
                 self.target.depth_buffer =
-                    Self::create_depth_buffer(&self.device, self.target.size);
+                    Self::create_depth_buffer(&self.device, self.target.config.size);
                 target.surface_config = Self::create_surface_config(
                     &self.adapter,
                     &self.device,
                     &target.surface,
-                    self.target.size,
+                    self.target.config.size,
                 );
             }
             TargetSpecialized::Texture(_) => {
@@ -306,8 +328,8 @@ impl Runner {
     }
 
     // coverage: off (window cannot be tested)
-    fn create_window(event_loop: &ActiveEventLoop) -> Arc<Window> {
-        let size = PhysicalSize::new(Target::DEFAULT_SIZE.0, Target::DEFAULT_SIZE.1);
+    fn create_window(event_loop: &ActiveEventLoop, size: (u32, u32)) -> Arc<Window> {
+        let size = PhysicalSize::new(size.0, size.1);
         let window = event_loop
             .create_window(Window::default_attributes().with_inner_size(size))
             .expect("cannot create window");
@@ -393,6 +415,7 @@ impl Runner {
         encoder: &'a mut CommandEncoder,
         view: &'a TextureView,
         depth_buffer: &'a TextureView,
+        background_color: Color,
     ) -> RenderPass<'a> {
         encoder.begin_render_pass(&RenderPassDescriptor {
             label: Some("ragna:render_pass"),
@@ -400,7 +423,7 @@ impl Runner {
                 view,
                 resolve_target: None,
                 ops: Operations {
-                    load: LoadOp::Clear(Color::BLACK),
+                    load: LoadOp::Clear(background_color),
                     store: StoreOp::Store,
                 },
             })],
@@ -421,12 +444,8 @@ impl Runner {
 #[derive(Debug)]
 pub(crate) struct Target {
     pub(crate) inner: TargetSpecialized,
-    pub(crate) size: (u32, u32),
+    pub(crate) config: TargetConfig,
     depth_buffer: TextureView,
-}
-
-impl Target {
-    const DEFAULT_SIZE: (u32, u32) = (800, 600);
 }
 
 #[derive(Debug)]
@@ -459,3 +478,18 @@ impl WindowTarget {
 }
 
 // coverage: on
+
+#[derive(Debug)]
+pub(crate) struct TargetConfig {
+    pub(crate) size: (u32, u32),
+    pub(crate) background_color: Color,
+}
+
+impl Default for TargetConfig {
+    fn default() -> Self {
+        Self {
+            size: (800, 600),
+            background_color: Color::BLACK,
+        }
+    }
+}

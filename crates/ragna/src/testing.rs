@@ -30,7 +30,7 @@ use std::{env, fs};
 /// # use ragna::{assert_same_texture, App};
 /// #
 /// # fn no_run() {
-/// let app = App::default().texture().run(1);
+/// let app = App::default().texture((800, 600)).run(1);
 /// assert_same_texture("expected_filename", &app.read_target());
 /// # }
 /// ```

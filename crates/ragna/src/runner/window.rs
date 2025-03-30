@@ -1,5 +1,6 @@
 use crate::runner::common::{Runner, TargetSpecialized};
 use crate::App;
+use wgpu::Color;
 use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
 use winit::event::WindowEvent;
@@ -11,6 +12,7 @@ use winit::window::WindowId;
 #[derive(Debug)]
 pub(crate) struct WindowRunner {
     app: App,
+    background_color: Color,
     runner: Option<Runner>,
 }
 
@@ -47,15 +49,23 @@ impl ApplicationHandler for WindowRunner {
 }
 
 impl WindowRunner {
-    pub(crate) fn new(app: App) -> Self {
-        Self { app, runner: None }
+    pub(crate) fn new(app: App, background_color: Color) -> Self {
+        Self {
+            app,
+            background_color,
+            runner: None,
+        }
     }
 
     fn refresh_surface(&mut self, event_loop: &ActiveEventLoop) {
         if let Some(runner) = &mut self.runner {
             runner.refresh_surface();
         } else {
-            self.runner = Some(Runner::new_window(&self.app, event_loop));
+            self.runner = Some(Runner::new_window(
+                &self.app,
+                event_loop,
+                self.background_color,
+            ));
         }
     }
 

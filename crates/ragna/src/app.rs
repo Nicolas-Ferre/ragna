@@ -9,6 +9,7 @@ use fxhash::FxHashMap;
 use std::any::TypeId;
 use std::mem;
 use std::sync::Mutex;
+use wgpu::Color;
 use winit::event_loop::EventLoop;
 
 pub(crate) static CURRENT_CTX: Mutex<Option<GpuContext>> = Mutex::new(None);
@@ -26,8 +27,10 @@ pub struct App {
 
 impl App {
     /// Configure the application to run with a texture target.
-    pub fn texture(self) -> TextureApp {
-        let runner = Runner::new_texture(&self);
+    ///
+    /// `size` corresponds to the width and height of the texture target.
+    pub fn texture(self, size: (u32, u32)) -> TextureApp {
+        let runner = Runner::new_texture(&self, size);
         TextureApp { app: self, runner }
     }
 
@@ -119,12 +122,23 @@ pub struct WindowApp {
 
 impl WindowApp {
     /// Runs the application with a window.
-    pub fn run(self) {
+    ///
+    /// `background_color` corresponds to RGBA components between `0.0` and `1.0`
+    /// of the applied background color.
+    pub fn run(self, background_color: (f64, f64, f64, f64)) {
         let event_loop = EventLoop::builder()
             .build()
             .expect("event loop initialization failed");
         event_loop
-            .run_app(&mut WindowRunner::new(self.app))
+            .run_app(&mut WindowRunner::new(
+                self.app,
+                Color {
+                    r: background_color.0,
+                    g: background_color.1,
+                    b: background_color.2,
+                    a: background_color.3,
+                },
+            ))
             .expect("event loop failed");
     }
 }
@@ -139,6 +153,17 @@ pub struct TextureApp {
 }
 
 impl TextureApp {
+    /// Sets the background color of the texture target.
+    pub fn with_background_color(mut self, background_color: (f64, f64, f64, f64)) -> Self {
+        self.runner.target.config.background_color = Color {
+            r: background_color.0,
+            g: background_color.1,
+            b: background_color.2,
+            a: background_color.3,
+        };
+        self
+    }
+
     /// Reads a value stored on GPU side.
     ///
     /// If the passed value is not a global variable,
@@ -155,7 +180,7 @@ impl TextureApp {
     pub fn read_target(&self) -> TextureData {
         TextureData {
             buffer: self.runner.read_target(),
-            size: self.runner.target.size,
+            size: self.runner.target.config.size,
         }
     }
 
