@@ -30,8 +30,6 @@ pub(crate) struct Runner {
     last_step_end: Instant,
 }
 
-// TODO: check window size to ensure there is no crash
-
 impl Runner {
     pub(crate) fn new_texture(app: &App, size: (u32, u32)) -> Self {
         let target = TargetConfig {
@@ -349,7 +347,7 @@ impl Runner {
         size: (u32, u32),
     ) -> SurfaceConfiguration {
         let config = surface
-            .get_default_config(adapter, size.0, size.1)
+            .get_default_config(adapter, size.0.max(1), size.1.max(1))
             .expect("not supported surface");
         surface.configure(device, &config);
         config
