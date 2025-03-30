@@ -28,7 +28,19 @@ fn compare_to_same_texture() {
 #[should_panic = "texture is different"]
 fn compare_to_different_texture() {
     let app = App::default().texture().run(1);
-    assert_same_texture("target#default_not_rendered", &app.read_target());
+    assert_same_texture("testing#different_pixels", &app.read_target());
+}
+
+#[test]
+fn generate_diff_texture() {
+    let app = App::default().texture().run(1);
+    let result = panic::catch_unwind(AssertUnwindSafe(|| {
+        assert_same_texture("testing#different_pixels", &app.read_target());
+    }));
+    assert!(result.is_err());
+    let actual_diff = load_image_data("/tmp/diff_testing#different_pixels.png");
+    let expected_diff = load_image_data("tests/expected/testing#different_pixels_diff.png");
+    assert_eq!(actual_diff.ok(), expected_diff.ok());
 }
 
 #[test]
