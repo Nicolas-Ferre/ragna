@@ -9,8 +9,9 @@ use wgpu::{
     Extent3d, Features, Instance, InstanceFlags, Limits, LoadOp, MapMode, MemoryHints, Operations,
     PowerPreference, Queue, RenderPass, RenderPassColorAttachment,
     RenderPassDepthStencilAttachment, RenderPassDescriptor, RequestAdapterOptions, StoreOp,
-    Surface, SurfaceConfiguration, SurfaceTexture, TextureDescriptor, TextureDimension,
-    TextureFormat, TextureUsages, TextureView, TextureViewDescriptor,
+    Surface, SurfaceConfiguration, SurfaceTexture, TexelCopyBufferInfo, TexelCopyBufferLayout,
+    Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView,
+    TextureViewDescriptor,
 };
 use winit::dpi::PhysicalSize;
 use winit::event_loop::ActiveEventLoop;
@@ -18,7 +19,7 @@ use winit::window::Window;
 
 #[derive(Debug)]
 pub(crate) struct Runner {
-    pub(crate) surface: Option<WindowSurface>,
+    pub(crate) target: Target,
     instance: Instance,
     device: Device,
     adapter: Adapter,
@@ -30,13 +31,21 @@ pub(crate) struct Runner {
 }
 
 impl Runner {
-    pub(crate) fn new(app: &App) -> Self {
+    pub(crate) fn new_texture(app: &App) -> Self {
+        let size = Target::DEFAULT_SIZE;
         let instance = Self::create_instance();
         let adapter = Self::create_adapter(&instance, None);
         let (device, queue) = Self::create_device(&adapter);
+        let texture = Self::create_target_texture(&device, size);
+        let view = texture.create_view(&TextureViewDescriptor::default());
+        let depth_buffer = Self::create_depth_buffer(&device, size);
         let program = Program::new(app, &device);
         Self {
-            surface: None,
+            target: Target {
+                inner: TargetSpecialized::Texture(TextureTarget { texture, view }),
+                size,
+                depth_buffer,
+            },
             instance,
             device,
             adapter,
@@ -50,7 +59,7 @@ impl Runner {
 
     // coverage: off (window cannot be tested)
     pub(crate) fn new_window(app: &App, event_loop: &ActiveEventLoop) -> Self {
-        let size = WindowSurface::DEFAULT_SIZE;
+        let size = Target::DEFAULT_SIZE;
         let instance = Self::create_instance();
         let window = Self::create_window(event_loop);
         let surface = Self::create_surface(&instance, window.clone());
@@ -60,13 +69,15 @@ impl Runner {
         let depth_buffer = Self::create_depth_buffer(&device, size);
         let program = Program::new(app, &device);
         Self {
-            surface: Some(WindowSurface {
-                window,
-                surface,
-                surface_config,
+            target: Target {
+                inner: TargetSpecialized::Window(WindowTarget {
+                    window,
+                    surface,
+                    surface_config,
+                }),
                 size,
                 depth_buffer,
-            }),
+            },
             instance,
             device,
             adapter,
@@ -90,17 +101,23 @@ impl Runner {
         }
         let pass = Self::create_compute_pass(&mut encoder);
         self.program.run_update_step(pass);
-        if let Some(surface) = &mut self.surface {
+        match &self.target.inner {
             // coverage: off (window cannot be tested)
-            let texture = surface.create_surface_texture();
-            let view = Self::create_surface_view(&texture);
-            let pass = Self::create_render_pass(&mut encoder, &view, &surface.depth_buffer);
-            self.program.run_draw_step(pass);
-            self.queue.submit(Some(encoder.finish()));
-            texture.present();
-        } else {
+            TargetSpecialized::Window(target) => {
+                let texture = target.create_surface_texture();
+                let view = Self::create_surface_view(&texture);
+                let pass = Self::create_render_pass(&mut encoder, &view, &self.target.depth_buffer);
+                self.program.run_draw_step(pass);
+                self.queue.submit(Some(encoder.finish()));
+                texture.present();
+            }
             // coverage: on
-            self.queue.submit(Some(encoder.finish()));
+            TargetSpecialized::Texture(target) => {
+                let pass =
+                    Self::create_render_pass(&mut encoder, &target.view, &self.target.depth_buffer);
+                self.program.run_draw_step(pass);
+                self.queue.submit(Some(encoder.finish()));
+            }
         }
         let end = Instant::now();
         self.last_delta = end - start;
@@ -118,7 +135,7 @@ impl Runner {
                 let buffer_type_details = GpuTypeDetails::from_fields(&app.globs, &app.types);
                 let value_size = app.types[&value.type_id].1.size();
                 let tmp_buffer = self.device.create_buffer(&BufferDescriptor {
-                    label: Some("ragna:texture_buffer"),
+                    label: Some("ragna:glob_buffer"),
                     size: value_size,
                     usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
                     mapped_at_creation: false,
@@ -126,7 +143,7 @@ impl Runner {
                 let mut encoder = self
                     .device
                     .create_command_encoder(&CommandEncoderDescriptor {
-                        label: Some("ragna:buffer_retrieval"),
+                        label: Some("ragna:glob_buffer_retrieval"),
                     });
                 encoder.copy_buffer_to_buffer(
                     buffer,
@@ -153,30 +170,111 @@ impl Runner {
         }
     }
 
+    pub(crate) fn read_target(&self) -> Vec<u8> {
+        match &self.target.inner {
+            TargetSpecialized::Texture(target) => {
+                let padded_bytes_per_row = Self::calculate_padded_row_bytes(self.target.size.0);
+                let padded_row_bytes = Self::calculate_padded_row_bytes(self.target.size.0);
+                let tmp_buffer = self.device.create_buffer(&BufferDescriptor {
+                    label: Some("ragna:texture_buffer"),
+                    size: (padded_bytes_per_row * self.target.size.1).into(),
+                    usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
+                    mapped_at_creation: false,
+                });
+                let mut encoder = self
+                    .device
+                    .create_command_encoder(&CommandEncoderDescriptor {
+                        label: Some("ragna:texture_buffer_retrieval"),
+                    });
+                encoder.copy_texture_to_buffer(
+                    target.texture.as_image_copy(),
+                    TexelCopyBufferInfo {
+                        buffer: &tmp_buffer,
+                        layout: TexelCopyBufferLayout {
+                            offset: 0,
+                            bytes_per_row: Some(padded_row_bytes),
+                            rows_per_image: None,
+                        },
+                    },
+                    Extent3d {
+                        width: self.target.size.0,
+                        height: self.target.size.1,
+                        depth_or_array_layers: 1,
+                    },
+                );
+                let submission_index = self.queue.submit(Some(encoder.finish()));
+                let slice = tmp_buffer.slice(..);
+                slice.map_async(MapMode::Read, |_| ());
+                self.device
+                    .poll(wgpu::Maintain::WaitForSubmissionIndex(submission_index));
+                let view = slice.get_mapped_range();
+                let padded_row_bytes = Self::calculate_padded_row_bytes(self.target.size.0);
+                let unpadded_row_bytes = Self::calculate_unpadded_row_bytes(self.target.size.0);
+                let content = view
+                    .chunks(padded_row_bytes as usize)
+                    .flat_map(|a| &a[..unpadded_row_bytes as usize])
+                    .copied()
+                    .collect();
+                drop(view);
+                tmp_buffer.unmap();
+                content
+            }
+            TargetSpecialized::Window(_) => {
+                unreachable!("internal error: cannot read window buffer")
+            }
+        }
+    }
+
     // coverage: off (window cannot be tested)
     pub(crate) fn refresh_surface(&mut self) {
-        let surface = self.surface.as_mut().expect("uninit window");
-        surface.surface = Self::create_surface(&self.instance, surface.window.clone());
-        surface.surface_config = Self::create_surface_config(
-            &self.adapter,
-            &self.device,
-            &surface.surface,
-            surface.size,
-        );
+        match &mut self.target.inner {
+            TargetSpecialized::Window(target) => {
+                target.surface = Self::create_surface(&self.instance, target.window.clone());
+                target.surface_config = Self::create_surface_config(
+                    &self.adapter,
+                    &self.device,
+                    &target.surface,
+                    self.target.size,
+                );
+            }
+            TargetSpecialized::Texture(_) => {
+                unreachable!("internal error: refreshing non-window target surface")
+            }
+        }
     }
 
     pub(crate) fn update_surface_size(&mut self, size: PhysicalSize<u32>) {
-        let surface = self.surface.as_mut().expect("uninit window");
-        surface.size = (size.width, size.height);
-        surface.depth_buffer = Self::create_depth_buffer(&self.device, surface.size);
-        surface.surface_config = Self::create_surface_config(
-            &self.adapter,
-            &self.device,
-            &surface.surface,
-            surface.size,
-        );
+        match &mut self.target.inner {
+            TargetSpecialized::Window(target) => {
+                self.target.size = (size.width, size.height);
+                self.target.depth_buffer =
+                    Self::create_depth_buffer(&self.device, self.target.size);
+                target.surface_config = Self::create_surface_config(
+                    &self.adapter,
+                    &self.device,
+                    &target.surface,
+                    self.target.size,
+                );
+            }
+            TargetSpecialized::Texture(_) => {
+                unreachable!("internal error: updating non-window target surface")
+            }
+        }
     }
     // coverage: on
+
+    fn calculate_padded_row_bytes(width: u32) -> u32 {
+        let unpadded_bytes_per_row = Self::calculate_unpadded_row_bytes(width);
+        let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+        let padded_bytes_per_row_padding = (align - unpadded_bytes_per_row % align) % align;
+        unpadded_bytes_per_row + padded_bytes_per_row_padding
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    fn calculate_unpadded_row_bytes(width: u32) -> u32 {
+        let bytes_per_pixel = size_of::<u32>() as u32;
+        width * bytes_per_pixel
+    }
 
     fn create_instance() -> Instance {
         Instance::new(&wgpu::InstanceDescriptor {
@@ -209,7 +307,7 @@ impl Runner {
 
     // coverage: off (window cannot be tested)
     fn create_window(event_loop: &ActiveEventLoop) -> Arc<Window> {
-        let size = PhysicalSize::new(WindowSurface::DEFAULT_SIZE.0, WindowSurface::DEFAULT_SIZE.1);
+        let size = PhysicalSize::new(Target::DEFAULT_SIZE.0, Target::DEFAULT_SIZE.1);
         let window = event_loop
             .create_window(Window::default_attributes().with_inner_size(size))
             .expect("cannot create window");
@@ -235,6 +333,30 @@ impl Runner {
         config
     }
 
+    fn create_surface_view(texture: &SurfaceTexture) -> TextureView {
+        texture
+            .texture
+            .create_view(&TextureViewDescriptor::default())
+    }
+    // coverage: on
+
+    fn create_target_texture(device: &Device, size: (u32, u32)) -> Texture {
+        device.create_texture(&TextureDescriptor {
+            label: Some("ragna:target_texture"),
+            size: Extent3d {
+                width: size.0,
+                height: size.1,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: TextureDimension::D2,
+            format: TextureFormat::Rgba8UnormSrgb,
+            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::COPY_SRC,
+            view_formats: &[],
+        })
+    }
+
     fn create_depth_buffer(device: &Device, size: (u32, u32)) -> TextureView {
         let texture = device.create_texture(&TextureDescriptor {
             label: Some("ragna:depth_texture"),
@@ -253,13 +375,6 @@ impl Runner {
         texture.create_view(&TextureViewDescriptor::default())
     }
 
-    fn create_surface_view(texture: &SurfaceTexture) -> TextureView {
-        texture
-            .texture
-            .create_view(&TextureViewDescriptor::default())
-    }
-    // coverage: on
-
     fn create_encoder(&self) -> CommandEncoder {
         self.device
             .create_command_encoder(&CommandEncoderDescriptor {
@@ -274,7 +389,6 @@ impl Runner {
         })
     }
 
-    // coverage: off (window cannot be tested)
     fn create_render_pass<'a>(
         encoder: &'a mut CommandEncoder,
         view: &'a TextureView,
@@ -302,26 +416,46 @@ impl Runner {
             occlusion_query_set: None,
         })
     }
-    // coverage: on
 }
 
 #[derive(Debug)]
-pub(crate) struct WindowSurface {
-    pub(crate) window: Arc<Window>,
-    surface: Surface<'static>,
-    surface_config: SurfaceConfiguration,
-    size: (u32, u32),
+pub(crate) struct Target {
+    pub(crate) inner: TargetSpecialized,
+    pub(crate) size: (u32, u32),
     depth_buffer: TextureView,
 }
 
-impl WindowSurface {
+impl Target {
     const DEFAULT_SIZE: (u32, u32) = (800, 600);
+}
 
-    // coverage: off (window cannot be tested)
+#[derive(Debug)]
+pub(crate) enum TargetSpecialized {
+    Window(WindowTarget),
+    Texture(TextureTarget),
+}
+
+#[derive(Debug)]
+pub(crate) struct TextureTarget {
+    texture: Texture,
+    view: TextureView,
+}
+
+// coverage: off (window cannot be tested)
+
+#[derive(Debug)]
+pub(crate) struct WindowTarget {
+    pub(crate) window: Arc<Window>,
+    surface: Surface<'static>,
+    surface_config: SurfaceConfiguration,
+}
+
+impl WindowTarget {
     fn create_surface_texture(&self) -> SurfaceTexture {
         self.surface
             .get_current_texture()
             .expect("internal error: cannot retrieve surface texture")
     }
-    // coverage: on
 }
+
+// coverage: on

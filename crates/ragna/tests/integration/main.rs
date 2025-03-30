@@ -11,4 +11,6 @@ pub mod loops;
 pub mod operators;
 pub mod references;
 pub mod structs;
+pub mod target;
+pub mod testing;
 pub mod types;

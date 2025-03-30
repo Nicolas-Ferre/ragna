@@ -2,7 +2,7 @@ use ragna::App;
 
 #[test]
 pub fn use_imports() {
-    let app = App::default().with_module(gpu::register).testing().run(1);
+    let app = App::default().with_module(gpu::register).texture().run(1);
     assert_eq!(app.read(*gpu::IMPORTED_FUNCTION), Some(9.));
     assert_eq!(app.read(*gpu::QUALIFIED_FUNCTION), Some(4.));
 }

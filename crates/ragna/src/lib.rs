@@ -7,6 +7,7 @@ mod instructions;
 mod operations;
 mod operators;
 mod runner;
+mod testing;
 mod types;
 mod wgsl;
 
@@ -15,6 +16,7 @@ pub use context::*;
 pub use glob::*;
 pub use instructions::*;
 pub use operators::*;
+pub use testing::*;
 pub use types::array::*;
 pub use types::primitive::*;
 pub use types::range::*;

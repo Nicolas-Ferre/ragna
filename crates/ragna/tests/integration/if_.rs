@@ -2,7 +2,7 @@ use ragna::App;
 
 #[test]
 pub fn run_if_else() {
-    let app = App::default().with_module(gpu::register).testing().run(1);
+    let app = App::default().with_module(gpu::register).texture().run(1);
     assert_eq!(app.read(*gpu::IF_RESULT), Some(6));
     assert_eq!(app.read(*gpu::IF_EXPR_RESULT), Some(5));
     assert_eq!(app.read(*gpu::CONDITIONAL_RETURN_RESULT), Some(1));
