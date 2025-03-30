@@ -4,7 +4,7 @@ use ragna::App;
 
 #[test]
 pub fn use_arrays() {
-    let app = App::default().with_module(gpu::register).testing().run(1);
+    let app = App::default().with_module(gpu::register).texture().run(1);
     assert_eq!(app.read(*gpu::FROM_CONSTANT), Some([1, 2, 3, 4]));
     assert_eq!(app.read(*gpu::FROM_ITEMS), Some([1, 2, 3, 4]));
     assert_eq!(app.read(*gpu::FROM_REPEATED), Some([42, 42, 42, 42]));

@@ -2,7 +2,7 @@ use ragna::App;
 
 #[test]
 pub fn assign_values() {
-    let app = App::default().with_module(gpu::register).testing().run(1);
+    let app = App::default().with_module(gpu::register).texture().run(1);
     assert_eq!(app.read(*gpu::FROM_VAR), Some(10));
     assert_eq!(app.read(*gpu::FROM_MODIFIED_VAR), Some(20));
     assert_eq!(app.read(*gpu::FROM_CONSTANT), Some(30));

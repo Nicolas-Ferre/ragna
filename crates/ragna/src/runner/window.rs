@@ -1,4 +1,4 @@
-use crate::runner::common::Runner;
+use crate::runner::common::{Runner, TargetSpecialized};
 use crate::App;
 use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
@@ -36,8 +36,11 @@ impl ApplicationHandler for WindowRunner {
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         if let Some(runner) = &mut self.runner {
-            if let Some(surface) = &mut runner.surface {
-                surface.window.request_redraw();
+            match &runner.target.inner {
+                TargetSpecialized::Window(target) => target.window.request_redraw(),
+                TargetSpecialized::Texture(_) => {
+                    unreachable!("internal error: uninitialized window")
+                }
             }
         }
     }

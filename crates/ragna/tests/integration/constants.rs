@@ -2,7 +2,7 @@ use ragna::App;
 
 #[test]
 pub fn use_constant() {
-    let app = App::default().with_module(gpu::register).testing().run(1);
+    let app = App::default().with_module(gpu::register).texture().run(1);
     assert_eq!(app.read(*gpu::CONSTANT_RES), Some(20));
 }
 

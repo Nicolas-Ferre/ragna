@@ -2,21 +2,21 @@ use ragna::App;
 
 #[test]
 pub fn run_empty_app() {
-    App::default().testing().run(1);
+    App::default().texture().run(1);
 }
 
 #[test]
 pub fn run_app_with_empty_module() {
     let app = App::default()
         .with_module(no_item::register)
-        .testing()
+        .texture()
         .run(1);
     assert_eq!(app.read(*gpu::GLOB), None);
 }
 
 #[test]
 pub fn run_app_with_not_used_glob() {
-    let app = App::default().with_module(gpu::register).testing().run(1);
+    let app = App::default().with_module(gpu::register).texture().run(1);
     assert_eq!(app.read(*gpu::GLOB), Some(10));
 }
 

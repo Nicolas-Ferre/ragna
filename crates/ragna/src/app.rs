@@ -25,10 +25,10 @@ pub struct App {
 }
 
 impl App {
-    /// Configure the application for testing.
-    pub fn testing(self) -> TestApp {
-        let runner = Runner::new(&self);
-        TestApp { app: self, runner }
+    /// Configure the application to run with a texture target.
+    pub fn texture(self) -> TextureApp {
+        let runner = Runner::new_texture(&self);
+        TextureApp { app: self, runner }
     }
 
     // coverage: off (window cannot be tested)
@@ -131,14 +131,14 @@ impl WindowApp {
 
 // coverage: on
 
-/// An application for testing purpose.
+/// An application run with a texture target.
 #[derive(Debug)]
-pub struct TestApp {
+pub struct TextureApp {
     app: App,
     runner: Runner,
 }
 
-impl TestApp {
+impl TextureApp {
     /// Reads a value stored on GPU side.
     ///
     /// If the passed value is not a global variable,
@@ -151,6 +151,14 @@ impl TestApp {
         }
     }
 
+    /// Reads texture target stored on GPU side.
+    pub fn read_target(&self) -> TextureData {
+        TextureData {
+            buffer: self.runner.read_target(),
+            size: self.runner.target.size,
+        }
+    }
+
     /// Runs the application during `update_count` steps.
     pub fn run(mut self, update_count: u64) -> Self {
         for _ in 0..update_count {
@@ -158,4 +166,13 @@ impl TestApp {
         }
         self
     }
+}
+
+/// Texture data retrieved from GPU.
+#[non_exhaustive]
+pub struct TextureData {
+    /// RGBA buffer of the texture.
+    pub buffer: Vec<u8>,
+    /// Width and height of the texture.
+    pub size: (u32, u32),
 }

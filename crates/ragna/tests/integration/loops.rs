@@ -2,7 +2,7 @@ use ragna::App;
 
 #[test]
 pub fn run_loops() {
-    let app = App::default().with_module(gpu::register).testing().run(1);
+    let app = App::default().with_module(gpu::register).texture().run(1);
     assert_eq!(app.read(*gpu::WHILE_RESULT), Some(45));
     assert_eq!(app.read(*gpu::FOR_RESULT), Some(24));
     assert_eq!(app.read(*gpu::FOR_ENUMERATED_RESULT), Some(15));
