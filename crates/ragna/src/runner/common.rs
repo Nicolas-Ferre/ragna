@@ -266,7 +266,7 @@ impl Runner {
     pub(crate) fn update_surface_size(&mut self, size: PhysicalSize<u32>) {
         match &mut self.target.inner {
             TargetSpecialized::Window(target) => {
-                self.target.config.size = (size.width, size.height);
+                self.target.config.size = (size.width.max(1), size.height.max(1));
                 self.target.depth_buffer =
                     Self::create_depth_buffer(&self.device, self.target.config.size);
                 target.surface_config = Self::create_surface_config(
@@ -347,7 +347,7 @@ impl Runner {
         size: (u32, u32),
     ) -> SurfaceConfiguration {
         let config = surface
-            .get_default_config(adapter, size.0.max(1), size.1.max(1))
+            .get_default_config(adapter, size.0, size.1)
             .expect("not supported surface");
         surface.configure(device, &config);
         config
