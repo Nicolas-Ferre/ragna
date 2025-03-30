@@ -38,7 +38,8 @@ fn generate_diff_texture() {
         assert_same_texture("testing#different_pixels", &app.read_target());
     }));
     assert!(result.is_err());
-    let actual_diff = load_image_data("/tmp/diff_testing#different_pixels.png");
+    let actual_diff =
+        load_image_data(std::env::temp_dir().join("diff_testing#different_pixels.png"));
     let expected_diff = load_image_data("tests/expected/testing#different_pixels_diff.png");
     assert_eq!(actual_diff.ok(), expected_diff.ok());
 }
