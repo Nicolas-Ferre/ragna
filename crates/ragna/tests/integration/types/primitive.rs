@@ -4,7 +4,10 @@ use ragna::App;
 
 #[test]
 pub fn use_native_types() {
-    let app = App::default().with_module(gpu::register).texture().run(1);
+    let app = App::default()
+        .with_module(gpu::register)
+        .texture((1, 1))
+        .run(1);
     assert_eq!(app.read(*gpu::I32_POS_VALUE), Some(0x7FFF_FFFF));
     assert_eq!(app.read(*gpu::I32_NEG_VALUE), Some(-0x8000_0000));
     assert_eq!(app.read(*gpu::U32_VALUE), Some(0xFFFF_FFFF));

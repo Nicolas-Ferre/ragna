@@ -6,7 +6,7 @@ use std::{fs, panic};
 
 #[test]
 pub fn compare_to_not_existing_expected_texture() {
-    let app = App::default().texture().run(1);
+    let app = App::default().texture((4, 4)).run(1);
     let result = panic::catch_unwind(AssertUnwindSafe(|| {
         assert_same_texture("testing#non_existing", &app.read_target());
     }));
@@ -20,20 +20,20 @@ pub fn compare_to_not_existing_expected_texture() {
 
 #[test]
 fn compare_to_same_texture() {
-    let app = App::default().texture().run(1);
+    let app = App::default().texture((4, 4)).run(1);
     assert_same_texture("target#default_rendered", &app.read_target());
 }
 
 #[test]
 #[should_panic = "texture is different"]
 fn compare_to_different_texture() {
-    let app = App::default().texture().run(1);
+    let app = App::default().texture((4, 4)).run(1);
     assert_same_texture("testing#different_pixels", &app.read_target());
 }
 
 #[test]
 fn generate_diff_texture() {
-    let app = App::default().texture().run(1);
+    let app = App::default().texture((4, 4)).run(1);
     let result = panic::catch_unwind(AssertUnwindSafe(|| {
         assert_same_texture("testing#different_pixels", &app.read_target());
     }));
@@ -47,14 +47,14 @@ fn generate_diff_texture() {
 #[test]
 #[should_panic = "texture width is different"]
 fn compare_to_texture_with_different_width() {
-    let app = App::default().texture().run(1);
+    let app = App::default().texture((4, 4)).run(1);
     assert_same_texture("testing#different_width", &app.read_target());
 }
 
 #[test]
 #[should_panic = "texture height is different"]
 fn compare_to_texture_with_different_height() {
-    let app = App::default().texture().run(1);
+    let app = App::default().texture((4, 4)).run(1);
     assert_same_texture("testing#different_height", &app.read_target());
 }
 

@@ -2,7 +2,10 @@ use ragna::App;
 
 #[test]
 pub fn use_functions() {
-    let app = App::default().with_module(gpu::register).texture().run(1);
+    let app = App::default()
+        .with_module(gpu::register)
+        .texture((1, 1))
+        .run(1);
     assert_eq!(app.read(*gpu::EXTERN_FN_RESULT), Some(9.));
     assert_eq!(app.read(*gpu::EXTERN_GENERIC_FN_RESULT), Some(4.));
     assert_eq!(app.read(*gpu::CUSTOM_FN_RESULT), Some(20.));

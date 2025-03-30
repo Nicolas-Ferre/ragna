@@ -3,7 +3,10 @@
 use ragna::App;
 
 fn main() {
-    App::default().with_module(gpu::register).window().run();
+    App::default()
+        .with_module(gpu::register)
+        .window()
+        .run((0., 0., 1., 1.));
 }
 
 #[ragna::gpu]
