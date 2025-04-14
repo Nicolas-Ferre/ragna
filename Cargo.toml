@@ -38,7 +38,7 @@ syn = { version = "2.0", features = ["full", "fold", "extra-traits"] }
 wasm-bindgen-futures = "0.4"
 wasm-bindgen-test = "0.3"
 web-sys = { version = "0.3", features = ["Location"] }
-wgpu = "24.0"
+wgpu = "25.0"
 winit = "0.30"
 
 ragna = { version = "0.1.0", path = "crates/ragna" }
